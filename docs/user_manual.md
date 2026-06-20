@@ -75,15 +75,23 @@ See [lichess_bot_setup.md](lichess_bot_setup.md) — use **lichess-bot** (offici
 | Command | Opponents |
 |---------|-----------|
 | `./scripts/podman/gauntlet --smoke` | self, random UCI bot, Stockfish (in Podman) |
-| `./scripts/host-vs-stockfish.sh` | labzero vs **your macOS Stockfish** (host binaries) |
+| `./scripts/host-vs-stockfish.sh` | labzero vs **your macOS Stockfish** (single game, host binaries) |
+| `./scripts/host-benchmark.sh` | **32× bullet** vs weakened Stockfish; saves `docs/strength/` |
 
-Host Stockfish test (set your path, not committed to git):
+Host Stockfish test (set your path via `STOCKFISH`, not committed to git):
 
 ```bash
 ./scripts/build-host-engine.sh
 export STOCKFISH="/path/to/stockfish-macos-m1-apple-silicon"
+
+# one quick game (incomplete if PLIES cap hit)
 ./scripts/host-vs-stockfish.sh
-# optional: DEPTH=3 PLIES=60 ./scripts/host-vs-stockfish.sh
+
+# 32 bullet games vs weak Stockfish — results in docs/strength/
+./scripts/host-benchmark.sh
+
+# tweak weakness / volume
+GAMES=32 SF_ELO=1320 SF_SKILL=0 SF_LIMIT=1 TC_SEC=1 TC_INC=0 ./scripts/host-benchmark.sh
 ```
 
 Requires no always-on server and no Lichess account.
