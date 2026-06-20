@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+"${SCRIPT_DIR}/build-engine"
+ENGINE="/workspace/.cargo-target/release/labzero"
+
+"${SCRIPT_DIR}/run" bash tournaments/fastchess/smoke.sh "${ENGINE}" fastchess

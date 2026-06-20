@@ -1,0 +1,7 @@
+# Copy to config.toml and set LICHESS_TOKEN in environment.
+engine = "/workspace/.cargo-target/release/labzero"
+search_depth = 4
+movetime_ms = 2000
+max_concurrent = 1
+accept_challenges = true
+dry_run = false

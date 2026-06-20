@@ -1,0 +1,21 @@
+services:
+  dev:
+    image: labzero-dev
+    build:
+      context: .
+      dockerfile: containers/Containerfile.dev
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:Z
+      - labzero-cargo-registry:/usr/local/cargo/registry
+      - labzero-cargo-git:/usr/local/cargo/git
+    environment:
+      CARGO_TARGET_DIR: /workspace/.cargo-target
+      RUST_BACKTRACE: "1"
+    stdin_open: true
+    tty: true
+    command: bash
+
+volumes:
+  labzero-cargo-registry:
+  labzero-cargo-git:

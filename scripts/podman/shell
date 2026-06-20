@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+repo_vol="$(volume_mount "${REPO_ROOT}" /workspace)"
+exec podman run --rm -it --user 0:0 \
+  -v "${repo_vol}" \
+  -v labzero-cargo-registry:/usr/local/cargo/registry \
+  -v labzero-cargo-git:/usr/local/cargo/git \
+  -w /workspace \
+  -e CARGO_TARGET_DIR=/workspace/.cargo-target \
+  -e RUST_BACKTRACE=1 \
+  -e PATH="/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+  "${IMAGE_NAME}" bash

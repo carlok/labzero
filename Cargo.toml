@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "engine",
+    "verifier/rust/cozy_crosscheck",
+    "verifier/rust/shakmaty_crosscheck",
+]
+resolver = "2"

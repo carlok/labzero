@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+LOG="${REPO_ROOT}/docs/lab_log.md"
+STAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+STATUS="PASS"
+FAILURES=()
+
+run_step() {
+  local name="$1"
+  shift
+  echo "==> ${name}"
+  if "$@"; then
+    echo "    OK: ${name}"
+  else
+    echo "    FAIL: ${name}" >&2
+    STATUS="FAIL"
+    FAILURES+=("${name}")
+  fi
+}
+
+run_step "cargo fmt --check" \
+  "${SCRIPT_DIR}/run" cargo fmt --all -- --check
+
+run_step "cargo clippy" \
+  "${SCRIPT_DIR}/run" cargo clippy --manifest-path engine/Cargo.toml -- -D warnings
+
+run_step "cargo test" \
+  "${SCRIPT_DIR}/run" cargo test --manifest-path engine/Cargo.toml
+
+run_step "build engine" \
+  "${SCRIPT_DIR}/build-engine"
+
+run_step "verify smoke" \
+  "${SCRIPT_DIR}/verify-smoke"
+
+run_step "tournament smoke" \
+  "${SCRIPT_DIR}/tournament-smoke"
+
+mkdir -p "$(dirname "${LOG}")"
+{
+  echo ""
+  echo "## CI run ${STAMP}"
+  echo ""
+  echo "- **Result:** ${STATUS}"
+  if ((${#FAILURES[@]} > 0)); then
+    echo "- **Failures:** ${FAILURES[*]}"
+  fi
+  echo "- **Command:** \`./scripts/podman/ci\`"
+} >> "${LOG}"
+
+if [[ "${STATUS}" == "FAIL" ]]; then
+  echo "ci: FAIL (${FAILURES[*]})" >&2
+  exit 1
+fi
+
+echo "ci: PASS"

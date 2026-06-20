@@ -1,0 +1,2 @@
+berserk>=0.13
+python-chess>=1.999

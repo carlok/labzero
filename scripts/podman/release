@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+VERSION="${1:-$(grep '^version' "${REPO_ROOT}/engine/Cargo.toml" | head -1 | cut -d'"' -f2)}"
+LOG="${REPO_ROOT}/docs/lab_log.md"
+
+"${SCRIPT_DIR}/build-engine"
+ENGINE="/workspace/.cargo-target/release/labzero"
+HOST_ENGINE="${REPO_ROOT}/.cargo-target/release/labzero"
+
+HASH="$("${SCRIPT_DIR}/run" sha256sum "${ENGINE}" | awk '{print $1}')"
+
+{
+  echo ""
+  echo "## Release v${VERSION} $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  echo ""
+  echo "- **Binary:** \`.cargo-target/release/labzero\`"
+  echo "- **SHA256:** \`${HASH}\`"
+  echo "- **Version:** ${VERSION}"
+} >> "${LOG}"
+
+echo "labzero v${VERSION}"
+echo "SHA256: ${HASH}"
+echo "Path: ${HOST_ENGINE}"

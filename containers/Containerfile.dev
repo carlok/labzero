@@ -1,0 +1,45 @@
+# labzero-dev: Rust + Python verifier + tournament tooling
+FROM docker.io/library/rust:1-bookworm
+
+ARG LABZERO_UID=1000
+ARG LABZERO_GID=1000
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUST_BACKTRACE=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    g++ \
+    make \
+    python3 \
+    python3-pip \
+    python3-venv \
+    stockfish \
+    && rm -rf /var/lib/apt/lists/*
+
+# Fastchess — shallow clone; built with make per upstream README
+RUN git clone --depth 1 https://github.com/Disservin/fastchess.git /tmp/fastchess \
+    && make -C /tmp/fastchess -j"$(nproc)" \
+    && install -m 755 /tmp/fastchess/fastchess /usr/local/bin/fastchess \
+    && rm -rf /tmp/fastchess
+
+RUN rustup component add rustfmt clippy
+
+RUN groupadd -g "${LABZERO_GID}" labzero \
+    && useradd -m -u "${LABZERO_UID}" -g "${LABZERO_GID}" -s /bin/bash labzero \
+    && mkdir -p /workspace \
+    && chown -R labzero:labzero /workspace /home/labzero
+
+WORKDIR /workspace
+
+COPY --chown=labzero:labzero verifier/python/requirements.txt /tmp/requirements.txt
+COPY --chown=labzero:labzero lichess_bot/requirements.txt /tmp/lichess-requirements.txt
+RUN pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements.txt -r /tmp/lichess-requirements.txt \
+    && rm /tmp/requirements.txt /tmp/lichess-requirements.txt
+
+USER labzero
+ENV PATH="/usr/local/cargo/bin:${PATH}" \
+    CARGO_HOME=/usr/local/cargo \
+    RUSTUP_HOME=/usr/local/rustup

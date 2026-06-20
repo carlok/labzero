@@ -1,0 +1,505 @@
+gauntlet config: games=100 rounds=25 smoke=0
+==> self-play short tc
+Indexing opening suite...
+Started game 1 of 50 (labzero vs labzero2)
+Finished game 1 (labzero vs labzero2): 0-1 {Black mates}
+Started game 2 of 50 (labzero2 vs labzero)
+Finished game 2 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 3 of 50 (labzero vs labzero2)
+Finished game 3 (labzero vs labzero2): 1/2-1/2 {Draw by stalemate}
+Started game 4 of 50 (labzero2 vs labzero)
+Finished game 4 (labzero2 vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 5 of 50 (labzero vs labzero2)
+Finished game 5 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 6 of 50 (labzero2 vs labzero)
+Finished game 6 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 7 of 50 (labzero vs labzero2)
+Finished game 7 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 8 of 50 (labzero2 vs labzero)
+Finished game 8 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 9 of 50 (labzero vs labzero2)
+Finished game 9 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 10 of 50 (labzero2 vs labzero)
+Finished game 10 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 11 of 50 (labzero vs labzero2)
+Finished game 11 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 12 of 50 (labzero2 vs labzero)
+Finished game 12 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 13 of 50 (labzero vs labzero2)
+Finished game 13 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 14 of 50 (labzero2 vs labzero)
+Finished game 14 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 15 of 50 (labzero vs labzero2)
+Finished game 15 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 16 of 50 (labzero2 vs labzero)
+Finished game 16 (labzero2 vs labzero): 1-0 {White mates}
+Started game 17 of 50 (labzero vs labzero2)
+Finished game 17 (labzero vs labzero2): 0-1 {Black mates}
+Started game 18 of 50 (labzero2 vs labzero)
+Finished game 18 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 19 of 50 (labzero vs labzero2)
+Finished game 19 (labzero vs labzero2): 0-1 {Black mates}
+Started game 20 of 50 (labzero2 vs labzero)
+Finished game 20 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs labzero2 (10+0.1, NULL, NULL, openings.epd):
+Elo: -34.86 +/- 43.74, nElo: -122.84 +/- 152.27
+LOS: 5.69 %, DrawRatio: 80.00 %, PairsRatio: 0.00
+Games: 20, Wins: 2, Losses: 4, Draws: 14, Points: 9.0 (45.00 %)
+Ptnml(0-2): [0, 2, 8, 0, 0], WL/DD Ratio: 0.33
+--------------------------------------------------
+Started game 21 of 50 (labzero vs labzero2)
+Finished game 21 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 22 of 50 (labzero2 vs labzero)
+Finished game 22 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 23 of 50 (labzero vs labzero2)
+Finished game 23 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 24 of 50 (labzero2 vs labzero)
+Finished game 24 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 25 of 50 (labzero vs labzero2)
+Finished game 25 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 26 of 50 (labzero2 vs labzero)
+Finished game 26 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 27 of 50 (labzero vs labzero2)
+Finished game 27 (labzero vs labzero2): 1-0 {White mates}
+Started game 28 of 50 (labzero2 vs labzero)
+Finished game 28 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 29 of 50 (labzero vs labzero2)
+Finished game 29 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 30 of 50 (labzero2 vs labzero)
+Finished game 30 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 31 of 50 (labzero vs labzero2)
+Finished game 31 (labzero vs labzero2): 0-1 {Black mates}
+Started game 32 of 50 (labzero2 vs labzero)
+Finished game 32 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 33 of 50 (labzero vs labzero2)
+Finished game 33 (labzero vs labzero2): 1/2-1/2 {Draw by stalemate}
+Started game 34 of 50 (labzero2 vs labzero)
+Finished game 34 (labzero2 vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 35 of 50 (labzero vs labzero2)
+Finished game 35 (labzero vs labzero2): 1-0 {White mates}
+Started game 36 of 50 (labzero2 vs labzero)
+Finished game 36 (labzero2 vs labzero): 1-0 {White mates}
+Started game 37 of 50 (labzero vs labzero2)
+Finished game 37 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 38 of 50 (labzero2 vs labzero)
+Finished game 38 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 39 of 50 (labzero vs labzero2)
+Finished game 39 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 40 of 50 (labzero2 vs labzero)
+Finished game 40 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs labzero2 (10+0.1, NULL, NULL, openings.epd):
+Elo: -0.00 +/- 34.16, nElo: 0.00 +/- 107.67
+LOS: 50.00 %, DrawRatio: 80.00 %, PairsRatio: 1.00
+Games: 40, Wins: 6, Losses: 6, Draws: 28, Points: 20.0 (50.00 %)
+Ptnml(0-2): [0, 2, 16, 2, 0], WL/DD Ratio: 0.33
+--------------------------------------------------
+Started game 41 of 50 (labzero vs labzero2)
+Finished game 41 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 42 of 50 (labzero2 vs labzero)
+Finished game 42 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 43 of 50 (labzero vs labzero2)
+Finished game 43 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 44 of 50 (labzero2 vs labzero)
+Finished game 44 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 45 of 50 (labzero vs labzero2)
+Finished game 45 (labzero vs labzero2): 1-0 {White mates}
+Started game 46 of 50 (labzero2 vs labzero)
+Finished game 46 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 47 of 50 (labzero vs labzero2)
+Finished game 47 (labzero vs labzero2): 0-1 {Black mates}
+Started game 48 of 50 (labzero2 vs labzero)
+Finished game 48 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 49 of 50 (labzero vs labzero2)
+Finished game 49 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 50 of 50 (labzero2 vs labzero)
+Finished game 50 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs labzero2 (10+0.1, NULL, NULL, openings.epd):
+Elo: 6.95 +/- 30.42, nElo: 22.06 +/- 96.30
+LOS: 67.33 %, DrawRatio: 80.00 %, PairsRatio: 1.50
+Games: 50, Wins: 8, Losses: 7, Draws: 35, Points: 25.5 (51.00 %)
+Ptnml(0-2): [0, 2, 20, 3, 0], WL/DD Ratio: 0.33
+--------------------------------------------------
+Finished match
+Total Time: 00:13:57 (hours:minutes:seconds)
+
+==> vs random bot
+Indexing opening suite...
+Started game 1 of 50 (labzero vs random)
+Finished game 1 (labzero vs random): 1-0 {White mates}
+Started game 2 of 50 (random vs labzero)
+Finished game 2 (random vs labzero): 0-1 {Black mates}
+Started game 3 of 50 (labzero vs random)
+Finished game 3 (labzero vs random): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 4 of 50 (random vs labzero)
+Finished game 4 (random vs labzero): 0-1 {Black mates}
+Started game 5 of 50 (labzero vs random)
+Finished game 5 (labzero vs random): 1-0 {White mates}
+Started game 6 of 50 (random vs labzero)
+Finished game 6 (random vs labzero): 0-1 {Black mates}
+Started game 7 of 50 (labzero vs random)
+Finished game 7 (labzero vs random): 1-0 {White mates}
+Started game 8 of 50 (random vs labzero)
+Finished game 8 (random vs labzero): 0-1 {Black mates}
+Started game 9 of 50 (labzero vs random)
+Finished game 9 (labzero vs random): 1/2-1/2 {Draw by insufficient mating material}
+Started game 10 of 50 (random vs labzero)
+Finished game 10 (random vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 11 of 50 (labzero vs random)
+Finished game 11 (labzero vs random): 1-0 {White mates}
+Started game 12 of 50 (random vs labzero)
+Finished game 12 (random vs labzero): 0-1 {Black mates}
+Started game 13 of 50 (labzero vs random)
+Finished game 13 (labzero vs random): 1-0 {White mates}
+Started game 14 of 50 (random vs labzero)
+Finished game 14 (random vs labzero): 0-1 {Black mates}
+Started game 15 of 50 (labzero vs random)
+Finished game 15 (labzero vs random): 1-0 {White mates}
+Started game 16 of 50 (random vs labzero)
+Finished game 16 (random vs labzero): 0-1 {Black mates}
+Started game 17 of 50 (labzero vs random)
+Finished game 17 (labzero vs random): 1/2-1/2 {Draw by stalemate}
+Started game 18 of 50 (random vs labzero)
+Finished game 18 (random vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 19 of 50 (labzero vs random)
+Finished game 19 (labzero vs random): 1-0 {White mates}
+Started game 20 of 50 (random vs labzero)
+Finished game 20 (random vs labzero): 0-1 {Black mates}
+--------------------------------------------------
+Results of labzero vs random (2 plies, NULL, NULL, openings.epd):
+Elo: 338.04 +/- 728.01, nElo: 457.08 +/- 152.27
+LOS: 100.00 %, DrawRatio: 20.00 %, PairsRatio: inf
+Games: 20, Wins: 15, Losses: 0, Draws: 5, Points: 17.5 (87.50 %)
+Ptnml(0-2): [0, 0, 2, 1, 7], WL/DD Ratio: 0.00
+--------------------------------------------------
+Started game 21 of 50 (labzero vs random)
+Finished game 21 (labzero vs random): 1/2-1/2 {Draw by insufficient mating material}
+Started game 22 of 50 (random vs labzero)
+Finished game 22 (random vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 23 of 50 (labzero vs random)
+Finished game 23 (labzero vs random): 1-0 {White mates}
+Started game 24 of 50 (random vs labzero)
+Finished game 24 (random vs labzero): 0-1 {Black mates}
+Started game 25 of 50 (labzero vs random)
+Finished game 25 (labzero vs random): 1-0 {White mates}
+Started game 26 of 50 (random vs labzero)
+Finished game 26 (random vs labzero): 0-1 {Black mates}
+Started game 27 of 50 (labzero vs random)
+Finished game 27 (labzero vs random): 1-0 {White mates}
+Started game 28 of 50 (random vs labzero)
+Finished game 28 (random vs labzero): 0-1 {Black mates}
+Started game 29 of 50 (labzero vs random)
+Finished game 29 (labzero vs random): 1-0 {White mates}
+Started game 30 of 50 (random vs labzero)
+Finished game 30 (random vs labzero): 0-1 {Black mates}
+Started game 31 of 50 (labzero vs random)
+Finished game 31 (labzero vs random): 1-0 {White mates}
+Started game 32 of 50 (random vs labzero)
+Finished game 32 (random vs labzero): 0-1 {Black mates}
+Started game 33 of 50 (labzero vs random)
+Finished game 33 (labzero vs random): 1-0 {White mates}
+Started game 34 of 50 (random vs labzero)
+Finished game 34 (random vs labzero): 0-1 {Black mates}
+Started game 35 of 50 (labzero vs random)
+Finished game 35 (labzero vs random): 1-0 {White mates}
+Started game 36 of 50 (random vs labzero)
+Finished game 36 (random vs labzero): 0-1 {Black mates}
+Started game 37 of 50 (labzero vs random)
+Finished game 37 (labzero vs random): 1-0 {White mates}
+Started game 38 of 50 (random vs labzero)
+Finished game 38 (random vs labzero): 0-1 {Black mates}
+Started game 39 of 50 (labzero vs random)
+Finished game 39 (labzero vs random): 1/2-1/2 {Draw by insufficient mating material}
+Started game 40 of 50 (random vs labzero)
+Finished game 40 (random vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+--------------------------------------------------
+Results of labzero vs random (2 plies, NULL, NULL, openings.epd):
+Elo: 358.81 +/- 200.56, nElo: 473.23 +/- 107.67
+LOS: 100.00 %, DrawRatio: 20.00 %, PairsRatio: inf
+Games: 40, Wins: 31, Losses: 0, Draws: 9, Points: 35.5 (88.75 %)
+Ptnml(0-2): [0, 0, 4, 1, 15], WL/DD Ratio: 0.00
+--------------------------------------------------
+Started game 41 of 50 (labzero vs random)
+Finished game 41 (labzero vs random): 1-0 {White mates}
+Started game 42 of 50 (random vs labzero)
+Finished game 42 (random vs labzero): 0-1 {Black mates}
+Started game 43 of 50 (labzero vs random)
+Finished game 43 (labzero vs random): 1-0 {White mates}
+Started game 44 of 50 (random vs labzero)
+Finished game 44 (random vs labzero): 0-1 {Black mates}
+Started game 45 of 50 (labzero vs random)
+Finished game 45 (labzero vs random): 1-0 {White mates}
+Started game 46 of 50 (random vs labzero)
+Finished game 46 (random vs labzero): 0-1 {Black mates}
+Started game 47 of 50 (labzero vs random)
+Finished game 47 (labzero vs random): 1/2-1/2 {Draw by stalemate}
+Started game 48 of 50 (random vs labzero)
+Finished game 48 (random vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 49 of 50 (labzero vs random)
+Finished game 49 (labzero vs random): 1-0 {White mates}
+Started game 50 of 50 (random vs labzero)
+Finished game 50 (random vs labzero): 0-1 {Black mates}
+--------------------------------------------------
+Results of labzero vs random (2 plies, NULL, NULL, openings.epd):
+Elo: 363.20 +/- 171.75, nElo: 476.69 +/- 96.30
+LOS: 100.00 %, DrawRatio: 20.00 %, PairsRatio: inf
+Games: 50, Wins: 39, Losses: 0, Draws: 11, Points: 44.5 (89.00 %)
+Ptnml(0-2): [0, 0, 5, 1, 19], WL/DD Ratio: 0.00
+--------------------------------------------------
+Finished match
+Total Time: 00:00:02 (hours:minutes:seconds)
+
+==> vs stockfish depth=1
+Indexing opening suite...
+Started game 1 of 50 (labzero vs stockfish)
+Finished game 1 (labzero vs stockfish): 0-1 {Black mates}
+Started game 2 of 50 (stockfish vs labzero)
+Finished game 2 (stockfish vs labzero): 1-0 {White mates}
+Started game 3 of 50 (labzero vs stockfish)
+Finished game 3 (labzero vs stockfish): 1/2-1/2 {Draw by stalemate}
+Started game 4 of 50 (stockfish vs labzero)
+Finished game 4 (stockfish vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 5 of 50 (labzero vs stockfish)
+Finished game 5 (labzero vs stockfish): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 6 of 50 (stockfish vs labzero)
+Finished game 6 (stockfish vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 7 of 50 (labzero vs stockfish)
+Finished game 7 (labzero vs stockfish): 0-1 {Black mates}
+Started game 8 of 50 (stockfish vs labzero)
+Finished game 8 (stockfish vs labzero): 1-0 {White mates}
+Started game 9 of 50 (labzero vs stockfish)
+Finished game 9 (labzero vs stockfish): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 10 of 50 (stockfish vs labzero)
+Finished game 10 (stockfish vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 11 of 50 (labzero vs stockfish)
+Finished game 11 (labzero vs stockfish): 0-1 {Black mates}
+Started game 12 of 50 (stockfish vs labzero)
+Finished game 12 (stockfish vs labzero): 1-0 {White mates}
+Started game 13 of 50 (labzero vs stockfish)
+Finished game 13 (labzero vs stockfish): 1/2-1/2 {Draw by insufficient mating material}
+Started game 14 of 50 (stockfish vs labzero)
+Finished game 14 (stockfish vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 15 of 50 (labzero vs stockfish)
+Finished game 15 (labzero vs stockfish): 0-1 {Black mates}
+Started game 16 of 50 (stockfish vs labzero)
+Finished game 16 (stockfish vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 17 of 50 (labzero vs stockfish)
+Finished game 17 (labzero vs stockfish): 1/2-1/2 {Draw by stalemate}
+Started game 18 of 50 (stockfish vs labzero)
+Finished game 18 (stockfish vs labzero): 1-0 {White mates}
+Started game 19 of 50 (labzero vs stockfish)
+Finished game 19 (labzero vs stockfish): 0-1 {Black mates}
+Started game 20 of 50 (stockfish vs labzero)
+Finished game 20 (stockfish vs labzero): 0-1 {Black mates}
+--------------------------------------------------
+Results of labzero vs stockfish (10+0.1, NULL - 1t, NULL - 16MB, openings.epd):
+Elo: -147.19 +/- 118.21, nElo: -225.45 +/- 152.27
+LOS: 0.19 %, DrawRatio: 50.00 %, PairsRatio: 0.00
+Games: 20, Wins: 1, Losses: 9, Draws: 10, Points: 6.0 (30.00 %)
+Ptnml(0-2): [3, 2, 5, 0, 0], WL/DD Ratio: 0.25
+--------------------------------------------------
+Started game 21 of 50 (labzero vs stockfish)
+Finished game 21 (labzero vs stockfish): 1/2-1/2 {Draw by insufficient mating material}
+Started game 22 of 50 (stockfish vs labzero)
+Finished game 22 (stockfish vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 23 of 50 (labzero vs stockfish)
+Finished game 23 (labzero vs stockfish): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 24 of 50 (stockfish vs labzero)
+Finished game 24 (stockfish vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 25 of 50 (labzero vs stockfish)
+Finished game 25 (labzero vs stockfish): 1/2-1/2 {Draw by stalemate}
+Started game 26 of 50 (stockfish vs labzero)
+Finished game 26 (stockfish vs labzero): 1-0 {White mates}
+Started game 27 of 50 (labzero vs stockfish)
+Finished game 27 (labzero vs stockfish): 1/2-1/2 {Draw by fifty moves rule}
+Started game 28 of 50 (stockfish vs labzero)
+Finished game 28 (stockfish vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 29 of 50 (labzero vs stockfish)
+Finished game 29 (labzero vs stockfish): 0-1 {Black mates}
+Started game 30 of 50 (stockfish vs labzero)
+Finished game 30 (stockfish vs labzero): 1-0 {White mates}
+Started game 31 of 50 (labzero vs stockfish)
+Finished game 31 (labzero vs stockfish): 0-1 {Black mates}
+Started game 32 of 50 (stockfish vs labzero)
+Finished game 32 (stockfish vs labzero): 1-0 {White mates}
+Started game 33 of 50 (labzero vs stockfish)
+Finished game 33 (labzero vs stockfish): 1/2-1/2 {Draw by stalemate}
+Started game 34 of 50 (stockfish vs labzero)
+Finished game 34 (stockfish vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 35 of 50 (labzero vs stockfish)
+Finished game 35 (labzero vs stockfish): 1/2-1/2 {Draw by fifty moves rule}
+Started game 36 of 50 (stockfish vs labzero)
+Finished game 36 (stockfish vs labzero): 1-0 {White mates}
+Started game 37 of 50 (labzero vs stockfish)
+Finished game 37 (labzero vs stockfish): 0-1 {Black mates}
+Started game 38 of 50 (stockfish vs labzero)
+Finished game 38 (stockfish vs labzero): 1-0 {White mates}
+Started game 39 of 50 (labzero vs stockfish)
+Finished game 39 (labzero vs stockfish): 1/2-1/2 {Draw by fifty moves rule}
+Started game 40 of 50 (stockfish vs labzero)
+Finished game 40 (stockfish vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs stockfish (10+0.1, NULL - 1t, NULL - 16MB, openings.epd):
+Elo: -147.19 +/- 81.15, nElo: -225.45 +/- 107.67
+LOS: 0.00 %, DrawRatio: 50.00 %, PairsRatio: 0.00
+Games: 40, Wins: 1, Losses: 17, Draws: 22, Points: 12.0 (30.00 %)
+Ptnml(0-2): [6, 4, 10, 0, 0], WL/DD Ratio: 0.11
+--------------------------------------------------
+Started game 41 of 50 (labzero vs stockfish)
+Finished game 41 (labzero vs stockfish): 1/2-1/2 {Draw by fifty moves rule}
+Started game 42 of 50 (stockfish vs labzero)
+Finished game 42 (stockfish vs labzero): 1-0 {White mates}
+Started game 43 of 50 (labzero vs stockfish)
+Finished game 43 (labzero vs stockfish): 1/2-1/2 {Draw by insufficient mating material}
+Started game 44 of 50 (stockfish vs labzero)
+Finished game 44 (stockfish vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 45 of 50 (labzero vs stockfish)
+Finished game 45 (labzero vs stockfish): 1/2-1/2 {Draw by insufficient mating material}
+Started game 46 of 50 (stockfish vs labzero)
+Finished game 46 (stockfish vs labzero): 1-0 {White mates}
+Started game 47 of 50 (labzero vs stockfish)
+Finished game 47 (labzero vs stockfish): 1/2-1/2 {Draw by fifty moves rule}
+Started game 48 of 50 (stockfish vs labzero)
+Finished game 48 (stockfish vs labzero): 1-0 {White mates}
+Started game 49 of 50 (labzero vs stockfish)
+Finished game 49 (labzero vs stockfish): 0-1 {Black mates}
+Started game 50 of 50 (stockfish vs labzero)
+Finished game 50 (stockfish vs labzero): 0-1 {Black mates}
+--------------------------------------------------
+Results of labzero vs stockfish (10+0.1, NULL - 1t, NULL - 16MB, openings.epd):
+Elo: -138.99 +/- 65.89, nElo: -229.41 +/- 96.30
+LOS: 0.00 %, DrawRatio: 48.00 %, PairsRatio: 0.00
+Games: 50, Wins: 2, Losses: 21, Draws: 27, Points: 15.5 (31.00 %)
+Ptnml(0-2): [6, 7, 12, 0, 0], WL/DD Ratio: 0.20
+--------------------------------------------------
+Finished match
+Total Time: 00:09:09 (hours:minutes:seconds)
+
+==> self-play normal tc
+Indexing opening suite...
+Started game 1 of 50 (labzero vs labzero2)
+Finished game 1 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 2 of 50 (labzero2 vs labzero)
+Finished game 2 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 3 of 50 (labzero vs labzero2)
+Finished game 3 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 4 of 50 (labzero2 vs labzero)
+Finished game 4 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 5 of 50 (labzero vs labzero2)
+Finished game 5 (labzero vs labzero2): 0-1 {Black mates}
+Started game 6 of 50 (labzero2 vs labzero)
+Finished game 6 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 7 of 50 (labzero vs labzero2)
+Finished game 7 (labzero vs labzero2): 0-1 {Black mates}
+Started game 8 of 50 (labzero2 vs labzero)
+Finished game 8 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 9 of 50 (labzero vs labzero2)
+Finished game 9 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 10 of 50 (labzero2 vs labzero)
+Finished game 10 (labzero2 vs labzero): 1-0 {White mates}
+Started game 11 of 50 (labzero vs labzero2)
+Finished game 11 (labzero vs labzero2): 1-0 {White mates}
+Started game 12 of 50 (labzero2 vs labzero)
+Finished game 12 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 13 of 50 (labzero vs labzero2)
+Finished game 13 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 14 of 50 (labzero2 vs labzero)
+Finished game 14 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 15 of 50 (labzero vs labzero2)
+Finished game 15 (labzero vs labzero2): 1-0 {White mates}
+Started game 16 of 50 (labzero2 vs labzero)
+Finished game 16 (labzero2 vs labzero): 1-0 {White mates}
+Started game 17 of 50 (labzero vs labzero2)
+Finished game 17 (labzero vs labzero2): 0-1 {Black mates}
+Started game 18 of 50 (labzero2 vs labzero)
+Finished game 18 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 19 of 50 (labzero vs labzero2)
+Finished game 19 (labzero vs labzero2): 1-0 {White mates}
+Started game 20 of 50 (labzero2 vs labzero)
+Finished game 20 (labzero2 vs labzero): 1-0 {White mates}
+--------------------------------------------------
+Results of labzero vs labzero2 (60+0.6, NULL, NULL, openings.epd):
+Elo: -17.39 +/- 58.68, nElo: -45.62 +/- 152.27
+LOS: 27.85 %, DrawRatio: 70.00 %, PairsRatio: 0.50
+Games: 20, Wins: 5, Losses: 6, Draws: 9, Points: 9.5 (47.50 %)
+Ptnml(0-2): [0, 2, 7, 1, 0], WL/DD Ratio: 1.33
+--------------------------------------------------
+Started game 21 of 50 (labzero vs labzero2)
+Finished game 21 (labzero vs labzero2): 0-1 {Black mates}
+Started game 22 of 50 (labzero2 vs labzero)
+Finished game 22 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 23 of 50 (labzero vs labzero2)
+Finished game 23 (labzero vs labzero2): 1-0 {White mates}
+Started game 24 of 50 (labzero2 vs labzero)
+Finished game 24 (labzero2 vs labzero): 1-0 {White mates}
+Started game 25 of 50 (labzero vs labzero2)
+Finished game 25 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 26 of 50 (labzero2 vs labzero)
+Finished game 26 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 27 of 50 (labzero vs labzero2)
+Finished game 27 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 28 of 50 (labzero2 vs labzero)
+Finished game 28 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 29 of 50 (labzero vs labzero2)
+Finished game 29 (labzero vs labzero2): 1/2-1/2 {Draw by stalemate}
+Started game 30 of 50 (labzero2 vs labzero)
+Finished game 30 (labzero2 vs labzero): 1/2-1/2 {Draw by stalemate}
+Started game 31 of 50 (labzero vs labzero2)
+Finished game 31 (labzero vs labzero2): 1/2-1/2 {Draw by insufficient mating material}
+Started game 32 of 50 (labzero2 vs labzero)
+Finished game 32 (labzero2 vs labzero): 1/2-1/2 {Draw by insufficient mating material}
+Started game 33 of 50 (labzero vs labzero2)
+Finished game 33 (labzero vs labzero2): 1-0 {White mates}
+Started game 34 of 50 (labzero2 vs labzero)
+Finished game 34 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 35 of 50 (labzero vs labzero2)
+Finished game 35 (labzero vs labzero2): 0-1 {Black mates}
+Started game 36 of 50 (labzero2 vs labzero)
+Finished game 36 (labzero2 vs labzero): 0-1 {Black mates}
+Started game 37 of 50 (labzero vs labzero2)
+Finished game 37 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 38 of 50 (labzero2 vs labzero)
+Finished game 38 (labzero2 vs labzero): 1-0 {White mates}
+Started game 39 of 50 (labzero vs labzero2)
+Finished game 39 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 40 of 50 (labzero2 vs labzero)
+Finished game 40 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs labzero2 (60+0.6, NULL, NULL, openings.epd):
+Elo: -17.39 +/- 41.30, nElo: -45.62 +/- 107.67
+LOS: 20.31 %, DrawRatio: 70.00 %, PairsRatio: 0.50
+Games: 40, Wins: 8, Losses: 10, Draws: 22, Points: 19.0 (47.50 %)
+Ptnml(0-2): [0, 4, 14, 2, 0], WL/DD Ratio: 0.75
+--------------------------------------------------
+Started game 41 of 50 (labzero vs labzero2)
+Finished game 41 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 42 of 50 (labzero2 vs labzero)
+Finished game 42 (labzero2 vs labzero): 1-0 {White mates}
+Started game 43 of 50 (labzero vs labzero2)
+Finished game 43 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 44 of 50 (labzero2 vs labzero)
+Finished game 44 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 45 of 50 (labzero vs labzero2)
+Finished game 45 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 46 of 50 (labzero2 vs labzero)
+Finished game 46 (labzero2 vs labzero): 1-0 {White mates}
+Started game 47 of 50 (labzero vs labzero2)
+Finished game 47 (labzero vs labzero2): 0-1 {Black mates}
+Started game 48 of 50 (labzero2 vs labzero)
+Finished game 48 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 49 of 50 (labzero vs labzero2)
+Finished game 49 (labzero vs labzero2): 1-0 {White mates}
+Started game 50 of 50 (labzero2 vs labzero)
+Finished game 50 (labzero2 vs labzero): 1-0 {White mates}
+--------------------------------------------------
+Results of labzero vs labzero2 (60+0.6, NULL, NULL, openings.epd):
+Elo: -34.86 +/- 39.08, nElo: -86.86 +/- 96.30
+LOS: 3.85 %, DrawRatio: 64.00 %, PairsRatio: 0.29
+Games: 50, Wins: 9, Losses: 14, Draws: 27, Points: 22.5 (45.00 %)
+Ptnml(0-2): [0, 7, 16, 2, 0], WL/DD Ratio: 0.78
+--------------------------------------------------
+Finished match
+Total Time: 01:05:29 (hours:minutes:seconds)
+

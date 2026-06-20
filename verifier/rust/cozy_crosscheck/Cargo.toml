@@ -1,0 +1,12 @@
+[package]
+name = "cozy_crosscheck"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[[bin]]
+name = "cozy_crosscheck"
+path = "src/main.rs"
+
+[dependencies]
+cozy-chess = "0.3"

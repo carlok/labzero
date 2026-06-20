@@ -1,0 +1,19 @@
+[package]
+name = "labzero"
+version = "0.2.0"
+edition = "2021"
+description = "Original weak UCI chess engine for labzero research"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "labzero"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.8"
+
+[dev-dependencies]
+rand = "0.8"

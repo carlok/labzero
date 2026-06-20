@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+ENGINE="/workspace/.cargo-target/release/labzero"
+if [[ ! -x "${ENGINE}" ]]; then
+  "${SCRIPT_DIR}/build-engine"
+fi
+
+"${SCRIPT_DIR}/run" python3 verifier/python/uci_protocol_tester.py "${ENGINE}"
+"${SCRIPT_DIR}/run" python3 verifier/python/random_position_fuzzer.py "${ENGINE}" --games 5
+"${SCRIPT_DIR}/run" python3 verifier/python/perft_crosscheck.py "${ENGINE}" --depth 3 --smoke
+"${SCRIPT_DIR}/run" python3 verifier/python/legality_oracle.py "${ENGINE}" --smoke
+
+echo "verify-smoke: PASS"

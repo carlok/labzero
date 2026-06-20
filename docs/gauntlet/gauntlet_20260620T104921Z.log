@@ -1,0 +1,44 @@
+gauntlet config: games=10 rounds=1 smoke=1
+==> self-play short tc
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs labzero2)
+Finished game 1 (labzero vs labzero2): 1/2-1/2 {Draw by 3-fold repetition}
+Started game 2 of 2 (labzero2 vs labzero)
+Finished game 2 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs labzero2 (10+0.1, NULL, NULL):
+Elo: -0.00 +/- 0.00, nElo: nan +/- nan
+LOS: nan %, DrawRatio: 100.00 %, PairsRatio: nan
+Games: 2, Wins: 0, Losses: 0, Draws: 2, Points: 1.0 (50.00 %)
+Ptnml(0-2): [0, 0, 1, 0, 0], WL/DD Ratio: 0.00
+--------------------------------------------------
+Finished match
+Total Time: 00:00:54 (hours:minutes:seconds)
+
+==> vs random bot
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs random)
+Finished game 1 (labzero vs random): 1-0 {White mates}
+Started game 2 of 2 (random vs labzero)
+Finished game 2 (random vs labzero): 0-1 {Black mates}
+--------------------------------------------------
+Results of labzero vs random (2 plies, NULL, NULL):
+Elo: inf +/- nan, nElo: inf +/- nan
+LOS: 100.00 %, DrawRatio: 0.00 %, PairsRatio: inf
+Games: 2, Wins: 2, Losses: 0, Draws: 0, Points: 2.0 (100.00 %)
+Ptnml(0-2): [0, 0, 0, 0, 1], WL/DD Ratio: nan
+--------------------------------------------------
+Finished match
+Total Time: 00:00:01 (hours:minutes:seconds)
+
+==> vs stockfish depth=1
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs stockfish)
+Fatal; stockfish engine startup failure: "posix_spawn failed: No such file or directory"
+Tournament was interrupted. To resume the tournament, run: fastchess -config file=config.json
+Finished match
+Total Time: 00:00:01 (hours:minutes:seconds)
+

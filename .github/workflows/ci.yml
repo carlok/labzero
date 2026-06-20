@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: "0 6 * * 0"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Build image
+        run: ./scripts/podman/build-image
+
+      - name: Smoke CI
+        run: ./scripts/podman/ci
+
+  verify-deep:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Podman
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Build image
+        run: ./scripts/podman/build-image
+      - name: Deep verification
+        run: ./scripts/podman/verify-deep
+
+  gauntlet-smoke:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Podman
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Build image
+        run: ./scripts/podman/build-image
+      - name: Gauntlet smoke
+        run: ./scripts/podman/gauntlet --smoke

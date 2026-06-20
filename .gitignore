@@ -1,0 +1,17 @@
+# Ignore build artifacts
+.cargo-target/
+target/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Secrets / local config
+lichess_bot/config.toml
+config.json

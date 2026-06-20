@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+podman_run cargo build --release --manifest-path engine/Cargo.toml
+echo "Engine binary: ${REPO_ROOT}/.cargo-target/release/labzero"
