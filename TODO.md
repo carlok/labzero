@@ -40,8 +40,8 @@ Full steps: [docs/lichess_bot_setup.md](docs/lichess_bot_setup.md)
 
 ## 3. GitHub & listing polish
 
-- [ ] Create private repo (see below) and verify CI green on push
-- [ ] Replace `PLACEHOLDER` in README CI badge with `carlok/labzero` (if not already done)
+- [x] Create private repo: https://github.com/carlok/labzero (pushed `main`, CI badge points here)
+- [ ] Confirm GitHub Actions **smoke** job is green on first push
 - [ ] Fill **Bot account URL** and **Contact / maintainer** in [docs/submission_package.md](docs/submission_package.md)
 - [ ] When ready to go public: flip repo visibility, submit Lichess engine listing
 
