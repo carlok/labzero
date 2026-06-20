@@ -6,9 +6,9 @@
 
 Play **10 full games** in a UCI GUI — see [docs/human_play_checklist.md](docs/human_play_checklist.md) and [docs/user_manual.md](docs/user_manual.md).
 
-- [ ] Install UCI GUI (Banksia, Cute Chess, Lucas Chess, …)
-- [ ] Build macOS GUI binary: `./scripts/build-host-engine.sh`
-- [ ] Configure Banksia path: `./scripts/play-uci.sh` → `target/release/labzero` (not `.cargo-target/`)
+- [x] Install UCI GUI (Banksia, Cute Chess, Lucas Chess, …)
+- [x] Build macOS GUI binary: `./scripts/build-host-engine.sh`
+- [x] Configure Banksia path: `./scripts/play-uci.sh` → `target/release/labzero` (not `.cargo-target/`)
 - [ ] Play 10 games, fill checklist table, sign off
 - [ ] Add summary to [docs/lab_log.md](docs/lab_log.md)
 
@@ -16,12 +16,12 @@ Play **10 full games** in a UCI GUI — see [docs/human_play_checklist.md](docs/
 
 ### Live Lichess bot (Sprint 5 gate)
 
-Needs **your** BOT account and `LICHESS_TOKEN` — see [docs/lichess_bot_setup.md](docs/lichess_bot_setup.md).
+Needs a **new** Lichess account (zero games before upgrade) + **lichess-bot** — see [docs/lichess_bot_setup.md](docs/lichess_bot_setup.md).
 
-- [ ] Create Lichess BOT token (`bot:play` scope)
-- [ ] `cp lichess_bot/config.example.toml lichess_bot/config.toml`
-- [ ] `export LICHESS_TOKEN="lip_..."` then `./scripts/podman/bot`
-- [ ] Play 5+ games; log in [docs/lab_log.md](docs/lab_log.md)
+- [ ] Register fresh bot account (not @carlok); do not play any game on it
+- [ ] Install lichess-bot, set token + engine path to `target/release/labzero`
+- [ ] First run: `python3 lichess-bot.py -u` (BOT upgrade)
+- [ ] Run bot; play 5+ games; log in [docs/lab_log.md](docs/lab_log.md)
 - [ ] Set **Bot account URL** in [docs/submission_package.md](docs/submission_package.md)
 
 ### Go public (your call)

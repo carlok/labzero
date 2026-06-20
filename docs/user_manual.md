@@ -68,7 +68,7 @@ labzero speaks **UCI**. Use any UCI-compatible GUI:
 
 ## Play on Lichess (bot account)
 
-See [lichess_bot_setup.md](lichess_bot_setup.md) to run labzero as a Lichess bot (uses Podman/Linux binary).
+See [lichess_bot_setup.md](lichess_bot_setup.md) — use **lichess-bot** (official) with the host `target/release/labzero` binary.
 
 ## Troubleshooting
 
