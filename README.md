@@ -60,6 +60,7 @@ See **[User manual](docs/user_manual.md)** for full GUI setup.
 - [Reproducibility / Podman](docs/reproducibility.md)
 - [UCI commands](docs/uci_supported.md)
 - [Lab log](docs/lab_log.md)
+- [Alpha paper draft](docs/paper_alpha.md)
 
 ## License
 
