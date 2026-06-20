@@ -79,12 +79,21 @@ wins = losses = draws = illegal = errors = 0
 log_file = Path(log_path)
 pgn_file = Path(pgn_path)
 
+
+def display_path(path: str) -> str:
+    p = Path(path)
+    try:
+        return str(p.resolve().relative_to(Path.cwd()))
+    except ValueError:
+        return p.name
+
+
 header = "\n".join(
     [
         f"labzero host benchmark  {datetime.now(timezone.utc).isoformat()}",
         f"status:      in progress",
-        f"labzero:     {labzero_path}",
-        f"stockfish:   {sf_path}",
+        f"labzero:     {display_path(labzero_path)}",
+        f"stockfish:   {display_path(sf_path)}",
         f"games:       {games_n}",
         f"time control: {int(tc_sec)}+{int(tc_inc)} bullet",
         f"sf weaken:   Skill={sf_skill} LimitStrength={sf_limit} UCI_Elo={sf_elo if sf_limit else 'n/a'}",
@@ -179,7 +188,7 @@ footer = [
     f"labzero %:   {100.0 * (wins + 0.5 * draws) / games_n:.1f}",
     f"illegal:     {illegal}",
     f"errors:      {errors}",
-    f"pgn:         {pgn_path}",
+    f"pgn:         {display_path(pgn_path)}",
 ]
 with log_file.open("a", encoding="utf-8") as f:
     f.write("\n".join(footer) + "\n")
