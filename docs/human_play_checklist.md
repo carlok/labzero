@@ -4,9 +4,9 @@ Complete before public candidate sign-off. Record results in [lab_log.md](lab_lo
 
 ## Setup
 
-- [x] Engine built: `./scripts/podman/build-engine`
-- [ ] UCI GUI installed (Banksia / Cute Chess / other) — operator
-- [ ] Engine path configured per [user_manual.md](user_manual.md) — operator
+- [ ] Host GUI binary built: `./scripts/build-host-engine.sh` → `target/release/labzero`
+- [x] UCI GUI installed (Banksia / Cute Chess / other) — operator
+- [ ] Engine path configured per [user_manual.md](user_manual.md) — use **host** binary, not `.cargo-target/`
 
 ## Test games (minimum 10)
 

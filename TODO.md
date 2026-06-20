@@ -1,9 +1,5 @@
 # Operator TODO — before public Lichess candidate
 
-Automated sprints (S1–S6) are done. Below: what **only you** can do, what is **already done**, and what **automation** can run without a GUI or Lichess token.
-
----
-
 ## Requires you (cannot be automated)
 
 ### Manual GUI play (Sprint 3 gate)
@@ -11,7 +7,8 @@ Automated sprints (S1–S6) are done. Below: what **only you** can do, what is *
 Play **10 full games** in a UCI GUI — see [docs/human_play_checklist.md](docs/human_play_checklist.md) and [docs/user_manual.md](docs/user_manual.md).
 
 - [ ] Install UCI GUI (Banksia, Cute Chess, Lucas Chess, …)
-- [ ] Configure engine path: `./scripts/play-uci.sh` → `.cargo-target/release/labzero`
+- [ ] Build macOS GUI binary: `./scripts/build-host-engine.sh`
+- [ ] Configure Banksia path: `./scripts/play-uci.sh` → `target/release/labzero` (not `.cargo-target/`)
 - [ ] Play 10 games, fill checklist table, sign off
 - [ ] Add summary to [docs/lab_log.md](docs/lab_log.md)
 
@@ -39,19 +36,6 @@ Publish an article on your Lichess blog describing the labzero journey — motiv
 - [ ] Draft post (suggested outline: why labzero → MVP → sprints → perft/gauntlet evidence → play the bot → repo link when public)
 - [ ] Publish at [lichess.org/@/carlok/blog](https://lichess.org/@/carlok/blog/)
 - [ ] Link the post from [docs/submission_package.md](docs/submission_package.md) or README when repo goes public
-
----
-
-## Already done (no action needed)
-
-- [x] Engine build + all automated verification (ci, verify-deep, gauntlet 200 games)
-- [x] Protocol QA (uci_protocol_tester, gauntlet TC)
-- [x] Bot bridge dry-run (`./scripts/podman/bot --dry-run`)
-- [x] Release v0.2.0 + SHA256 in [docs/submission_package.md](docs/submission_package.md)
-- [x] Private repo: https://github.com/carlok/labzero
-- [x] GitHub **About** (description + topics)
-- [x] GitHub Actions **smoke** CI green on `main` ([run log](https://github.com/carlok/labzero/actions))
-- [x] Contact / maintainer in submission pack → [@carlok](https://github.com/carlok)
 
 ---
 

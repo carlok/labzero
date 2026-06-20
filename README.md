@@ -19,11 +19,14 @@ Requires [Podman](https://podman.io/). On macOS, start a Podman machine first.
 
 ## Play against labzero
 
-See **[User manual](docs/user_manual.md)** for UCI GUI setup, or run:
+**macOS GUI (Banksia):** build a native binary first — Podman output is Linux-only.
 
 ```bash
-./scripts/play-uci.sh
+./scripts/build-host-engine.sh
+./scripts/play-uci.sh          # prints target/release/labzero for Banksia
 ```
+
+See **[User manual](docs/user_manual.md)** for full GUI setup.
 
 ## Verification levels
 
