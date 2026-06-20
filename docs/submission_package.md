@@ -24,7 +24,7 @@ Independent verification uses `python-chess`, `cozy-chess`, and `shakmaty` in `v
 ./scripts/podman/verify-deep     # deep verification
 ./scripts/podman/gauntlet --smoke  # 8-game tournament smoke
 ./scripts/podman/gauntlet          # 100+ game tournament
-./scripts/podman/bot --dry-run     # Lichess bridge local test
+./scripts/podman/bot --dry-run     # dev bridge dry-run (see lichess_bot_setup.md for live)
 ./scripts/podman/release           # tagged binary + SHA256
 ```
 
@@ -37,14 +37,16 @@ Independent verification uses `python-chess`, `cozy-chess`, and `shakmaty` in `v
 | Gauntlet smoke | `./scripts/podman/gauntlet --smoke` | PASS — 8 games, 0 illegal moves |
 | Gauntlet 100+ | `./scripts/podman/gauntlet` | PASS — 200 games, log `docs/gauntlet/gauntlet_20260620T105634Z.log` |
 | Human play QA | [human_play_checklist.md](human_play_checklist.md) | Protocol automated PASS; 10 GUI games pending operator |
-| Lichess bot bridge | `./scripts/podman/bot --dry-run` | PASS — 20 plies local; live 5+ games need `LICHESS_TOKEN` |
+| Lichess bot (live) | [lichess-bot](https://github.com/lichess-bot-devs/lichess-bot) + host `target/release/labzero` | Pending — see [lichess_bot_setup.md](lichess_bot_setup.md) |
+| Lichess dev dry-run | `./scripts/podman/bot --dry-run` | PASS — 20 plies local |
 
 ## Binary integrity
 
 ```
 Version: 0.2.0
 SHA256: 63b8173f183aaf0bfa1080216a8ebd0b5f68b4ed71a217e51665c50849f6167e
-Path: .cargo-target/release/labzero
+Path (Podman/CI): .cargo-target/release/labzero
+Path (macOS GUI / lichess-bot): target/release/labzero
 ```
 
 ## Lichess listing (draft)

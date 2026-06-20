@@ -117,7 +117,7 @@ All builds, tests, and verification run **inside Podman** with the repo bind-mou
 | S2 Gauntlet | `./scripts/podman/gauntlet --smoke` PASS; full `./scripts/podman/gauntlet` (100+ games, zero illegal moves) |
 | S3 Human play | [human_play_checklist.md](../docs/human_play_checklist.md) signed off in lab_log |
 | S4 Ops / release | `./scripts/podman/release` produces SHA256 in lab_log |
-| S5 Lichess bot | 5+ stable Lichess games logged (requires `LICHESS_TOKEN`) |
+| S5 Lichess bot | 5+ stable games via [lichess-bot](https://github.com/lichess-bot-devs/lichess-bot); see lichess_bot_setup.md |
 | S6 Public candidate | GHA smoke green; [submission_package.md](../docs/submission_package.md) complete |
 
 Run sprints sequentially. Log PASS/FAIL in `docs/lab_log.md` after each sprint.

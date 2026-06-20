@@ -61,9 +61,10 @@ Chronological record of changes, test runs, failures, and limitations.
 
 ## Sprint 5 — Lichess bot (2026-06-20)
 
-- **Bridge:** `lichess_bot/bot.py`, config.example.toml, `./scripts/podman/bot`
+- **Bridge (live):** [lichess-bot](https://github.com/lichess-bot-devs/lichess-bot) + host `target/release/labzero`
+- **Dev stub:** `lichess_bot/bot.py`, `./scripts/podman/bot --dry-run`
 - **Dry-run:** PASS — 20 plies, zero illegal moves
-- **Live 5+ games:** requires operator `LICHESS_TOKEN` — see lichess_bot_setup.md
+- **Live 5+ games:** pending — see [lichess_bot_setup.md](lichess_bot_setup.md)
 
 ## Sprint 6 — Public candidate (2026-06-20)
 

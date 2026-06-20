@@ -10,7 +10,7 @@ The labzero engine in `engine/` stays unchanged; lichess-bot spawns it as a UCI 
 
 | Account | Use |
 |---------|-----|
-| **@carlok** (or any account with human games) | You — challenge the bot, blog, normal play |
+| **Your personal Lichess account** | You — challenge the bot, blog, normal play |
 | **New dedicated account** (e.g. `LabzeroBot`) | Engine only — upgraded to BOT via API |
 
 Rules from the [lichess-bot wiki](https://github.com/lichess-bot-devs/lichess-bot/wiki/How-to-create-a-Lichess-OAuth-token):
@@ -58,7 +58,7 @@ Docs: [Install](https://github.com/lichess-bot-devs/lichess-bot/wiki/How-to-Inst
 
 ## 3. Create OAuth token
 
-1. Log in to Lichess **as the new bot account** (not @carlok).
+1. Log in to Lichess **as the new bot account** (not your personal account).
 2. Create a token with **`bot:play`** scope:  
    https://lichess.org/account/oauth/token/create?scopes[]=bot:play
 3. Copy the token — Lichess shows it **once**.
@@ -77,16 +77,27 @@ Never commit tokens or `config.yml` with secrets.
 
 ## 4. Point lichess-bot at labzero
 
-Edit `config.yml` — set `engine.dir` and `engine.name` to your labzero binary:
+Edit `config.yml` — set `engine.dir` to the folder containing the labzero binary and `engine.name` to the executable name.
+
+From the labzero repo root, print your path:
+
+```bash
+./scripts/play-uci.sh
+# Example output: .../labzero/target/release/labzero
+# → engine.dir = .../labzero/target/release
+# → engine.name = labzero
+```
 
 ```yaml
 engine:
-  dir: "/Users/carlo/Documents/varie/hacks/games/labzero/target/release"
+  dir: "<absolute-path-to-repo>/target/release"
   name: "labzero"
   protocol: "uci"
   # uci_options:        # optional
   #   Threads: 1
 ```
+
+Use an **absolute** path. On macOS/Linux, `$(pwd)/target/release` from the repo root works.
 
 See [Setup the engine](https://github.com/lichess-bot-devs/lichess-bot/wiki/Setup-the-engine).
 
@@ -114,7 +125,7 @@ Wiki: [Upgrade to a BOT account](https://github.com/lichess-bot-devs/lichess-bot
 python3 lichess-bot.py
 ```
 
-- Challenge the bot from **@carlok** (or another account).
+- Challenge the bot from **your personal account** (or another account).
 - Or enable matchmaking in `config.yml` to play other bots (see below).
 
 ---

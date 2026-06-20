@@ -18,7 +18,7 @@ Play **10 full games** in a UCI GUI — see [docs/human_play_checklist.md](docs/
 
 Needs a **new** Lichess account (zero games before upgrade) + **lichess-bot** — see [docs/lichess_bot_setup.md](docs/lichess_bot_setup.md).
 
-- [ ] Register fresh bot account (not @carlok); do not play any game on it
+- [ ] Register fresh bot account (not your personal account); do not play any game on it
 - [ ] Install lichess-bot, set token + engine path to `target/release/labzero`
 - [ ] First run: `python3 lichess-bot.py -u` (BOT upgrade)
 - [ ] Run bot; play 5+ games; log in [docs/lab_log.md](docs/lab_log.md)

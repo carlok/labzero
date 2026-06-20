@@ -18,10 +18,10 @@ Installs Rust via rustup if needed, then builds a native binary:
 ./scripts/build-host-engine.sh
 ```
 
-Engine path for Banksia:
+Engine path for Banksia (run `./scripts/play-uci.sh` to print yours):
 
 ```text
-/Users/you/.../labzero/target/release/labzero
+<repo-root>/target/release/labzero
 ```
 
 Quick helper:

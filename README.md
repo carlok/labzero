@@ -36,7 +36,7 @@ See **[User manual](docs/user_manual.md)** for full GUI setup.
 | `./scripts/podman/verify-deep` | Deep perft, 200-game fuzz, Rust cross-checks |
 | `./scripts/podman/gauntlet --smoke` | 10-game tournament |
 | `./scripts/podman/gauntlet` | 100-game tournament gauntlet |
-| `./scripts/podman/bot --dry-run` | Lichess bot local dry run |
+| `./scripts/podman/bot --dry-run` | Lichess bridge dry-run (dev stub) |
 
 ## Layout
 
@@ -44,7 +44,7 @@ See **[User manual](docs/user_manual.md)** for full GUI setup.
 |------|---------|
 | `engine/` | Original UCI chess engine (Rust) |
 | `verifier/` | Independent Python/Rust validation tools |
-| `lichess_bot/` | Lichess Bot API bridge |
+| `lichess_bot/` | Minimal Lichess bridge stub (dev/CI dry-run); live play uses [lichess-bot](https://github.com/lichess-bot-devs/lichess-bot) |
 | `tournaments/` | Fastchess smoke and gauntlet scripts |
 | `docs/` | Architecture, user manual, submission pack |
 | `containers/` | Podman image definition |
