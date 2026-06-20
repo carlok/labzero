@@ -76,8 +76,35 @@ sf_limit = sf_limit.lower() in ("1", "true", "yes")
 
 limit = chess.engine.Limit(time=tc_sec)
 wins = losses = draws = illegal = errors = 0
-lines: list[str] = []
-pgn_games: list[chess.pgn.Game] = []
+log_file = Path(log_path)
+pgn_file = Path(pgn_path)
+
+header = "\n".join(
+    [
+        f"labzero host benchmark  {datetime.now(timezone.utc).isoformat()}",
+        f"status:      in progress",
+        f"labzero:     {labzero_path}",
+        f"stockfish:   {sf_path}",
+        f"games:       {games_n}",
+        f"time control: {int(tc_sec)}+{int(tc_inc)} bullet",
+        f"sf weaken:   Skill={sf_skill} LimitStrength={sf_limit} UCI_Elo={sf_elo if sf_limit else 'n/a'}",
+        "",
+        "games:",
+    ]
+)
+log_file.write_text(header + "\n", encoding="utf-8")
+pgn_file.write_text("", encoding="utf-8")
+
+
+def append_game_log(line: str) -> None:
+    with log_file.open("a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
+def append_pgn(game: chess.pgn.Game) -> None:
+    with pgn_file.open("a", encoding="utf-8") as f:
+        print(game, file=f, end="\n\n")
+
 
 def sf_options():
     opts = {"Skill Level": sf_skill}
@@ -118,7 +145,7 @@ with chess.engine.SimpleEngine.popen_uci(labzero_path) as labzero, chess.engine.
             assert outcome is not None
             result_str = outcome.result()
             game.headers["Result"] = result_str
-            pgn_games.append(game)
+            append_pgn(game)
 
             if result_str == "1/2-1/2":
                 draws += 1
@@ -129,44 +156,36 @@ with chess.engine.SimpleEngine.popen_uci(labzero_path) as labzero, chess.engine.
             else:
                 losses += 1
                 tag = "loss"
-            lines.append(f"game {i:2d}: {tag:4s} {result_str}  ({board.status()})")
-            print(lines[-1], flush=True)
+            line = f"game {i:2d}: {tag:4s} {result_str}  ({board.status()})  [{wins}-{losses}-{draws}]"
+            append_game_log(line)
+            print(line, flush=True)
         except RuntimeError as exc:
             if "illegal" in str(exc).lower():
                 illegal += 1
-                lines.append(f"game {i:2d}: FAIL illegal — {exc}")
+                line = f"game {i:2d}: FAIL illegal — {exc}  [{wins}-{losses}-{draws}]"
             else:
                 errors += 1
-                lines.append(f"game {i:2d}: FAIL {exc}")
-            print(lines[-1], flush=True)
+                line = f"game {i:2d}: FAIL {exc}  [{wins}-{losses}-{draws}]"
+            append_game_log(line)
+            print(line, flush=True)
             game.headers["Result"] = "*"
-            pgn_games.append(game)
+            append_pgn(game)
 
-Path(pgn_path).write_text(
-    "\n\n".join(f"{g}\n" for g in pgn_games),
-    encoding="utf-8",
-)
-
-summary = [
-    f"labzero host benchmark  {datetime.now(timezone.utc).isoformat()}",
-    f"labzero:     {labzero_path}",
-    f"stockfish:   {sf_path}",
-    f"games:       {games_n}",
-    f"time control: {int(tc_sec)}+{int(tc_inc)} bullet",
-    f"sf weaken:   Skill={sf_skill} LimitStrength={sf_limit} UCI_Elo={sf_elo if sf_limit else 'n/a'}",
+footer = [
     "",
+    "---",
+    f"status:      complete",
     f"score:       {wins}-{losses}-{draws}  (W-L-D for labzero)",
     f"labzero %:   {100.0 * (wins + 0.5 * draws) / games_n:.1f}",
     f"illegal:     {illegal}",
     f"errors:      {errors}",
-    "",
-    "games:",
-    *lines,
-    "",
-    f"pgn: {pgn_path}",
+    f"pgn:         {pgn_path}",
 ]
+with log_file.open("a", encoding="utf-8") as f:
+    f.write("\n".join(footer) + "\n")
+
+summary = header.replace("in progress", "complete").split("\n") + footer[2:]
 text = "\n".join(summary)
-Path(log_path).write_text(text + "\n", encoding="utf-8")
 print()
 print(text)
 if illegal or errors:
