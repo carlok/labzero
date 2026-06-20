@@ -9,7 +9,7 @@
 
 We present **labzero**, an original Rust chess engine built as a research baseline for LLM-assisted, verifiably independent engine development. The alpha release (v0.2.0) implements full FIDE-legal move generation, negamax search with alpha–beta pruning, and a hand-written material + piece-square evaluation. Strength is intentionally modest: the primary claims are **legality**, **UCI compliance**, **reproducible verification**, and **originality**—not competitive Elo.
 
-Independent oracles (perft, fuzz, cross-engine legality checks) and a 200-game tournament gauntlet show **zero illegal moves**. A host benchmark ladder against strength-limited Stockfish 18 suggests a **bullet performance Elo on the order of 1500–1800** (preliminary; see §5). We document a concrete **beta roadmap** adding classical search and evaluation techniques, each measurable on the same ladder without copying existing engine source.
+Independent oracles (perft, fuzz, cross-engine legality checks) and a 200-game tournament gauntlet show **zero illegal moves**. A host benchmark ladder against strength-limited Stockfish 18 brackets **bullet performance Elo at ≈ 1700–1750** on this protocol (see §5). We document a concrete **beta roadmap** adding classical search and evaluation techniques, each measurable on the same ladder without copying existing engine source.
 
 ---
 
@@ -115,7 +115,7 @@ Binary search on $E_{\text{SF}}$ to bracket 50% score:
 
 ```
 1320 → 89.1%  →  next 2000
-2000 → (running)
+2000 → 17.2%  →  next 1800  (perf Elo ≈ 1727)
 ```
 
 Reference context: [CCRL 40/15](https://computerchess.org.uk/4040/index.html) lists hobby engines (Micro-Max ~1869, CDrill 1800 ~1795) at **different** time controls; bullet SF-Elo numbers are not directly comparable to CCRL.
@@ -127,13 +127,11 @@ Reference context: [CCRL 40/15](https://computerchess.org.uk/4040/index.html) li
 | Round | $E_{\text{SF}}$ | $N$ | Score (W–L–D) | $p$ | $E$ (approx.) | Status |
 |-------|-----------------|-----|---------------|-----|---------------|--------|
 | 1 | 1320 | 32 | **27–2–3** | 89.1% | ≈ 1520+ | **complete** |
-| 2 | 2000 | 32 | 1–8–3* | 17.2%* | ≪ 2000 | *in progress (12/32 games)* |
+| 2 | 2000 | 32 | **2–23–7** | 17.2% | ≈ 1727 | complete |
 
-\*Round 2 partial snapshot at time of writing; update before publication.
+**Interpretation (alpha):** labzero crushes SF@1320 (89%) but scores 17% vs SF@2000. Bracketed performance Elo ≈ **1727** on this protocol; working estimate **1700–1750** at 1+0 bullet. Optional round 3 at SF@1800 to tighten the bracket. **Strength was never the alpha goal**; legality and verifiability were.
 
-**Interpretation (alpha):** labzero crushes SF@1320 but loses heavily to SF@2000 early in round 2. A reasonable **working estimate** for 1+0 bullet is **$E \approx 1600\text{–}1800$** on this protocol—consistent with a vanilla negamax engine without quiescence or transposition table. **Strength was never the alpha goal**; legality and verifiability were.
-
-Detailed logs: [strength/ladder.md](strength/ladder.md), `benchmark_20260620T184517Z.{txt,pgn}`.
+Detailed logs: [strength/ladder.md](strength/ladder.md), `benchmark_20260620T184517Z.{txt,pgn}`, `benchmark_20260620T192641Z.{txt,pgn}`.
 
 ---
 
@@ -163,7 +161,7 @@ Beta keeps the **originality policy**: implement standard *algorithms* from text
 
 ### Phase B0 — Measurement baseline (before code changes)
 
-- [ ] Finish round 2 ($E_{\text{SF}} = 2000$, $N = 32$)
+- [x] Finish round 2 ($E_{\text{SF}} = 2000$, $N = 32$)
 - [ ] Run round 3 at $E_{\text{SF}} = 1800$ if round 2 $p < 35\%$
 - [ ] Record $(E_{\text{SF}}, p)$ pairs in [strength/ladder.md](strength/ladder.md)
 - [ ] Optional: one 10+0 run for time-scaling paragraph

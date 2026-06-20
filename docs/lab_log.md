@@ -88,3 +88,11 @@ Chronological record of changes, test runs, failures, and limitations.
 
 - **Result:** PASS
 - **Command:** `./scripts/podman/ci`
+
+## Host benchmark round 2 (2026-06-20)
+
+- **SF UCI Elo:** 2000, 1+0, 32 games
+- **Score (labzero):** 2–23–7 (17.2%)
+- **Performance Elo (approx):** 1727
+- **Illegal / errors:** 0
+- **Artifacts:** `docs/strength/benchmark_20260620T192641Z.txt`, `.pgn`
