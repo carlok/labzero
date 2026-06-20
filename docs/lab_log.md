@@ -96,3 +96,45 @@ Chronological record of changes, test runs, failures, and limitations.
 - **Performance Elo (approx):** 1727
 - **Illegal / errors:** 0
 - **Artifacts:** `docs/strength/benchmark_20260620T192641Z.txt`, `.pgn`
+
+## Beta v0.3.0-beta ladder (2026-06-20)
+
+- **Engine:** qsearch, TT, null move, LMR, SEE, tapered eval
+- **1320:** 28–0–4 (93.8%) — `benchmark_20260620T214301Z`
+- **1800:** 14–13–5 (51.6%) — `benchmark_20260620T221648Z`
+- **2000:** 10–20–2 (34.4%) — `benchmark_20260620T230310Z`
+- **Gauntlet smoke:** PASS, 0 illegal
+
+## CI run 2026-06-20T20:37:54Z
+
+- **Result:** FAIL
+- **Failures:** cargo fmt --check cargo clippy
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-20T20:40:58Z
+
+- **Result:** FAIL
+- **Failures:** cargo clippy cargo test build engine verify smoke tournament smoke
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-20T20:41:18Z
+
+- **Result:** FAIL
+- **Failures:** cargo clippy cargo test build engine verify smoke tournament smoke
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-20T20:41:47Z
+
+- **Result:** PASS
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-20T21:42:59Z
+
+- **Result:** FAIL
+- **Failures:** cargo clippy
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-20T21:43:34Z
+
+- **Result:** PASS
+- **Command:** `./scripts/podman/ci`

@@ -8,8 +8,10 @@ pub mod movegen;
 pub mod perft;
 pub mod piece;
 pub mod search;
+pub mod see;
 pub mod square;
 pub mod time;
+pub mod tt;
 pub mod uci;
 
 pub use board::Board;

@@ -4,58 +4,33 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, ~1s/move
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-## Round 1 — SF UCI Elo 1320
+## Alpha v0.2.0
 
-| Field | Value |
-|-------|--------|
-| Date | 2026-06-20 |
-| SF_ELO | 1320 |
-| SF_SKILL | 0 |
-| SF_LIMIT | 1 |
-| TC | 1+0 (~1s/move) |
-| Games | 32 |
-| Score (labzero) | **27 – 2 – 3** |
-| Score % | **89.1%** |
-| Artifacts | `benchmark_20260620T184517Z.txt`, `.pgn` |
+| SF_ELO | Score (W–L–D) | Score % | Perf Elo (approx) | Artifacts |
+|--------|---------------|---------|-------------------|-----------|
+| 1320 | 27–2–3 | 89.1% | — | `benchmark_20260620T184517Z` |
+| 2000 | 2–23–7 | 17.2% | ≈ 1727 | `benchmark_20260620T192641Z` |
 
-**Conclusion:** 1320 far too weak → dichotomy next at **2000**.
+**Alpha bracket (1+0):** ≈ **1700–1750** vs SF limited-Elo.
 
-## Round 2 — SF UCI Elo 2000
+## Beta v0.3.0-beta (B1–B3)
 
-| Field | Value |
-|-------|--------|
-| Date | 2026-06-20 |
-| SF_ELO | 2000 |
-| SF_SKILL | 0 |
-| SF_LIMIT | 1 |
-| TC | 1+0 (~1s/move) |
-| Games | 32 |
-| Score (labzero) | **2 – 23 – 7** |
-| Score % | **17.2%** |
-| Performance Elo (§formula) | **≈ 1727** |
-| Artifacts | `benchmark_20260620T192641Z.txt`, `.pgn` |
+Search: qsearch, TT (move ordering), null move, LMR, killer/history, SEE.  
+Eval: tapered mg/eg PSTs, bishop pair.
 
-**Conclusion:** 2000 far too strong → dichotomy next at **1800**.
+| SF_ELO | Score (W–L–D) | Score % | Perf Elo (approx) | Artifacts |
+|--------|---------------|---------|-------------------|-----------|
+| 1320 | **28–0–4** | **93.8%** | — | `benchmark_20260620T214301Z` |
+| 1800 | **14–13–5** | **51.6%** | **≈ 1812** | `benchmark_20260620T221648Z` |
+| 2000 | **10–20–2** | **34.4%** | **≈ 1888** | `benchmark_20260620T230310Z` |
 
-## Round 3 — SF UCI Elo 1800
+### Ablation (paper)
 
-| Field | Value |
-|-------|--------|
-| SF_ELO | 1800 |
-| Status | **pending** |
+| Version | SF 1320 | SF 1800 | SF 2000 |
+|---------|---------|---------|---------|
+| alpha v0.2.0 | 89.1% | — | 17.2% |
+| beta v0.3.0-beta | **93.8%** | **51.6%** | **34.4%** |
 
-| Score % | Next SF_ELO |
-|---------|-------------|
-| > 55% | 1900 |
-| 40–55% | **estimate ≈ 1800** (this setup) |
-| < 30% | 1700 |
+**Beta bracket (1+0):** ≈ **1800–1900** on this protocol (+~150–200 vs alpha at SF@2000).
 
-## Dichotomy log
-
-```
-1320 → 89.1%  →  next 2000
-2000 → 17.2%  →  next 1800  (perf Elo ≈ 1727)
-1800 → ?      →  (optional round 3)
-```
-
-**Working estimate (1+0 bullet):** labzero ≈ **1700–1750** vs SF limited-Elo on this protocol.
+Gauntlet smoke (Podman, beta): **0 illegal** — `gauntlet_20260620T205728Z.log`.

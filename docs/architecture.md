@@ -11,8 +11,10 @@
 | `make_unmake.rs` | Apply/revert moves |
 | `fen.rs` | FEN parse/serialize |
 | `perft.rs` | Perft divider |
-| `search.rs` | Negamax + alpha-beta + iterative deepening |
-| `eval.rs` | Material + original piece-square tables |
+| `search.rs` | Negamax, α–β, iterative deepening, qsearch, null move, LMR, killers/history |
+| `eval.rs` | Tapered mg/eg PSTs, bishop pair (+ structure helpers for future tuning) |
+| `tt.rs` | Transposition table (move ordering; mate-aware storage) |
+| `see.rs` | Static exchange eval for capture ordering |
 | `time.rs` | Time budget for `go` |
 
 Bitboard representation with mailbox king tracking. Search uses negamax, alpha-beta pruning, and simple move ordering.

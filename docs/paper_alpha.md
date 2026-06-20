@@ -127,11 +127,19 @@ Reference context: [CCRL 40/15](https://computerchess.org.uk/4040/index.html) li
 | Round | $E_{\text{SF}}$ | $N$ | Score (W–L–D) | $p$ | $E$ (approx.) | Status |
 |-------|-----------------|-----|---------------|-----|---------------|--------|
 | 1 | 1320 | 32 | **27–2–3** | 89.1% | ≈ 1520+ | **complete** |
-| 2 | 2000 | 32 | **2–23–7** | 17.2% | ≈ 1727 | complete |
+| 2 | 2000 | 32 | **2–23–7** | 17.2% | ≈ 1727 | alpha |
 
-**Interpretation (alpha):** labzero crushes SF@1320 (89%) but scores 17% vs SF@2000. Bracketed performance Elo ≈ **1727** on this protocol; working estimate **1700–1750** at 1+0 bullet. Optional round 3 at SF@1800 to tighten the bracket. **Strength was never the alpha goal**; legality and verifiability were.
+## 5.1 Beta ablation (v0.3.0-beta)
 
-Detailed logs: [strength/ladder.md](strength/ladder.md), `benchmark_20260620T184517Z.{txt,pgn}`, `benchmark_20260620T192641Z.{txt,pgn}`.
+| $E_{\text{SF}}$ | Alpha $p$ | Beta $p$ | Beta artifacts |
+|-----------------|-----------|----------|----------------|
+| 1320 | 89.1% | **93.8%** | `benchmark_20260620T214301Z` |
+| 1800 | — | **51.6%** (≈1812 perf) | `benchmark_20260620T221648Z` |
+| 2000 | 17.2% | **34.4%** (≈1888 perf) | `benchmark_20260620T230310Z` |
+
+**Interpretation:** Beta adds qsearch, TT ordering, null move, LMR, SEE, and tapered eval. Vs SF@2000, score roughly **doubled** (17% → 34%); vs SF@1800 ≈ **50%** → performance Elo ≈ **1800–1900** on this protocol. Gauntlet: 0 illegal.
+
+Detailed logs: [strength/ladder.md](strength/ladder.md).
 
 ---
 
@@ -162,9 +170,12 @@ Beta keeps the **originality policy**: implement standard *algorithms* from text
 ### Phase B0 — Measurement baseline (before code changes)
 
 - [x] Finish round 2 ($E_{\text{SF}} = 2000$, $N = 32$)
-- [ ] Run round 3 at $E_{\text{SF}} = 1800$ if round 2 $p < 35\%$
-- [ ] Record $(E_{\text{SF}}, p)$ pairs in [strength/ladder.md](strength/ladder.md)
-- [ ] Optional: one 10+0 run for time-scaling paragraph
+- [x] B1a quiescence — implemented
+- [x] B1b transposition table — implemented (ordering; mate-aware store)
+- [x] B2a null move + B2b LMR — implemented
+- [x] B2c killer/history/SEE — implemented
+- [x] B3a tapered mg/eg eval — implemented
+- [x] B3b structure helpers — in `eval.rs` (disabled at runtime for bullet NPS; tune in B4)
 
 **Exit:** Bracketed performance Elo ±100 on 1+0 protocol.
 

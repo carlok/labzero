@@ -24,6 +24,7 @@ pub const WHITE_OO: u8 = 1;
 pub const WHITE_OOO: u8 = 2;
 pub const BLACK_OO: u8 = 4;
 pub const BLACK_OOO: u8 = 8;
+const SIDE_KEY: u64 = 0xAA55_AA55_AA55_AA55;
 
 impl Default for Board {
     fn default() -> Self {
@@ -155,6 +156,25 @@ impl Board {
 
     pub fn push_rep(&mut self) {
         self.rep_keys.push(self.hash);
+    }
+
+    pub fn null_move(&mut self) {
+        self.stm = self.stm.opposite();
+        self.hash ^= SIDE_KEY;
+    }
+
+    pub fn unnull_move(&mut self) {
+        self.stm = self.stm.opposite();
+        self.hash ^= SIDE_KEY;
+    }
+
+    pub fn non_pawn_material(&self, color: Color) -> u32 {
+        use crate::square::bit_count;
+        let base = color.index() * 6;
+        bit_count(self.pieces[base + PieceKind::Knight.index()])
+            + bit_count(self.pieces[base + PieceKind::Bishop.index()])
+            + bit_count(self.pieces[base + PieceKind::Rook.index()])
+            + bit_count(self.pieces[base + PieceKind::Queen.index()])
     }
 }
 

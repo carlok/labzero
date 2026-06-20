@@ -1,4 +1,5 @@
 use std::io::{self, BufRead, Write};
+use std::sync::Mutex;
 
 use rand::seq::SliceRandom;
 
@@ -6,10 +7,23 @@ use crate::board::Board;
 use crate::fen::STARTPOS_FEN;
 use crate::mov::Move;
 use crate::movegen::generate_legal_moves;
-use crate::search::{search, SearchResult};
+use crate::search::{search, SearchResult, SearchState};
 use crate::time::{TimeBudget, TimeControl};
 
-static STOP_FLAG: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+static STOP_FLAG: Mutex<bool> = Mutex::new(false);
+static SEARCH_STATE: Mutex<Option<SearchState>> = Mutex::new(None);
+
+fn search_state() -> SearchState {
+    let mut guard = SEARCH_STATE.lock().expect("search state lock");
+    if guard.is_none() {
+        *guard = Some(SearchState::new());
+    }
+    guard.take().expect("search state")
+}
+
+fn restore_search_state(state: SearchState) {
+    *SEARCH_STATE.lock().expect("search state lock") = Some(state);
+}
 
 pub fn run_uci_loop() {
     let mut board = Board::from_fen(STARTPOS_FEN).expect("startpos");
@@ -34,6 +48,9 @@ pub fn run_uci_loop() {
         } else if trimmed == "ucinewgame" {
             board = Board::from_fen(STARTPOS_FEN).expect("startpos");
             board.rep_keys.clear();
+            let mut state = search_state();
+            state.clear();
+            restore_search_state(state);
         } else if trimmed == "stop" {
             if let Ok(mut g) = STOP_FLAG.lock() {
                 *g = true;
@@ -137,7 +154,9 @@ fn run_go(board: &Board, tc: &TimeControl) -> SearchResult {
     let max_depth = tc.depth.unwrap_or(6);
     let stm_white = board.stm == crate::color::Color::White;
     let mut budget = TimeBudget::new(tc, stm_white);
-    let result = search(board, max_depth, &mut budget);
+    let mut state = search_state();
+    let result = search(board, max_depth, &mut budget, &mut state);
+    restore_search_state(state);
     if result.best_move.is_some() {
         return result;
     }
