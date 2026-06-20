@@ -52,9 +52,10 @@ Path: .cargo-target/release/labzero
 - **Engine name:** labzero
 - **Version:** 0.2.0
 - **UCI compliant:** yes — see [uci_supported.md](uci_supported.md)
-- **Bot account URL:** _(set after operator runs live bot with LICHESS_TOKEN)_
-- **Contact / maintainer:** labzero research repo maintainers
+- **Bot account URL:** _(pending — set after live bot games; e.g. `https://lichess.org/@/YourBotName`)_
+- **Contact / maintainer:** [@carlok](https://github.com/carlok) — https://github.com/carlok/labzero
 
 ## Contact
 
-Project repository: labzero research repo.
+- **Repository:** https://github.com/carlok/labzero
+- **Maintainer:** https://github.com/carlok
