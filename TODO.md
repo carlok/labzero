@@ -51,6 +51,7 @@ These do **not** replace GUI or Lichess gates; re-run before a public release if
 | Full gauntlet | `./scripts/podman/gauntlet` | ~90 min |
 | Release + hash | `./scripts/podman/release` | Before tagging |
 | Bot preflight | `./scripts/podman/bot --dry-run` | Before live bot |
+| Host vs Stockfish | `STOCKFISH=... ./scripts/host-vs-stockfish.sh` | Local macOS binaries |
 
 Weekly GHA (Sunday 06:00 UTC): `verify-deep` + `gauntlet-smoke` — no operator action.
 

@@ -6,6 +6,7 @@ target/
 __pycache__/
 *.pyc
 .venv/
+.venv-host-test/
 
 # Editor
 .idea/

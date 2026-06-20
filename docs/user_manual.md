@@ -70,6 +70,24 @@ labzero speaks **UCI**. Use any UCI-compatible GUI:
 
 See [lichess_bot_setup.md](lichess_bot_setup.md) — use **lichess-bot** (official) with the host `target/release/labzero` binary.
 
+## Local bot vs bot (no Lichess)
+
+| Command | Opponents |
+|---------|-----------|
+| `./scripts/podman/gauntlet --smoke` | self, random UCI bot, Stockfish (in Podman) |
+| `./scripts/host-vs-stockfish.sh` | labzero vs **your macOS Stockfish** (host binaries) |
+
+Host Stockfish test (set your path, not committed to git):
+
+```bash
+./scripts/build-host-engine.sh
+export STOCKFISH="/path/to/stockfish-macos-m1-apple-silicon"
+./scripts/host-vs-stockfish.sh
+# optional: DEPTH=3 PLIES=60 ./scripts/host-vs-stockfish.sh
+```
+
+Requires no always-on server and no Lichess account.
+
 ## Troubleshooting
 
 | Problem | Fix |
