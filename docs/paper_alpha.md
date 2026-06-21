@@ -337,6 +337,8 @@ Implemented in v0.4.0 (original code only):
 
 **SMP spot (not anchor):** `Threads=8`, 16 games @ SF@2000 → **28.1%** (perf ≈ **1837**), vs **37.5%** (≈ **1911**) at `Threads=1` (32-game confirm). Lazy SMP v1 did not help at 1 s/move on this run (`benchmark_20260621T095930Z`).
 
+**Blitz spot (not anchor):** `TC_MODE=wtime 3+2`, 16 games @ SF@2000 → **7–6–3** (**53.1%**, perf ≈ **2022**), 0 illegal (`benchmark_20260621T132942Z`). Supersedes pre-harness-fix **0–8–0** (`benchmark_20260621T063138Z`). Wider think time vs 1+0 movetime; 16-game CI is wide.
+
 ---
 
 ## 8. Conclusion (alpha)

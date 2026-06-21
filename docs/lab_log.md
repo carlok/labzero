@@ -170,7 +170,7 @@ Chronological record of changes, test runs, failures, and limitations.
 - **D3:** eval weight tune — doubled pawn penalty 10→8, isolated 8→6, rook file 12→10
 - **CI:** `./scripts/podman/ci` **PASS** (16 unit tests); gauntlet smoke **0 illegal**
 - **Ladder (1+0 anchor):** SF@1320 **14–0–2 (93.8%)**; SF@2000 **9–17–6 (37.5%, 32-game confirm, ≈1911 perf)** — 0 illegal; see `docs/strength/ladder.md`
-- **Spot wtime 3+2 @ SF2000 (8 games):** **0–8–0**, 0 illegal/errors — protocol OK, strength weak (`benchmark_20260621T063138Z`)
+- **Spot wtime 3+2 @ SF2000 (8 games, pre-harness-fix):** **0–8–0** — superseded; see below (`benchmark_20260621T063138Z`)
 
 ## Host benchmark — gamma anchor (2026-06-21)
 
@@ -225,3 +225,13 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 | 2–9–5 | 28.1% | ≈ 1837 (CI ≈ 1660–2020) | **−9.4 pp** / ≈ **−74 Elo** | `benchmark_20260621T095930Z` |
 
 0 illegal, 0 errors. CIs overlap — treat as negative spot result, not proven SMP regression.
+
+## Spot blitz — wtime 3+2 @ SF@2000 (2026-06-21)
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1`, 16 games vs SF@2000:
+
+| Score | % | Perf Elo (approx) | vs 1+0 confirm | Artifact |
+|-------|---|-------------------|----------------|----------|
+| **7–6–3** | **53.1%** | **≈ 2022** (CI ≈ 1840–2200) | **+15.6 pp** / ≈ **+110 Elo** | `benchmark_20260621T132942Z` |
+
+0 illegal, 0 errors. Supersedes pre–`host-benchmark.sh` clock fix run **0–8–0** (`benchmark_20260621T063138Z`). Sample is 16 games — treat as spot check, not paper-grade confirm.

@@ -125,7 +125,7 @@ Some things did not improve the result.
 
 Turning on eight threads in a 16-game 1-second spot check against the same SF@2000 setting scored **2-9-5**. That is worse than the single-thread confirm. The sample is small and the confidence interval is wide, so I do not treat it as proof that threads hurt. But I do treat it as proof that the current Lazy SMP is not a free strength button.
 
-A clock-style `3+2` test also failed badly in a small run. It had no illegal moves or protocol errors, but the score was poor. That needs more work before I would make any claim about real blitz time controls.
+An early clock-style `3+2` run scored **0-8-0** in eight games. That was before I fixed the benchmark harness to pass clocks correctly (`white_clock` / `black_clock` in `host-benchmark.sh`). After the fix, a 16-game `3+2` spot check against the same SF@2000 setting scored **7-6-3** (**53.1%**), with **0 illegal moves** and **0 errors** (`benchmark_20260621T132942Z`). That is only sixteen games, so the confidence interval is wide. I would not swap it in as the headline number. But it does suggest the engine can use extra think time and that real clock handling is no longer obviously broken.
 
 These failures are part of the result. They show where the engine is still young.
 
