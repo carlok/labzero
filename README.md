@@ -2,6 +2,8 @@
 
 Weak but fully legal, tournament-compatible chess engine with an **original** Rust core.
 
+**[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
+
 [![CI](https://github.com/carlok/labzero/actions/workflows/ci.yml/badge.svg)](https://github.com/carlok/labzero/actions/workflows/ci.yml)
 
 Research target: an LLM-iterated engine with no copied engine core, independent perft/legality validation, UCI protocol compliance, and automated tournament survival.
