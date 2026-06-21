@@ -124,13 +124,15 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | Protocol | SF_ELO | Score (W–L–D) | Score % | Artifacts | Notes |
 |----------|--------|---------------|---------|-----------|-------|
 | `TC_SEC=10 movetime` | 2000 | _in progress_ | — | `benchmark_20260621T072038Z` | rapid-like depth probe (v0.5.0) |
-| `TC_MODE=wtime TC_SEC=3 TC_INC=2` | 2000 | **10–11–11** | **48.4%** | `benchmark_20260621T140403Z` | **32-game confirm**; perf **≈ 1989** (CI ≈ 1860–2115); 0 illegal |
-| `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | SMP spot; perf **≈ 1837** (no gain vs T=1) |
+| `TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1` | 2000 | **10–11–11** | **48.4%** | `benchmark_20260621T140403Z` | **32-game confirm**; perf **≈ 1989**; 0 illegal |
+| `3+2 wtime THREADS=1` (post sharded TT) | 2000 | **5–8–3** | **40.6%** | `benchmark_20260621T151817Z` | 16-game SMP sanity; within noise of confirm |
+| `3+2 wtime THREADS=4` (post sharded TT) | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T154803Z` | perf **≈ 1837**; sharded TT did not fix SMP |
+| `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
 ```bash
 SF_ELO=2000 GAMES=16 TC_SEC=10 TC_MODE=movetime THREADS=1 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1 ./scripts/host-benchmark.sh
-SF_ELO=2000 GAMES=16 TC_SEC=10 THREADS=4 ./scripts/host-benchmark.sh
+SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
 ```
 
 Gauntlet smoke (Podman): **0 illegal** required after engine changes.

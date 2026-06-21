@@ -236,3 +236,16 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 | **32 (confirm)** | **10–11–11** | **48.4%** | **≈ 1989** (95% CI ≈ 1860–2115) | `benchmark_20260621T140403Z` | **paper-grade blitz row** |
 
 0 illegal, 0 errors on both runs. Supersedes pre–`host-benchmark.sh` clock fix **0–8–0** (`benchmark_20260621T063138Z`). Not comparable to 1+0 anchor (37.5%, ≈1911).
+
+## Sharded TT + SMP spot — 3+2 (2026-06-21)
+
+**Change:** `engine/src/tt.rs` — global `Mutex<Vec<_>>` replaced with **64-shard** table (per-shard mutex); API unchanged.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2`, 16 games vs SF@2000:
+
+| Threads | Score | % | Perf Elo (approx) | vs 32g blitz confirm | Artifact |
+|---------|-------|---|-------------------|----------------------|----------|
+| 1 | 5–8–3 | 40.6% | ≈ 1934 | −7.8 pp (noise) | `benchmark_20260621T151817Z` |
+| 4 | 2–9–5 | 28.1% | ≈ 1837 | **−20.3 pp** | `benchmark_20260621T154803Z` |
+
+0 illegal, 0 errors. **T=1** in line with **48.4%** confirm; **T=4** still regresses (same score band as pre-shard `THREADS=8` @ 1+0). **Conclusion:** lock contention was not the sole bottleneck — Lazy SMP needs deeper redesign (helper depth offset / split diversification), not more search/eval heuristics.

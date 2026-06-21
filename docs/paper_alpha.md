@@ -335,9 +335,9 @@ Implemented in v0.4.0 (original code only):
 
 **TC caveat:** All published ladder rows use `TC_MODE=movetime TC_SEC=1 THREADS=1` unless marked otherwise. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo.
 
-**SMP spot (not anchor):** `Threads=8`, 16 games @ SF@2000 → **28.1%** (perf ≈ **1837**), vs **37.5%** (≈ **1911**) at `Threads=1` (32-game confirm). Lazy SMP v1 did not help at 1 s/move on this run (`benchmark_20260621T095930Z`).
+**SMP (not anchor):** Sharded TT (64-way) did not fix Lazy SMP regression. `3+2 wtime`, 16 games @ SF@2000: **T=1 → 40.6%** (`benchmark_20260621T151817Z`, noise vs 48.4% confirm); **T=4 → 28.1%** (perf ≈ **1837**, `benchmark_20260621T154803Z`). Pre-shard: **T=8 @ 1+0 → 28.1%** (`benchmark_20260621T095930Z`). Next: helper depth offset / split diversification — not eval/search knobs.
 
-**Blitz confirm (not anchor):** `TC_MODE=wtime 3+2`, **32 games** @ SF@2000 → **10–11–11** (**48.4%**, perf ≈ **1989**, CI ≈ 1860–2115), 0 illegal (`benchmark_20260621T140403Z`). 16-game probe **7–6–3** (`benchmark_20260621T132942Z`). Not the 1+0 headline row (37.5%, ≈1911).
+**Blitz confirm (not anchor):** `TC_MODE=wtime 3+2`, **32 games** @ SF@2000 → **10–11–11** (**48.4%**, perf ≈ **1989**, CI ≈ 1860–2115), 0 illegal (`benchmark_20260621T140403Z`). Not the 1+0 headline row (37.5%, ≈1911).
 
 ---
 

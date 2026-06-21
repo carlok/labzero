@@ -13,7 +13,7 @@
 | `perft.rs` | Perft divider |
 | `search.rs` | Negamax, α–β, ID, aspiration, qsearch, null move, LMR, killers/history, TT cutoffs |
 | `eval.rs` | Tapered mg/eg PSTs, bishop pair, pawn structure, rook files, king safety |
-| `tt.rs` | Thread-safe transposition table (mate-aware scores) |
+| `tt.rs` | 64-shard transposition table, mate-aware scores (per-shard `Mutex`) |
 | `see.rs` | Static exchange eval for capture ordering |
 | `time.rs` | Time budget, soft stop, panic reserve |
 | `smp.rs` | Lazy SMP helper threads (shared TT) |
