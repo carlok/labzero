@@ -5,7 +5,8 @@
 - **Phase D — search stability:** tactical regression suite (`verifier/positions/tactical.epd`, fixed-depth tests); TT `complete` flag; score cutoffs for `go depth` only (movetime ordering-only); LMR table softened (`move_idx/10`); aspiration from depth 5
 - **Phase D — time/UCI:** `ucinewgame` resets stop flag; UCI protocol matrix in docs; `host-benchmark.sh` wtime via `white_clock`/`black_clock`
 - **Phase D — eval:** tune pawn structure / isolated pawn / rook-on-open-file weights
-- **Measurement:** anchor (1+0): SF@2000 **37.5%** (32-game confirm, ≈1911 perf); blitz (3+2 wtime @ SF2000): **48.4%** (32-game confirm, ≈1989 perf) — see `docs/strength/ladder.md`
+- **TT/SMP:** 64-shard transposition table; deterministic Zobrist hashing with incremental make/unmake updates
+- **Measurement:** anchor (1+0): SF@2000 **37.5%** (32-game confirm, ≈1911 perf); blitz (3+2 @ SF2000): **48.4%** (32-game confirm); post-Zobrist spot: **T=1 62.5%**, **T=4 50.0%** (16 games each, ≈2000 perf at T=4) — see `docs/strength/ladder.md`
 
 ## 0.4.0 — 2026-06-20
 

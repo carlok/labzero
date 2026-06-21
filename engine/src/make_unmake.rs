@@ -3,6 +3,7 @@ use crate::color::Color;
 use crate::mov::{Move, MoveKind};
 use crate::piece::{Piece, PieceKind};
 use crate::square::{bb, piece_index, Square};
+use crate::zobrist;
 
 #[derive(Clone, Debug)]
 pub struct Undo {
@@ -13,6 +14,58 @@ pub struct Undo {
     pub halfmove: u16,
     pub hash: u64,
     pub rep_len: usize,
+}
+
+fn castle_rook_squares(mv: Move) -> (Square, Square) {
+    if mv.to.file() == 6 {
+        (
+            Square::new(7, mv.from.rank()),
+            Square::new(5, mv.from.rank()),
+        )
+    } else {
+        (
+            Square::new(0, mv.from.rank()),
+            Square::new(3, mv.from.rank()),
+        )
+    }
+}
+
+fn update_hash_after_move(
+    board: &mut Board,
+    undo: &Undo,
+    stm: Color,
+    moving: Piece,
+    placed_kind: PieceKind,
+    mv: Move,
+) {
+    let mover_idx = piece_index(moving.color, moving.kind);
+    board.hash ^= zobrist::piece_key(mover_idx, mv.from);
+
+    if let Some((cap, sq)) = undo.captured {
+        board.hash ^= zobrist::piece_key(piece_index(cap.color, cap.kind), sq);
+    }
+
+    let placed_idx = piece_index(stm, placed_kind);
+    board.hash ^= zobrist::piece_key(placed_idx, mv.to);
+
+    if mv.kind == MoveKind::Castle {
+        let (rook_from, rook_to) = castle_rook_squares(mv);
+        let rook_idx = piece_index(stm, PieceKind::Rook);
+        board.hash ^= zobrist::piece_key(rook_idx, rook_from);
+        board.hash ^= zobrist::piece_key(rook_idx, rook_to);
+    }
+
+    board.hash ^= zobrist::castling_key(undo.castling);
+    board.hash ^= zobrist::castling_key(board.castling);
+
+    if let Some(ep) = undo.ep_square {
+        board.hash ^= zobrist::ep_file_key(ep.file());
+    }
+    if let Some(ep) = board.ep_square {
+        board.hash ^= zobrist::ep_file_key(ep.file());
+    }
+
+    board.hash ^= zobrist::side_key();
 }
 
 pub fn make_move(board: &mut Board, mv: Move) -> Undo {
@@ -74,17 +127,7 @@ pub fn make_move(board: &mut Board, mv: Move) -> Undo {
             board.ep_square = Some(Square::new(mv.from.file(), ep_rank));
         }
         MoveKind::Castle => {
-            let (rook_from, rook_to) = if mv.to.file() == 6 {
-                (
-                    Square::new(7, mv.from.rank()),
-                    Square::new(5, mv.from.rank()),
-                )
-            } else {
-                (
-                    Square::new(0, mv.from.rank()),
-                    Square::new(3, mv.from.rank()),
-                )
-            };
+            let (rook_from, rook_to) = castle_rook_squares(mv);
             let rook_idx = piece_index(moving.color, PieceKind::Rook);
             board.pieces[rook_idx] &= !bb(rook_from);
             board.pieces[rook_idx] |= bb(rook_to);
@@ -122,8 +165,8 @@ pub fn make_move(board: &mut Board, mv: Move) -> Undo {
     if stm == Color::Black {
         board.fullmove += 1;
     }
+    update_hash_after_move(board, &undo, stm, moving, placed_kind, mv);
     board.stm = stm.opposite();
-    board.hash = board.compute_hash();
     undo
 }
 
@@ -156,17 +199,7 @@ pub fn unmake_move(board: &mut Board, undo: Undo) {
     }
 
     if undo.mv.kind == MoveKind::Castle {
-        let (rook_from, rook_to) = if undo.mv.to.file() == 6 {
-            (
-                Square::new(7, undo.mv.from.rank()),
-                Square::new(5, undo.mv.from.rank()),
-            )
-        } else {
-            (
-                Square::new(0, undo.mv.from.rank()),
-                Square::new(3, undo.mv.from.rank()),
-            )
-        };
+        let (rook_from, rook_to) = castle_rook_squares(undo.mv);
         let rook_idx = piece_index(stm, PieceKind::Rook);
         board.pieces[rook_idx] &= !bb(rook_to);
         board.pieces[rook_idx] |= bb(rook_from);

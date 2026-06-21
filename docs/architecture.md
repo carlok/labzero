@@ -5,10 +5,11 @@
 | Module | Role |
 |--------|------|
 | `uci.rs` | UCI protocol loop, options (Hash, Threads, OwnBook) |
-| `board.rs` | Position state, game status |
+| `board.rs` | Position state, Zobrist hash, game status |
 | `square.rs`, `piece.rs`, `color.rs`, `mov.rs` | Types |
+| `zobrist.rs` | Deterministic Zobrist keys (piece, side, castling, en-passant file) |
 | `movegen.rs` | Legal move generation |
-| `make_unmake.rs` | Apply/revert moves |
+| `make_unmake.rs` | Apply/revert moves; incremental hash XOR on make |
 | `fen.rs` | FEN parse/serialize |
 | `perft.rs` | Perft divider |
 | `search.rs` | Negamax, α–β, ID, aspiration, qsearch, null move, LMR, killers/history, TT cutoffs |

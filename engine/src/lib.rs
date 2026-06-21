@@ -15,5 +15,6 @@ pub mod square;
 pub mod time;
 pub mod tt;
 pub mod uci;
+pub mod zobrist;
 
 pub use board::Board;

@@ -3,9 +3,10 @@ use crate::make_unmake::Undo;
 use crate::mov::Move;
 use crate::piece::{Piece, PieceKind};
 use crate::square::{
-    bb, king_attack_bb, knight_attack_bb, pawn_attack_bb, sliding_attacks, Bitboard, Square,
-    BISHOP_DIRS, ROOK_DIRS,
+    bb, king_attack_bb, knight_attack_bb, pawn_attack_bb, piece_index, sliding_attacks, Bitboard,
+    Square, BISHOP_DIRS, ROOK_DIRS,
 };
+use crate::zobrist;
 
 #[derive(Clone, Debug)]
 pub struct Board {
@@ -24,7 +25,6 @@ pub const WHITE_OO: u8 = 1;
 pub const WHITE_OOO: u8 = 2;
 pub const BLACK_OO: u8 = 4;
 pub const BLACK_OOO: u8 = 8;
-const SIDE_KEY: u64 = 0xAA55_AA55_AA55_AA55;
 
 impl Default for Board {
     fn default() -> Self {
@@ -141,15 +141,15 @@ impl Board {
         for sq in 0..64u8 {
             let s = Square(sq);
             if let Some(p) = self.piece_at(s) {
-                h ^= hash_piece(s, p);
+                h ^= zobrist::piece_key(piece_index(p.color, p.kind), s);
             }
         }
         if self.stm == Color::Black {
-            h ^= 0xAA55_AA55_AA55_AA55;
+            h ^= zobrist::side_key();
         }
-        h ^= (self.castling as u64).wrapping_mul(0x1234);
+        h ^= zobrist::castling_key(self.castling);
         if let Some(ep) = self.ep_square {
-            h ^= (ep.index() as u64 + 1).wrapping_mul(0x5678);
+            h ^= zobrist::ep_file_key(ep.file());
         }
         h
     }
@@ -160,12 +160,12 @@ impl Board {
 
     pub fn null_move(&mut self) {
         self.stm = self.stm.opposite();
-        self.hash ^= SIDE_KEY;
+        self.hash ^= zobrist::side_key();
     }
 
     pub fn unnull_move(&mut self) {
         self.stm = self.stm.opposite();
-        self.hash ^= SIDE_KEY;
+        self.hash ^= zobrist::side_key();
     }
 
     pub fn non_pawn_material(&self, color: Color) -> u32 {
@@ -178,20 +178,116 @@ impl Board {
     }
 }
 
-fn hash_piece(sq: Square, piece: Piece) -> u64 {
-    let idx = crate::square::piece_index(piece.color, piece.kind) as u64;
-    idx.wrapping_mul(7919).wrapping_add(sq.index() as u64 + 1)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::fen::STARTPOS_FEN;
+    use crate::mov::MoveKind;
+    use crate::movegen::generate_legal_moves;
     use crate::square::bit_count;
+
+    fn assert_hash_oracle(board: &Board) {
+        assert_eq!(
+            board.hash,
+            board.compute_hash(),
+            "hash oracle mismatch stm={:?} castling={} ep={:?}",
+            board.stm,
+            board.castling,
+            board.ep_square
+        );
+    }
 
     #[test]
     fn startpos_has_pieces() {
         let b = Board::from_fen(STARTPOS_FEN).unwrap();
         assert_eq!(bit_count(b.occupied()), 32);
+    }
+
+    #[test]
+    fn startpos_hash_matches_oracle() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn make_unmake_restores_hash() {
+        let mut board = Board::from_fen(STARTPOS_FEN).unwrap();
+        assert_hash_oracle(&board);
+        for _ in 0..12 {
+            let moves = generate_legal_moves(&board);
+            let Some(mv) = moves.first().copied() else {
+                break;
+            };
+            let before = board.hash;
+            let undo = board.make_move(mv);
+            assert_hash_oracle(&board);
+            board.unmake_move(undo);
+            assert_hash_oracle(&board);
+            assert_eq!(board.hash, before);
+        }
+    }
+
+    #[test]
+    fn castling_hash_consistent() {
+        let mut board =
+            Board::from_fen("rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")
+                .unwrap();
+        assert_hash_oracle(&board);
+        let e1g1 = generate_legal_moves(&board)
+            .into_iter()
+            .find(|m| m.kind == MoveKind::Castle && m.to == Square::new(6, 0))
+            .expect("white O-O");
+        let undo = board.make_move(e1g1);
+        assert_hash_oracle(&board);
+        board.unmake_move(undo);
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn en_passant_hash_consistent() {
+        let ep_setup = Board::from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")
+            .unwrap();
+        assert_hash_oracle(&ep_setup);
+        let mut board = ep_setup;
+        let black_push = generate_legal_moves(&board)
+            .into_iter()
+            .find(|m| m.kind == MoveKind::DoublePush)
+            .expect("black double push");
+        let undo = board.make_move(black_push);
+        assert_hash_oracle(&board);
+        board.unmake_move(undo);
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn promotion_hash_consistent() {
+        let mut board =
+            Board::from_fen("8/4P3/8/8/8/8/8/4K2k w - - 0 1").unwrap();
+        assert_hash_oracle(&board);
+        let promo = generate_legal_moves(&board)
+            .into_iter()
+            .find(|m| m.promotion == Some(PieceKind::Queen))
+            .expect("queen promotion");
+        let undo = board.make_move(promo);
+        assert_hash_oracle(&board);
+        board.unmake_move(undo);
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn random_legal_sequence_oracle() {
+        let mut board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let mut seed: u64 = 42;
+        for _ in 0..200 {
+            assert_hash_oracle(&board);
+            let moves = generate_legal_moves(&board);
+            if moves.is_empty() {
+                break;
+            }
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            let idx = (seed as usize) % moves.len();
+            board.make_move(moves[idx]);
+        }
+        assert_hash_oracle(&board);
     }
 }

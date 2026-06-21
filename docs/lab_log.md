@@ -248,4 +248,17 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 | 1 | 5–8–3 | 40.6% | ≈ 1934 | −7.8 pp (noise) | `benchmark_20260621T151817Z` |
 | 4 | 2–9–5 | 28.1% | ≈ 1837 | **−20.3 pp** | `benchmark_20260621T154803Z` |
 
-0 illegal, 0 errors. **T=1** in line with **48.4%** confirm; **T=4** still regresses (same score band as pre-shard `THREADS=8` @ 1+0). **Conclusion:** lock contention was not the sole bottleneck — Lazy SMP needs deeper redesign (helper depth offset / split diversification), not more search/eval heuristics.
+0 illegal, 0 errors. **T=1** in line with **48.4%** confirm; **T=4** still regressed (same score band as pre-shard `THREADS=8` @ 1+0). **Conclusion:** lock contention was not the sole bottleneck.
+
+## Zobrist hash + SMP re-measure — 3+2 (2026-06-21)
+
+**Change:** `engine/src/zobrist.rs` — deterministic Zobrist tables; `make_unmake.rs` incremental XOR on make (no full-board recompute); `compute_hash()` kept as oracle.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2`, 16 games vs SF@2000:
+
+| Threads | Score | % | Perf Elo (approx) | vs post-shard T=4 | Artifact |
+|---------|-------|---|-------------------|-------------------|----------|
+| 1 | **10–6–0** | **62.5%** | **≈ 2089** | **+21.9 pp** vs shard T=1 | `benchmark_20260621T162932Z` |
+| 4 | **7–7–2** | **50.0%** | **≈ 2000** | **+21.9 pp** vs shard T=4 | `benchmark_20260621T165748Z` |
+
+0 illegal, 0 errors. **Decision:** keep Zobrist hash; **T=4 now even** on 3+2 (was 28.1%). Next SMP work: helper depth offset / split diversification for further gain.

@@ -127,6 +127,8 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1` | 2000 | **10–11–11** | **48.4%** | `benchmark_20260621T140403Z` | **32-game confirm**; perf **≈ 1989**; 0 illegal |
 | `3+2 wtime THREADS=1` (post sharded TT) | 2000 | **5–8–3** | **40.6%** | `benchmark_20260621T151817Z` | 16-game SMP sanity; within noise of confirm |
 | `3+2 wtime THREADS=4` (post sharded TT) | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T154803Z` | perf **≈ 1837**; sharded TT did not fix SMP |
+| `3+2 wtime THREADS=1` (post Zobrist) | 2000 | **10–6–0** | **62.5%** | `benchmark_20260621T162932Z` | perf **≈ 2089**; 0 illegal |
+| `3+2 wtime THREADS=4` (post Zobrist) | 2000 | **7–7–2** | **50.0%** | `benchmark_20260621T165748Z` | perf **≈ 2000**; SMP helps vs pre-Zobrist |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
 ```bash
