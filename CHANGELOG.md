@@ -1,12 +1,18 @@
 # Changelog
 
+## 0.5.1 — 2026-06-21
+
+- **TT:** 64-shard transposition table (per-shard mutex; reduces SMP lock contention)
+- **Hash:** deterministic Zobrist keys + incremental XOR on make/unmake (`engine/src/zobrist.rs`)
+- **Measurement:** 3+2 blitz vs SF@2000 — post-Zobrist **T=1 62.5%**, **T=4 50.0%** (16 games); README **≈2000** on limited-Stockfish benchmarks
+- **Docs:** ladder/lab_log/paper sync for blitz confirm and SMP spots
+
 ## 0.5.0 — 2026-06-21
 
 - **Phase D — search stability:** tactical regression suite (`verifier/positions/tactical.epd`, fixed-depth tests); TT `complete` flag; score cutoffs for `go depth` only (movetime ordering-only); LMR table softened (`move_idx/10`); aspiration from depth 5
 - **Phase D — time/UCI:** `ucinewgame` resets stop flag; UCI protocol matrix in docs; `host-benchmark.sh` wtime via `white_clock`/`black_clock`
 - **Phase D — eval:** tune pawn structure / isolated pawn / rook-on-open-file weights
-- **TT/SMP:** 64-shard transposition table; deterministic Zobrist hashing with incremental make/unmake updates
-- **Measurement:** anchor (1+0): SF@2000 **37.5%** (32-game confirm, ≈1911 perf); blitz (3+2 @ SF2000): **48.4%** (32-game confirm); post-Zobrist spot: **T=1 62.5%**, **T=4 50.0%** (16 games each, ≈2000 perf at T=4) — see `docs/strength/ladder.md`
+- **Measurement:** anchor (1+0): SF@2000 **37.5%** (32-game confirm, ≈1911 perf); blitz (3+2 @ SF2000): **48.4%** (32-game confirm) — see `docs/strength/ladder.md`
 
 ## 0.4.0 — 2026-06-20
 

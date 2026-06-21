@@ -262,3 +262,8 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 | 4 | **7–7–2** | **50.0%** | **≈ 2000** | **+21.9 pp** vs shard T=4 | `benchmark_20260621T165748Z` |
 
 0 illegal, 0 errors. **Decision:** keep Zobrist hash; **T=4 now even** on 3+2 (was 28.1%). Next SMP work: helper depth offset / split diversification for further gain.
+
+## CI run 2026-06-21T17:51:27Z
+
+- **Result:** PASS
+- **Command:** `./scripts/podman/ci`
