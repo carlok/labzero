@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="LabZero-logo.png" alt="LabZero logo" width="220">
+</p>
+
 # labzero
 
 Weak but fully legal, tournament-compatible chess engine with an **original** Rust core.
@@ -18,6 +22,8 @@ Tagged releases include host binaries (no Rust required):
 | **Linux x86_64** | `labzero-linux-x86_64` |
 
 Get them from **[GitHub Releases](https://github.com/carlok/labzero/releases)** (latest tag, e.g. `v0.5.0`). Each upload has a `.sha256` sidecar; `SHA256SUMS` lists all files.
+
+**macOS:** release binaries are **not code-signed or notarized**. On first run, Gatekeeper may block the app (“unidentified developer”). Use **Right click → Open**, or verify the `.sha256` checksum and build from source if you prefer. Linux users can verify with `sha256sum -c` against `SHA256SUMS`.
 
 Quick smoke after download:
 
