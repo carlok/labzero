@@ -4,8 +4,7 @@ use std::thread;
 
 use crate::board::Board;
 use crate::search::{
-    search_with_info, search_with_info_from_depth, SearchInfo, SearchResult, SearchState,
-    MAX_DEPTH,
+    search_with_info, search_with_info_from_depth, SearchInfo, SearchResult, SearchState, MAX_DEPTH,
 };
 use crate::time::{TimeBudget, TimeControl};
 
