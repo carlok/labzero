@@ -3,10 +3,19 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use crate::board::Board;
-use crate::search::{search_with_info, SearchInfo, SearchResult, SearchState, MAX_DEPTH};
+use crate::search::{
+    search_with_info, search_with_info_from_depth, SearchInfo, SearchResult, SearchState,
+    MAX_DEPTH,
+};
 use crate::time::{TimeBudget, TimeControl};
 
 pub type InfoCallback = Arc<Mutex<dyn FnMut(SearchInfo) + Send>>;
+
+const HELPER_START_DEPTHS: [u32; 3] = [3, 4, 5];
+
+pub(crate) fn helper_start_depth(helper_index: usize) -> u32 {
+    HELPER_START_DEPTHS[helper_index % 3]
+}
 
 #[derive(Clone, Debug)]
 pub struct EngineOptions {
@@ -45,15 +54,23 @@ pub fn run_search(
     let stop_helpers = Arc::clone(&stop_flag);
     let mut handles = Vec::new();
 
-    for _ in 1..options.threads {
+    for (helper_index, _) in (1..options.threads).enumerate() {
         let b = board_clone.clone();
         let tc = tc_clone.clone();
         let stop = Arc::clone(&stop_helpers);
         let tt = Arc::clone(&shared_tt);
+        let start_depth = helper_start_depth(helper_index);
         handles.push(thread::spawn(move || {
             let mut helper_state = SearchState::with_tt(tt);
             let mut helper_budget = TimeBudget::new(&tc, stm_white).with_external_stop(stop);
-            let _ = search_with_info(&b, max_depth, &mut helper_budget, &mut helper_state, None);
+            let _ = search_with_info_from_depth(
+                &b,
+                max_depth,
+                start_depth,
+                &mut helper_budget,
+                &mut helper_state,
+                None,
+            );
         }));
     }
 
@@ -95,5 +112,24 @@ pub fn ensure_hash_size(state: &mut SearchState, hash_mb: usize) {
     let want = (hash_mb * 1024 * 1024 / 24).next_power_of_two().max(1024);
     if state.tt.entry_count() != want {
         state.set_hash_mb(hash_mb);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn helper_start_depth_cycles() {
+        assert_eq!(helper_start_depth(0), 3);
+        assert_eq!(helper_start_depth(1), 4);
+        assert_eq!(helper_start_depth(2), 5);
+        assert_eq!(helper_start_depth(3), 3);
+    }
+
+    #[test]
+    fn threads_four_yields_three_staggered_starts() {
+        let starts: Vec<u32> = (0..3).map(helper_start_depth).collect();
+        assert_eq!(starts, vec![3, 4, 5]);
     }
 }

@@ -106,27 +106,49 @@ pub fn search_with_info(
     max_depth: u32,
     budget: &mut TimeBudget,
     state: &mut SearchState,
+    info_cb: Option<&mut dyn FnMut(SearchInfo)>,
+) -> SearchResult {
+    search_with_info_from_depth(board, max_depth, 1, budget, state, info_cb)
+}
+
+pub fn search_with_info_from_depth(
+    board: &Board,
+    max_depth: u32,
+    start_depth: u32,
+    budget: &mut TimeBudget,
+    state: &mut SearchState,
     mut info_cb: Option<&mut dyn FnMut(SearchInfo)>,
 ) -> SearchResult {
-    let max_depth = max_depth.min(MAX_DEPTH);
+    let cap = max_depth.min(MAX_DEPTH);
+    let start = start_depth.clamp(1, MAX_DEPTH);
+    if start > cap {
+        return SearchResult {
+            best_move: None,
+            score: 0,
+            nodes: 0,
+            depth: 0,
+        };
+    }
     let mut board = board.clone();
     let mut best = None;
     let mut best_score = 0;
     let mut nodes = 0u64;
-    let mut depth = 1u32;
+    let mut depth = start;
     let mut prev_score = 0i32;
     let mut pv_move = None;
     let mut last_iter_ms = budget.elapsed_ms();
+    let mut completed_depth = 0u32;
+    let mut have_prior_score = false;
 
-    while depth <= max_depth {
-        if depth > 1 && !budget.should_start_depth(last_iter_ms) {
+    while depth <= cap {
+        if depth > start && !budget.should_start_depth(last_iter_ms) {
             break;
         }
-        if budget.should_stop() && depth > 1 {
+        if budget.should_stop() && depth > start {
             break;
         }
 
-        let (alpha, beta) = if depth >= ASPIRATION_MIN_DEPTH {
+        let (alpha, beta) = if depth >= ASPIRATION_MIN_DEPTH && have_prior_score {
             (
                 prev_score.saturating_sub(ASPIRATION_DELTA),
                 prev_score.saturating_add(ASPIRATION_DELTA),
@@ -139,7 +161,10 @@ pub fn search_with_info(
             &mut board, depth, alpha, beta, budget, state, &mut nodes, pv_move,
         );
 
-        if depth >= ASPIRATION_MIN_DEPTH && (result.1 <= alpha || result.1 >= beta) {
+        if have_prior_score
+            && depth >= ASPIRATION_MIN_DEPTH
+            && (result.1 <= alpha || result.1 >= beta)
+        {
             result = search_root(
                 &mut board,
                 depth,
@@ -162,7 +187,7 @@ pub fn search_with_info(
         }
 
         last_iter_ms = budget.elapsed_ms();
-        if budget.should_stop() && depth > 1 {
+        if budget.should_stop() && depth > start {
             break;
         }
         if let Some(m) = result.0 {
@@ -170,15 +195,25 @@ pub fn search_with_info(
             best_score = result.1;
             prev_score = result.1;
             pv_move = Some(m);
+            completed_depth = depth;
+            have_prior_score = true;
         }
         depth += 1;
     }
+
+    let reported_depth = if completed_depth > 0 {
+        completed_depth
+    } else if best.is_some() {
+        1
+    } else {
+        0
+    };
 
     SearchResult {
         best_move: best,
         score: best_score,
         nodes,
-        depth: depth.saturating_sub(1).max(1),
+        depth: reported_depth,
     }
 }
 
@@ -662,5 +697,59 @@ mod tests {
         let res = search(&board, 8, &mut budget, &mut state);
         assert!(res.best_move.is_some());
         assert!(res.score >= 0, "king should not lose in drawn KvK endgame");
+    }
+
+    #[test]
+    fn from_depth_three_finds_legal_move() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(8),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search_with_info_from_depth(&board, 8, 3, &mut budget, &mut state, None);
+        assert!(res.best_move.is_some());
+        assert!(res.depth >= 3);
+    }
+
+    #[test]
+    fn from_depth_clamps_above_max() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(2),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search_with_info_from_depth(&board, 2, 5, &mut budget, &mut state, None);
+        assert!(res.best_move.is_none());
+        assert_eq!(res.depth, 0);
+        assert_eq!(res.nodes, 0);
+    }
+
+    #[test]
+    fn from_depth_one_matches_wrapper() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let tc = TimeControl {
+            depth: Some(4),
+            ..Default::default()
+        };
+        let mut budget1 = TimeBudget::new(&tc, true);
+        let mut state1 = SearchState::new();
+        let via_wrapper = search_with_info(&board, 4, &mut budget1, &mut state1, None);
+
+        let mut budget2 = TimeBudget::new(&tc, true);
+        let mut state2 = SearchState::new();
+        let via_from_depth =
+            search_with_info_from_depth(&board, 4, 1, &mut budget2, &mut state2, None);
+
+        assert_eq!(via_wrapper.best_move, via_from_depth.best_move);
+        assert_eq!(via_wrapper.score, via_from_depth.score);
+        assert_eq!(via_wrapper.depth, via_from_depth.depth);
     }
 }

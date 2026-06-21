@@ -17,10 +17,10 @@
 | `tt.rs` | 64-shard transposition table, mate-aware scores (per-shard `Mutex`) |
 | `see.rs` | Static exchange eval for capture ordering |
 | `time.rs` | Time budget, soft stop, panic reserve |
-| `smp.rs` | Lazy SMP helper threads (shared TT) |
+| `smp.rs` | Lazy SMP helper threads (shared TT; helpers start ID at depths 3/4/5 cycling) |
 | `book.rs` | Optional original opening book (off by default) |
 
-Bitboard representation with mailbox king tracking. Default search depth cap 64 (time-limited ID). Single-thread baseline; optional multi-core via Lazy SMP.
+Bitboard representation with mailbox king tracking. Default search depth cap 64 (time-limited ID). Single-thread baseline; optional multi-core via Lazy SMP (main thread from depth 1, helpers from staggered depths 3/4/5).
 
 ## Verifier (`verifier/`)
 

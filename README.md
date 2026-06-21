@@ -4,7 +4,7 @@
 
 # labzero
 
-≈2000 on limited-Stockfish benchmarks — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md).
+≈2050 on limited-Stockfish benchmarks — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md).
 
 **[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
 
@@ -21,7 +21,7 @@ Tagged releases include host binaries (no Rust required):
 | **macOS Apple Silicon** | `labzero-macos-aarch64` |
 | **Linux x86_64** | `labzero-linux-x86_64` |
 
-Get them from **[GitHub Releases](https://github.com/carlok/labzero/releases)** (latest tag, e.g. `v0.5.1`). Each upload has a `.sha256` sidecar; `SHA256SUMS` lists all files.
+Get them from **[GitHub Releases](https://github.com/carlok/labzero/releases)** (latest tag, e.g. `v0.5.2`). Each upload has a `.sha256` sidecar; `SHA256SUMS` lists all files.
 
 **macOS:** release binaries are **not code-signed or notarized**. On first run, Gatekeeper may block the app (“unidentified developer”). Use **Right click → Open**, or verify the `.sha256` checksum and build from source if you prefer. Linux users can verify with `sha256sum -c` against `SHA256SUMS`.
 
@@ -34,7 +34,7 @@ printf 'uci\nisready\nquit\n' | ./labzero-macos-aarch64
 
 Point your UCI GUI (Banksia, Cute Chess, etc.) at that path. To build from source instead, see below.
 
-Maintainers: push a semver tag to publish — `git tag v0.5.1 && git push origin v0.5.1` runs [`.github/workflows/release.yml`](.github/workflows/release.yml).
+Maintainers: push a semver tag to publish — `git tag v0.5.2 && git push origin v0.5.2` runs [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ## Quick start (Podman)
 

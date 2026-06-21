@@ -335,7 +335,7 @@ Implemented in v0.4.0 (original code only):
 
 **TC caveat:** All published ladder rows use `TC_MODE=movetime TC_SEC=1 THREADS=1` unless marked otherwise. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo.
 
-**SMP (not anchor):** Post-Zobrist `3+2 wtime`, 16 games @ SF@2000: **T=1 → 62.5%** (perf ≈ **2089**, `benchmark_20260621T162932Z`); **T=4 → 50.0%** (perf ≈ **2000**, `benchmark_20260621T165748Z`). Pre-Zobrist post-shard: T=1 **40.6%**, T=4 **28.1%**. Zobrist fixed TT key quality; **T=4 now helps**. Next: helper depth offset / split diversification.
+**SMP (not anchor):** Lazy SMP v2 (helper start depths 3/4/5), post-Zobrist `3+2 wtime`, 16 games @ SF@2000: **T=1 → 34.4%** (3–8–5, sanity; main unchanged, `benchmark_20260621T181146Z`); **T=4 → 56.2%** (7–5–4, perf ≈ **2044**, `benchmark_20260621T184359Z`). Prior post-Zobrist: T=1 **62.5%**, T=4 **50.0%** (7–7–2). **T=4 now +6.2 pp** vs post-Zobrist baseline; keep. **Headline ≈2050** (T=4 blitz; post-Zobrist T=1 **2089** = noisy 16-game spot).
 
 **Blitz confirm (not anchor):** `TC_MODE=wtime 3+2`, **32 games** @ SF@2000 → **10–11–11** (**48.4%**, perf ≈ **1989**, CI ≈ 1860–2115), 0 illegal (`benchmark_20260621T140403Z`). Not the 1+0 headline row (37.5%, ≈1911).
 

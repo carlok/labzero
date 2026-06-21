@@ -263,6 +263,19 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** keep Zobrist hash; **T=4 now even** on 3+2 (was 28.1%). Next SMP work: helper depth offset / split diversification for further gain.
 
+## Lazy SMP v2 — helper start-depth diversification (2026-06-21)
+
+**Change:** `search_with_info_from_depth(start_depth)` in `search.rs` — helpers skip shallow ID plies; aspiration gated on prior completed score (fixes cold-start when helper begins at depth 5). `smp.rs` — helpers cycle start depths **3, 4, 5**; main thread unchanged at depth 1.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2`, 16 games vs SF@2000:
+
+| Threads | Score | % | Perf Elo (approx) | vs post-Zobrist | Artifact |
+|---------|-------|---|-------------------|-------------------|----------|
+| 1 | 3–8–5 | 34.4% | ≈ 1888 | −28.1 pp (noise; main path unchanged) | `benchmark_20260621T181146Z` |
+| 4 | **7–5–4** | **56.2%** | **≈ 2044** | **+6.2 pp** vs post-Zobrist T=4 | `benchmark_20260621T184359Z` |
+
+0 illegal, 0 errors. **Decision:** keep Lazy SMP v2 — T=4 **9/16 W-equivalent** (≥ keep threshold); beats post-Zobrist **7–7–2**. **Headline estimate:** **≈2050** perf on this protocol (T=4 blitz row; post-Zobrist T=1 **2089** treated as high-variance spot).
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

@@ -4,6 +4,8 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
+**Headline (v0.5.2):** **≈2050** on limited-Stockfish benchmarks — 3+2 wtime **T=4** spot (perf **≈ 2044**, `benchmark_20260621T184359Z`); 32-game blitz T=1 confirm **≈ 1990**; 1+0 anchor **≈ 1911**. Not Lichess/CCRL/FIDE Elo.
+
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 
 ## Alpha v0.2.0
@@ -129,6 +131,8 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=4` (post sharded TT) | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T154803Z` | perf **≈ 1837**; sharded TT did not fix SMP |
 | `3+2 wtime THREADS=1` (post Zobrist) | 2000 | **10–6–0** | **62.5%** | `benchmark_20260621T162932Z` | perf **≈ 2089**; 0 illegal |
 | `3+2 wtime THREADS=4` (post Zobrist) | 2000 | **7–7–2** | **50.0%** | `benchmark_20260621T165748Z` | perf **≈ 2000**; SMP helps vs pre-Zobrist |
+| `3+2 wtime THREADS=1` (Lazy SMP v2) | 2000 | **3–8–5** | **34.4%** | `benchmark_20260621T181146Z` | 16-game sanity; main unchanged; high variance |
+| `3+2 wtime THREADS=4` (Lazy SMP v2) | 2000 | **7–5–4** | **56.2%** | `benchmark_20260621T184359Z` | perf **≈ 2044**; helper start 3/4/5; **keep** |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
 ```bash

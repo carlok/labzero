@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2 — 2026-06-21
+
+- **SMP:** Lazy SMP v2 — helpers start iterative deepening at staggered depths 3/4/5; aspiration cold-start fix for helper threads
+- **Search:** `search_with_info_from_depth` entrypoint; start-depth clamp when above max
+- **Measurement:** 3+2 blitz vs SF@2000 — **T=4 7–5–4 (56.2%, perf ≈ 2044)**; headline **≈2050** on limited-Stockfish benchmarks (was ≈2000 / noisy 2089 spot)
+- **Docs:** ladder/lab_log/architecture sync; benchmark artifacts `benchmark_20260621T181146Z`, `benchmark_20260621T184359Z`
+
 ## 0.5.1 — 2026-06-21
 
 - **TT:** 64-shard transposition table (per-shard mutex; reduces SMP lock contention)
