@@ -228,10 +228,11 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 ## Spot blitz — wtime 3+2 @ SF@2000 (2026-06-21)
 
-`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1`, 16 games vs SF@2000:
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1`, vs SF@2000:
 
-| Score | % | Perf Elo (approx) | vs 1+0 confirm | Artifact |
-|-------|---|-------------------|----------------|----------|
-| **7–6–3** | **53.1%** | **≈ 2022** (CI ≈ 1840–2200) | **+15.6 pp** / ≈ **+110 Elo** | `benchmark_20260621T132942Z` |
+| Games | Score | % | Perf Elo (approx) | Artifact | Notes |
+|-------|-------|---|-------------------|----------|-------|
+| 16 (probe) | 7–6–3 | 53.1% | ≈ 2022 | `benchmark_20260621T132942Z` | superseded by 32-game confirm |
+| **32 (confirm)** | **10–11–11** | **48.4%** | **≈ 1989** (95% CI ≈ 1860–2115) | `benchmark_20260621T140403Z` | **paper-grade blitz row** |
 
-0 illegal, 0 errors. Supersedes pre–`host-benchmark.sh` clock fix run **0–8–0** (`benchmark_20260621T063138Z`). Sample is 16 games — treat as spot check, not paper-grade confirm.
+0 illegal, 0 errors on both runs. Supersedes pre–`host-benchmark.sh` clock fix **0–8–0** (`benchmark_20260621T063138Z`). Not comparable to 1+0 anchor (37.5%, ≈1911).

@@ -4,7 +4,7 @@
 
 # labzero
 
-Weak but fully legal, tournament-compatible chess engine with an **original** Rust core.
+≈1900–2000 on limited-Stockfish benchmarks — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md).
 
 **[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
 

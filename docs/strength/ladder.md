@@ -124,7 +124,7 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | Protocol | SF_ELO | Score (W–L–D) | Score % | Artifacts | Notes |
 |----------|--------|---------------|---------|-----------|-------|
 | `TC_SEC=10 movetime` | 2000 | _in progress_ | — | `benchmark_20260621T072038Z` | rapid-like depth probe (v0.5.0) |
-| `TC_MODE=wtime TC_SEC=3 TC_INC=2` | 2000 | **7–6–3** | **53.1%** | `benchmark_20260621T132942Z` | perf **≈ 2022**; 0 illegal; supersedes pre-fix `063138Z` (0–8–0, 8 games) |
+| `TC_MODE=wtime TC_SEC=3 TC_INC=2` | 2000 | **10–11–11** | **48.4%** | `benchmark_20260621T140403Z` | **32-game confirm**; perf **≈ 1989** (CI ≈ 1860–2115); 0 illegal |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | SMP spot; perf **≈ 1837** (no gain vs T=1) |
 
 ```bash
