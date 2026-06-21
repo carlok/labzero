@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Run N bullet games: labzero vs weakened Stockfish (host binaries). Saves results.
+# Run N games: labzero vs weakened Stockfish (host binaries). Saves results.
 #
 #   export STOCKFISH="/path/to/stockfish"
 #   ./scripts/host-benchmark.sh
 #
 # Options (env):
 #   GAMES=32          number of games (colors alternate)
-#   TC_SEC=1 TC_INC=0 bullet time control (seconds + increment)
+#   TC_SEC=1 TC_INC=0 time control (seconds + increment)
+#   TC_MODE=movetime  movetime | wtime  (wtime uses clock+inc like 3+2)
+#   THREADS=1         labzero UCI Threads (ladder anchor uses 1)
 #   SF_ELO=1320       Stockfish UCI_Elo (1320–3190, needs SF_LIMIT=1)
 #   SF_SKILL=0        Stockfish Skill Level (0–20)
 #   SF_LIMIT=1        UCI_LimitStrength true/false
@@ -19,6 +21,8 @@ STOCKFISH="${STOCKFISH:?Set STOCKFISH to your Stockfish binary path}"
 GAMES="${GAMES:-32}"
 TC_SEC="${TC_SEC:-1}"
 TC_INC="${TC_INC:-0}"
+TC_MODE="${TC_MODE:-movetime}"
+THREADS="${THREADS:-1}"
 SF_ELO="${SF_ELO:-1320}"
 SF_SKILL="${SF_SKILL:-0}"
 SF_LIMIT="${SF_LIMIT:-1}"
@@ -46,7 +50,7 @@ STAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 LOG="${OUT_DIR}/benchmark_${STAMP}.txt"
 PGN="${OUT_DIR}/benchmark_${STAMP}.pgn"
 
-python3 - "${LABZERO}" "${STOCKFISH}" "${GAMES}" "${TC_SEC}" "${TC_INC}" "${SF_ELO}" "${SF_SKILL}" "${SF_LIMIT}" "${LOG}" "${PGN}" <<'PY'
+python3 - "${LABZERO}" "${STOCKFISH}" "${GAMES}" "${TC_SEC}" "${TC_INC}" "${TC_MODE}" "${THREADS}" "${SF_ELO}" "${SF_SKILL}" "${SF_LIMIT}" "${LOG}" "${PGN}" <<'PY'
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,20 +65,28 @@ import chess.pgn
     games_n,
     tc_sec,
     tc_inc,
+    tc_mode,
+    threads,
     sf_elo,
     sf_skill,
     sf_limit,
     log_path,
     pgn_path,
-) = sys.argv[1:11]
+) = sys.argv[1:14]
 games_n = int(games_n)
 tc_sec = float(tc_sec)
 tc_inc = float(tc_inc)
+tc_mode = tc_mode.lower()
+threads = int(threads)
 sf_elo = int(sf_elo)
 sf_skill = int(sf_skill)
 sf_limit = sf_limit.lower() in ("1", "true", "yes")
 
-limit = chess.engine.Limit(time=tc_sec)
+wtime_ms = int(tc_sec * 1000)
+btime_ms = wtime_ms
+winc_ms = int(tc_inc * 1000)
+binc_ms = winc_ms
+
 wins = losses = draws = illegal = errors = 0
 log_file = Path(log_path)
 pgn_file = Path(pgn_path)
@@ -88,6 +100,16 @@ def display_path(path: str) -> str:
         return p.name
 
 
+def play_limit(board: chess.Board):
+    if tc_mode == "wtime":
+        w = wtime_ms if board.turn == chess.WHITE else btime_ms
+        b = btime_ms if board.turn == chess.WHITE else wtime_ms
+        wi = winc_ms if board.turn == chess.WHITE else binc_ms
+        bi = binc_ms if board.turn == chess.WHITE else winc_ms
+        return chess.engine.Limit(wtime=w, btime=b, winc=wi, binc=bi)
+    return chess.engine.Limit(time=tc_sec)
+
+
 header = "\n".join(
     [
         f"labzero host benchmark  {datetime.now(timezone.utc).isoformat()}",
@@ -95,7 +117,8 @@ header = "\n".join(
         f"labzero:     {display_path(labzero_path)}",
         f"stockfish:   {display_path(sf_path)}",
         f"games:       {games_n}",
-        f"time control: {int(tc_sec)}+{int(tc_inc)} bullet",
+        f"time control: {int(tc_sec)}+{int(tc_inc)} ({tc_mode})",
+        f"labzero Threads: {threads}",
         f"sf weaken:   Skill={sf_skill} LimitStrength={sf_limit} UCI_Elo={sf_elo if sf_limit else 'n/a'}",
         "",
         "games:",
@@ -125,6 +148,7 @@ def sf_options():
 with chess.engine.SimpleEngine.popen_uci(labzero_path) as labzero, chess.engine.SimpleEngine.popen_uci(
     sf_path
 ) as stockfish:
+    labzero.configure({"Threads": threads, "Hash": 64})
     stockfish.configure(sf_options())
     for i in range(1, games_n + 1):
         board = chess.Board()
@@ -143,7 +167,7 @@ with chess.engine.SimpleEngine.popen_uci(labzero_path) as labzero, chess.engine.
         try:
             while not board.is_game_over(claim_draw=True):
                 eng = white if board.turn == chess.WHITE else black
-                result = eng.play(board, limit)
+                result = eng.play(board, play_limit(board))
                 if result.move is None:
                     raise RuntimeError("engine returned no move")
                 if result.move not in board.legal_moves:

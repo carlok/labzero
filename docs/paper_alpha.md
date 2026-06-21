@@ -300,6 +300,22 @@ Add **original** terms (tuned on labzero self-play, not SF tables):
 
 ---
 
+### Phase C — Multi–time-control (gamma v0.4.0)
+
+Implemented in v0.4.0 (original code only):
+
+| Sprint | Items |
+|--------|-------|
+| C1 | Depth cap 64, safe TT cutoffs, aspiration, PV ordering, root make/unmake |
+| C2 | Soft stop, panic reserve, UCI `info`, `Hash`, wtime/increment time model |
+| C3 | Pawn structure, rook files, king safety in eval |
+| C4 | Check evasions in qsearch, optional `OwnBook`/`BookFile` |
+| C6 | Lazy SMP (`Threads` 1–8, shared TT) |
+
+**Measurement:** anchor ladder `TC_SEC=1 THREADS=1`; spot blitz `TC_MODE=wtime 3+2`; spot rapid `TC_SEC=10 THREADS=4`. See [strength/ladder.md](strength/ladder.md).
+
+---
+
 ## 8. Conclusion (alpha)
 
 **labzero v0.2.0** demonstrates that a minimal, original chess engine can be built, verified independently, and measured on a reproducible strength ladder—without claiming competitive Elo. Alpha is the **control experiment**; beta adds well-known search and evaluation machinery under the same originality and verification discipline, with each phase producing a datapoint on the ladder.

@@ -1,4 +1,5 @@
 pub mod board;
+pub mod book;
 pub mod color;
 pub mod eval;
 pub mod fen;
@@ -9,6 +10,7 @@ pub mod perft;
 pub mod piece;
 pub mod search;
 pub mod see;
+pub mod smp;
 pub mod square;
 pub mod time;
 pub mod tt;

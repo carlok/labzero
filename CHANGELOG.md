@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — 2026-06-20
+
+- **Search (Phase C):** remove depth-6 cap (default 64), aspiration, PV move ordering, root make/unmake; TT move ordering under timed search (score cutoffs disabled after regression)
+- **Time:** soft stop before new ID iteration, panic reserve, increment-aware wtime allocation
+- **UCI:** `info` lines (depth/score/nodes/nps/time), `Hash`, `Threads`, `OwnBook`/`BookFile`
+- **Eval:** enable pawn structure, rook files, king safety (original weights)
+- **SMP:** Lazy SMP with shared TT (Threads 1–8, default 1)
+- **Book:** optional opening lines (disabled for strength ladder)
+- **Benchmark:** `TC_MODE=movetime|wtime`, `THREADS` env in `host-benchmark.sh`
+
 ## 0.3.0-beta — 2026-06-20
 
 - **Search:** quiescence, transposition table, null-move pruning, LMR, killer/history ordering, SEE

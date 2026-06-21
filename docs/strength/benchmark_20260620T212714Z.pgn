@@ -1,0 +1,88 @@
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "1"]
+[White "labzero"]
+[Black "Stockfish"]
+[Result "0-1"]
+[TimeControl "1+0"]
+
+1. Nf3 Nf6 2. d4 e6 3. Nc3 Bb4 4. Bg5 d5 5. a3 Bd6 6. Bxf6 gxf6 7. e4 Qe7 8. exd5 exd5+ 9. Be2 c6 10. h3 Be6 11. Ne4 dxe4 12. Nd2 f5 13. Nxe4 fxe4 14. d5 Bxd5 15. Qd3 Nd7 16. Qd1 Kd8 17. Kf1 Bc7 18. Qb1 Rg8 19. f4 Rg7 20. c3 Bxf4 21. Bc4 e3 22. g3 Bd6 23. Kg1 Bxc4 24. Qd1 Rxg3+ 25. Kh2 Rg7+ 26. Qxd6 Qxd6# 0-1
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "2"]
+[White "Stockfish"]
+[Black "labzero"]
+[Result "1-0"]
+[TimeControl "1+0"]
+
+1. c3 d5 2. e3 Nc6 3. d4 a6 4. Nd2 Nf6 5. Ngf3 Bg4 6. a3 e6 7. Qa4 Rg8 8. Ne5 Ne4 9. Nxc6 Nd6 10. Ne5+ b5 11. Qc2 Qh4 12. b3 Bf5 13. Qa2 Qf4 14. h4 Qxh4 15. Rh3 Bxh3 16. a4 Qf6 17. axb5 Bxg2 18. Bxg2 Qg5 19. Qa4 Nxb5 20. Bf1 Qf4 21. Bxb5+ Ke7 22. Qa3+ Kf6 23. Qa5 axb5 24. Qxc7 Rc8 25. Qxf7+ Kg5 26. Ndf3+ Qxf3 27. Nxf3+ Kh6 28. Qxe6+ g6 29. Ra7 Be7 30. e4+ Kh5 31. Qh3+ Bh4 32. Rxh7# 1-0
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "3"]
+[White "labzero"]
+[Black "Stockfish"]
+[Result "0-1"]
+[TimeControl "1+0"]
+
+1. Nf3 d6 2. h3 g6 3. d4 d5 4. Bg5 Nf6 5. Nc3 Ne4 6. Nxe4 dxe4 7. c3 h6 8. Rb1 hxg5 9. Nxg5 e3 10. fxe3 Bh6 11. e4 Bxg5 12. h4 Bh6 13. Rc1 Qd6 14. Qd3 c6 15. c4 Nd7 16. d5 Bxc1 17. dxc6 Nf6 18. g3 Qb4+ 19. Qc3 Qxc3+ 20. bxc3 bxc6 21. Kd1 Bb2 22. e5 Ne4 23. Bg2 Rb8 24. Bxe4 Kf8 25. a3 Bxc3 26. Kc2 Ba5 27. Bxg6 Kg7 28. Be4 Bc7 29. Kc3 Bxe5+ 30. Kd3 Bd7 31. e3 Bf6 32. c5 Rhd8 33. Kc2 Rb5 34. Kd3 Rxc5 35. Rg1 Bg4+ 36. Bd5 Rcxd5+ 37. Ke4 Be6 38. h5 Re5+ 39. Kf3 Rd3 40. Rc1 Bd5+ 41. Kf2 Rf5+ 42. Ke2 Rb3 43. Rc5 Bf3+ 44. Kf2 Rb2+ 45. Kf1 Rxc5 46. h6+ Kg6 47. e4 Rc1# 0-1
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "4"]
+[White "Stockfish"]
+[Black "labzero"]
+[Result "1-0"]
+[TimeControl "1+0"]
+
+1. Nf3 Nc6 2. e4 a6 3. d4 e6 4. h3 Bb4+ 5. Bd2 Na7 6. Bxb4 Nc6 7. Bc3 f5 8. exf5 Nxd4 9. Nbd2 Rb8 10. Nxd4 Nh6 11. N2f3 Qh4 12. g3 Qe4+ 13. Be2 Qxc2 14. g4 Qxb2 15. Bd2 Nxg4 16. Rb1 Qxa2 17. Qc1 Ra8 18. hxg4 Rf8 19. Rg1 c6 20. Bc4 Rh8 21. Bxa2 Kf8 22. Nxe6+ dxe6 23. Qc5+ Ke8 24. Qc3 Rf8 25. Nd4 c5 26. Nxe6 Bxe6 27. Bxe6 Rf6 28. Ba2 Rxf5 29. Qe3+ Kd8 30. Qd3+ Kc8 31. Be6+ Kb8 32. Qxf5 g6 33. Bf4+ Ka7 34. Qxc5+ b6 35. Qc7# 1-0
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "5"]
+[White "labzero"]
+[Black "Stockfish"]
+[Result "0-1"]
+[TimeControl "1+0"]
+
+1. Nf3 c6 2. c3 d5 3. h3 Nf6 4. e4 e5 5. Nxe5 dxe4 6. Qb3 Qd5 7. d4 exd3 8. Nxd3 Qf5 9. Be2 Bd6 10. g3 Na6 11. h4 O-O 12. a4 h6 13. Bg5 Nc5 14. f3 Bxg3+ 15. Kd1 Nxb3 16. Bf4 Nxa1 17. Bxg3 Re8 18. Be5 Qxe5 19. Nxe5 c5 20. Nc4 Be6 21. Rg1 Rad8+ 22. Nbd2 Bxc4 23. Bxc4 h5 24. Kc1 b6 25. f4 Re3 26. a5 Ree8 27. axb6 axb6 28. Kb1 Rxd2 29. Bxf7+ Kxf7 30. Kxa1 Ree2 31. Rxg7+ Ke8 32. Kb1 Rxb2+ 33. Kc1 c4 34. Kd1 Red2+ 35. Ke1 b5 36. Rc7 Re2+ 37. Kd1 Red2+ 38. Kc1 Rbc2+ 39. Kb1 Rb2+ 40. Kc1 Rbc2+ 41. Kb1 Rg2 42. Rh7 Rge2 43. Rd7 Nxd7 44. f5 Nf6 45. Ka1 Rc1# 0-1
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "6"]
+[White "Stockfish"]
+[Black "labzero"]
+[Result "1-0"]
+[TimeControl "1+0"]
+
+1. d4 a6 2. e4 Nc6 3. d5 e5 4. Nf3 Bb4+ 5. c3 g6 6. dxc6 d6 7. Bg5 Qxg5 8. cxb4 Qxg2 9. Bxg2 f5 10. cxb7 Bxb7 11. Qb3 Bc6 12. Qa3 fxe4 13. Rg1 exf3 14. Bxf3 Bxf3 15. Rg3 c6 16. b5 cxb5 17. Rxf3 Nf6 18. Rxf6 Rb8 19. Nc3 Rc8 20. Qxd6 Rc7 21. Rd1 Rxc3 22. Qd7# 1-0
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "7"]
+[White "labzero"]
+[Black "Stockfish"]
+[Result "0-1"]
+[TimeControl "1+0"]
+
+1. Nf3 c5 2. d4 Qa5+ 3. Bd2 Qa6 4. dxc5 Qc6 5. Ba5 Nf6 6. Qc1 e6 7. Ne5 Qe4 8. Nd3 Na6 9. Nc3 Qc6 10. Qd2 b6 11. b4 Be7 12. Rd1 bxa5 13. Rg1 Qc7 14. bxa5 Qxa5 15. e4 Nxc5 16. Nxc5 Bxc5 17. e5 Ng8 18. Rc1 Bb7 19. Bb5 Qc7 20. Qxd7+ Qxd7 21. Bxd7+ Kxd7 22. Kf1 Ke7 23. Ke2 Bc6 24. Rcd1 g5 25. g4 Rb8 26. Rc1 h5 27. f4 Bd4 28. Kd1 Bxg1 29. Ne4 Rd8+ 30. Ke2 Bxh2 31. Nxg5 Bb5+ 32. c4 Ba6 33. Re1 Bxc4+ 34. Ke3 hxg4 35. Rd1 Rxd1 36. Nxe6 fxe6 37. f5 Bxe5 38. f6+ Nxf6 39. Kf2 Rd6 40. a3 Rh2+ 41. Ke1 Bg3# 0-1
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.20"]
+[Round "8"]
+[White "Stockfish"]
+[Black "labzero"]
+[Result "1-0"]
+[TimeControl "1+0"]
+
+1. e3 d5 2. Nf3 a6 3. c4 dxc4 4. Be2 g6 5. a4 c6 6. Bxc4 Qd5 7. Bxd5 cxd5 8. d4 f6 9. Qd3 h6 10. Bd2 Bf5 11. Qa3 Bxb1 12. Rxb1 Nc6 13. Qb3 e5 14. dxe5 Nd4 15. exd4 f5 16. Rc1 Ne7 17. Qxb7 Rc8 18. Ke2 Rxc1 19. Bxc1 Kd8 20. e6 h5 21. Qd7# 1-0
+

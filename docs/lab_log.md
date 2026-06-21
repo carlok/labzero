@@ -138,3 +138,25 @@ Chronological record of changes, test runs, failures, and limitations.
 
 - **Result:** PASS
 - **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-21T05:37:09Z
+
+- **Result:** FAIL
+- **Failures:** cargo fmt --check cargo clippy
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-21T05:37:40Z
+
+- **Result:** PASS
+- **Command:** `./scripts/podman/ci`
+
+## Phase C — gamma v0.4.0 (2026-06-21)
+
+- **Search:** depth cap 64, aspiration, PV ordering, root make/unmake, check qsearch evasions; **TT ordering-only under movetime** (score cutoffs reverted after ladder blunders)
+- **Time:** soft stop before new ID, panic reserve, wtime/increment allocation
+- **UCI:** `info depth score cp nodes nps time`, options `Hash`, `Threads`, `OwnBook`/`BookFile`
+- **Eval:** pawn structure, rook files, king safety enabled
+- **SMP:** Lazy SMP (Threads 1–8, shared thread-safe TT)
+- **Book:** optional opening lines (`OwnBook` off by default)
+- **CI:** `./scripts/podman/ci` **PASS** (13 unit tests)
+- **Ladder:** anchor @ SF 1320/1800/2000 pending operator run — see `docs/strength/ladder.md`

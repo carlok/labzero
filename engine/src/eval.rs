@@ -142,6 +142,9 @@ pub fn evaluate(board: &Board) -> i32 {
     }
 
     score += bishop_pair(board);
+    score += rook_files(board);
+    score += pawn_structure(board);
+    score += king_safety(board);
 
     if board.stm == Color::White {
         score
@@ -161,7 +164,6 @@ fn bishop_pair(board: &Board) -> i32 {
     s
 }
 
-#[allow(dead_code)]
 fn rook_files(board: &Board) -> i32 {
     let mut s = 0;
     for color in [Color::White, Color::Black] {
@@ -188,7 +190,6 @@ fn rook_files(board: &Board) -> i32 {
     s
 }
 
-#[allow(dead_code)]
 fn pawn_structure(board: &Board) -> i32 {
     let mut s = 0;
     for color in [Color::White, Color::Black] {
@@ -229,7 +230,6 @@ fn pawn_structure(board: &Board) -> i32 {
     s
 }
 
-#[allow(dead_code)]
 fn king_safety(board: &Board) -> i32 {
     let mut s = 0;
     for color in [Color::White, Color::Black] {

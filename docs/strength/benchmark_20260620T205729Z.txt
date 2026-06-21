@@ -1,0 +1,49 @@
+labzero host benchmark  2026-06-20T20:57:29.493528+00:00
+status:      in progress
+labzero:     target/release/labzero
+stockfish:   stockfish-macos-m1-apple-silicon
+games:       32
+time control: 1+0 bullet
+sf weaken:   Skill=0 LimitStrength=True UCI_Elo=1320
+
+games:
+game  1: loss 0-1  (0)  [0-1-0]
+game  2: loss 1-0  (0)  [0-2-0]
+game  3: loss 0-1  (0)  [0-3-0]
+game  4: loss 1-0  (0)  [0-4-0]
+game  5: loss 0-1  (0)  [0-5-0]
+game  6: loss 1-0  (0)  [0-6-0]
+game  7: loss 0-1  (0)  [0-7-0]
+game  8: win  0-1  (0)  [1-7-0]
+game  9: loss 0-1  (0)  [1-8-0]
+game 10: loss 1-0  (0)  [1-9-0]
+game 11: loss 0-1  (0)  [1-10-0]
+game 12: loss 1-0  (0)  [1-11-0]
+game 13: loss 0-1  (0)  [1-12-0]
+game 14: loss 1-0  (0)  [1-13-0]
+game 15: loss 0-1  (0)  [1-14-0]
+game 16: loss 1-0  (0)  [1-15-0]
+game 17: loss 0-1  (0)  [1-16-0]
+game 18: loss 1-0  (0)  [1-17-0]
+game 19: loss 0-1  (0)  [1-18-0]
+game 20: loss 1-0  (0)  [1-19-0]
+game 21: loss 0-1  (0)  [1-20-0]
+game 22: loss 1-0  (0)  [1-21-0]
+game 23: loss 0-1  (0)  [1-22-0]
+game 24: loss 1-0  (0)  [1-23-0]
+game 25: loss 0-1  (0)  [1-24-0]
+game 26: loss 1-0  (0)  [1-25-0]
+game 27: loss 0-1  (0)  [1-26-0]
+game 28: loss 1-0  (0)  [1-27-0]
+game 29: loss 0-1  (0)  [1-28-0]
+game 30: loss 1-0  (0)  [1-29-0]
+game 31: loss 0-1  (0)  [1-30-0]
+game 32: loss 1-0  (0)  [1-31-0]
+
+---
+status:      complete
+score:       1-31-0  (W-L-D for labzero)
+labzero %:   3.1
+illegal:     0
+errors:      0
+pgn:         docs/strength/benchmark_20260620T205729Z.pgn

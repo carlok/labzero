@@ -1,0 +1,25 @@
+labzero host benchmark  2026-06-20T21:34:17.252489+00:00
+status:      in progress
+labzero:     target/release/labzero
+stockfish:   stockfish-macos-m1-apple-silicon
+games:       8
+time control: 1+0 bullet
+sf weaken:   Skill=0 LimitStrength=True UCI_Elo=1320
+
+games:
+game  1: win  1-0  (0)  [1-0-0]
+game  2: win  0-1  (0)  [2-0-0]
+game  3: loss 0-1  (0)  [2-1-0]
+game  4: win  0-1  (0)  [3-1-0]
+game  5: win  1-0  (0)  [4-1-0]
+game  6: win  0-1  (0)  [5-1-0]
+game  7: win  1-0  (0)  [6-1-0]
+game  8: win  0-1  (0)  [7-1-0]
+
+---
+status:      complete
+score:       7-1-0  (W-L-D for labzero)
+labzero %:   87.5
+illegal:     0
+errors:      0
+pgn:         docs/strength/benchmark_20260620T213417Z.pgn
