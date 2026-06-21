@@ -82,11 +82,6 @@ sf_elo = int(sf_elo)
 sf_skill = int(sf_skill)
 sf_limit = sf_limit.lower() in ("1", "true", "yes")
 
-wtime_ms = int(tc_sec * 1000)
-btime_ms = wtime_ms
-winc_ms = int(tc_inc * 1000)
-binc_ms = winc_ms
-
 wins = losses = draws = illegal = errors = 0
 log_file = Path(log_path)
 pgn_file = Path(pgn_path)
@@ -102,11 +97,12 @@ def display_path(path: str) -> str:
 
 def play_limit(board: chess.Board):
     if tc_mode == "wtime":
-        w = wtime_ms if board.turn == chess.WHITE else btime_ms
-        b = btime_ms if board.turn == chess.WHITE else wtime_ms
-        wi = winc_ms if board.turn == chess.WHITE else binc_ms
-        bi = binc_ms if board.turn == chess.WHITE else winc_ms
-        return chess.engine.Limit(wtime=w, btime=b, winc=wi, binc=bi)
+        return chess.engine.Limit(
+            white_clock=tc_sec,
+            black_clock=tc_sec,
+            white_inc=tc_inc,
+            black_inc=tc_inc,
+        )
     return chess.engine.Limit(time=tc_sec)
 
 

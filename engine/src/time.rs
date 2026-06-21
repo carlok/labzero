@@ -94,4 +94,8 @@ impl TimeBudget {
     pub fn request_stop(&mut self) {
         self.stop = true;
     }
+
+    pub fn is_timed(&self) -> bool {
+        self.limit.is_some()
+    }
 }

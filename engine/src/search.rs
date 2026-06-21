@@ -17,7 +17,7 @@ const QSEARCH_MAX: u32 = 6;
 const NULL_MOVE_R: u32 = 2;
 const LMR_FULL: usize = 4;
 const ASPIRATION_DELTA: i32 = 50;
-const ASPIRATION_MIN_DEPTH: u32 = 4;
+const ASPIRATION_MIN_DEPTH: u32 = 5;
 
 struct SearchCtx<'a> {
     budget: &'a mut TimeBudget,
@@ -237,7 +237,6 @@ fn search_root(
     (best, best_score)
 }
 
-#[allow(dead_code)]
 fn tt_cutoff(
     tt_score: i32,
     tt_depth: u8,
@@ -245,8 +244,12 @@ fn tt_cutoff(
     depth: u32,
     alpha: i32,
     beta: i32,
+    complete: bool,
 ) -> Option<i32> {
-    if (tt_depth as u32) < depth {
+    if !complete || (tt_depth as u32) < depth {
+        return None;
+    }
+    if tt_score.abs() > MATE_SCORE - 1000 {
         return None;
     }
     match flag {
@@ -282,9 +285,14 @@ fn negamax(
 
     let key = board.hash;
     let mut tt_move = None;
-    if let Some((_tt_score, _tt_depth, _flag, bm)) = ctx.state.tt.probe(key, frame.ply) {
-        // TT cutoffs disabled for timed search — bad Exact entries caused blunders
-        // (see beta 0-8 vs SF@1320). Use TT for move ordering only.
+    if let Some((tt_score, tt_depth, flag, bm, complete)) = ctx.state.tt.probe(key, frame.ply) {
+        // Score cutoffs only for fixed-depth search; movetime keeps ordering-only
+        // (complete-node guard alone still regressed SF@1320 in ladder probes).
+        if !ctx.budget.is_timed() {
+            if let Some(score) = tt_cutoff(tt_score, tt_depth, flag, depth, alpha, beta, complete) {
+                return score;
+            }
+        }
         tt_move = bm;
     }
 
@@ -349,7 +357,7 @@ fn negamax(
         let mut score;
         let reduction: u32 =
             if move_idx >= LMR_FULL && depth >= 3 && !in_check && !gives_check && !is_noisy(mv) {
-                (1 + move_idx / 8) as u32
+                (1 + move_idx / 10) as u32
             } else {
                 0
             };
@@ -402,7 +410,7 @@ fn negamax(
 
     ctx.state
         .tt
-        .store(key, depth as u8, flag, best, best_move, frame.ply);
+        .store(key, depth as u8, flag, best, best_move, frame.ply, true);
     best
 }
 
@@ -606,5 +614,53 @@ mod tests {
         let res = search(&board, 8, &mut budget, &mut state);
         assert!(res.best_move.is_some());
         assert!(res.depth >= 4);
+    }
+
+    #[test]
+    fn tactical_avoids_back_rank_blunder() {
+        let board = Board::from_fen("6k1/7q/8/8/8/8/5PPP/4K2R w K - 0 1").unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(6),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search(&board, 6, &mut budget, &mut state);
+        assert!(res.score > -200, "score was {}", res.score);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), "h1h2", "should not hang rook to queen");
+    }
+
+    #[test]
+    fn tactical_mate_in_one() {
+        let board = Board::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1").unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(4),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search(&board, 4, &mut budget, &mut state);
+        assert!(res.score > MATE_SCORE - 500, "score was {}", res.score);
+    }
+
+    #[test]
+    fn tactical_king_activity() {
+        let board = Board::from_fen("8/8/2K5/8/8/8/8/k7 w - - 0 1").unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(8),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search(&board, 8, &mut budget, &mut state);
+        assert!(res.best_move.is_some());
+        assert!(res.score >= 0, "king should not lose in drawn KvK endgame");
     }
 }

@@ -1,0 +1,33 @@
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.21"]
+[Round "1"]
+[White "labzero"]
+[Black "Stockfish"]
+[Result "0-1"]
+[TimeControl "1+0"]
+
+1. Nc3 d5 2. Nf3 Bg4 3. Ne5 h5 4. Nxg4 hxg4 5. e4 c6 6. Qxg4 d4 7. Ne2 Nf6 8. Qf4 e6 9. e5 d3 10. cxd3 Ng8 11. d4 Ne7 12. d3 Nf5 13. Bd2 Qb6 14. O-O-O Be7 15. g4 g5 16. Qe4 Nh4 17. f4 Na6 18. fxg5 Rd8 19. Kb1 Ba3 20. Bc3 Bb4 21. Be1 Bxe1 22. Rxe1 Rd5 23. Rc1 O-O 24. Rg1 Rb5 25. Rc2 Nb4 26. Nc3 Nxc2 27. Nxb5 Qxb5 28. Kxc2 Rd8 29. a3 a5 30. Be2 Qb6 31. Kc3 a4 32. b4 axb3 33. Rb1 Qa5+ 34. Kxb3 Ra8 35. Kc2 Qxa3 36. Rxb7 Qa4+ 37. Rb3 Rb8 38. Kc1 Rxb3 39. Kd2 Qa1 40. Bd1 Qa5+ 41. Ke2 Rb2+ 42. Kf1 Qd2 43. Be2 Rb1+ 44. Kf2 Qe1+ 45. Ke3 Qg1+ 46. Kf4 Kg7 47. g6 Qf2+ 48. Qf3 Nxf3 49. Bxf3 Qxh2+ 50. Ke3 Re1+ 51. Be2 Qxe2+ 52. Kf4 Qe3# 0-1
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.21"]
+[Round "2"]
+[White "Stockfish"]
+[Black "labzero"]
+[Result "1-0"]
+[TimeControl "1+0"]
+
+1. e4 Nc6 2. Nf3 d5 3. exd5 Qxd5 4. c4 Qf5 5. Be2 e5 6. O-O e4 7. d4 exf3 8. Bxf3 Nge7 9. Re1 Be6 10. Nc3 Bxc4 11. Qa4 Be6 12. d5 b5 13. Nxb5 Nxd5 14. Nd4 Qf6 15. Bxd5 Kd8 16. Nxc6+ Kc8 17. Bxe6+ fxe6 18. Qa6+ Kd7 19. Bg5 Qxg5 20. Ne5+ Ke7 21. Qc6 Qf5 22. g4 Qxe5 23. Rxe5 Kd8 24. Qxa8+ Ke7 25. Qc6 Kd8 26. Qxe6 Bd6 27. Rd1 a6 28. Rxd6+ cxd6 29. Qxd6+ Kc8 30. Re7 Rd8 31. Qc6+ Kb8 32. Rb7+ Ka8 33. Rb5+ Ka7 34. Qb7# 1-0
+
+[Event "labzero host benchmark"]
+[Site "?"]
+[Date "2026.06.21"]
+[Round "3"]
+[White "labzero"]
+[Black "Stockfish"]
+[Result "0-1"]
+[TimeControl "1+0"]
+
+1. d4 e6 2. e4 d6 3. Nc3 c6 4. Nf3 Nf6 5. Bd3 Qa5 6. O-O Qc7 7. Re1 e5 8. dxe5 dxe5 9. Be3 Nbd7 10. Bg5 Be7 11. Qe2 a5 12. Rad1 Nc5 13. Bxf6 Bxf6 14. Bc4 Bd8 15. Qe3 Qe7 16. Ng5 Qxg5 17. Qxc5 Qe7 18. Qe3 Qb4 19. Qd3 Qe7 20. Rd2 O-O 21. Red1 g6 22. Qf3 Kh8 23. Qe3 b5 24. Bxf7 Kg7 25. Bb3 a4 26. Rxd8 Rxd8 27. Rxd8 Qxd8 28. Qc5 Qg5 29. f4 Qd8 30. Qxe5+ Kh6 31. Bf7 b4 32. Ne2 Ra5 33. Qb8 Rb5 34. Qa8 Qc7 35. Be8 Bb7 36. Qxa4 Bc8 37. Nd4 Qxf4 38. Bxc6 Qe3+ 39. Kf1 Rb6 40. Ne2 Ba6 41. c4 bxc3 42. Qd1 Rxb2 43. Bb5 Bxb5 44. Qc1 Qxc1+ 45. Kf2 Qf4+ 46. Kg1 Bxe2 47. a4 Rb1# 0-1
+

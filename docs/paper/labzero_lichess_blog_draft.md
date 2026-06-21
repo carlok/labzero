@@ -87,11 +87,19 @@ The beta version improved after adding quiescence search, transposition-table or
 - 14-13-5 against Stockfish limited to 1800;
 - 10-20-2 against Stockfish limited to 2000.
 
-That put beta around 1800-1900 on this test. The newer gamma branch of work adds stronger search plumbing, time management, UCI info output, optional Lazy SMP, and simple structural evaluation terms. The project notes currently treat a 1950-2050 result as a hypothesis to confirm, not a settled claim.
+That put beta around 1800-1900 on this test. The gamma/v0.5.0 branch adds aspiration, time management, Lazy SMP, tuned structural eval, and a tactical regression suite. **All anchor ladder numbers use:** `TC_MODE=movetime TC_SEC=1 THREADS=1` against Stockfish with `UCI_LimitStrength`. That is project-relative performance Elo, not a Lichess or CCRL rating.
 
-So the fair version is:
+Recorded anchor rows (16 games each, post–TT-fix):
 
-> LabZero is an early, original, legal UCI engine. It appears to be approaching the 2000 region in one constrained Stockfish ladder, but the result still needs broader and cleaner confirmation.
+- 15-1-0 vs Stockfish limited to 1320 (93.8%);
+- 5-6-5 vs Stockfish limited to 1900 (46.9%);
+- 5-7-4 vs Stockfish limited to 2000 (43.8%, performance Elo roughly 1950 on this protocol).
+
+A **10+0 movetime** spot check at SF@2000 is running separately to see whether deeper search shifts the bracket. A **wtime 3+2** spot check failed badly (0-8 in 8 games) and needs a re-run after time-management fixes — those rows stay out of the anchor table.
+
+The fair version is:
+
+> LabZero is an early, original, legal UCI engine. On the fixed 1-second-per-move anchor it sits near the 1950 region vs limited Stockfish; other time controls are still being measured separately.
 
 That is less catchy than "LLM builds 2000 Elo engine in a day", but it is closer to the truth.
 

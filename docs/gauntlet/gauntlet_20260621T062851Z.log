@@ -1,0 +1,69 @@
+gauntlet config: games=10 rounds=1 smoke=1
+==> self-play short tc
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs labzero2)
+Finished game 1 (labzero vs labzero2): 1-0 {White mates}
+Started game 2 of 2 (labzero2 vs labzero)
+Finished game 2 (labzero2 vs labzero): 1/2-1/2 {Draw by 3-fold repetition}
+--------------------------------------------------
+Results of labzero vs labzero2 (10+0.1, 1t, 64MB):
+Elo: 190.85 +/- 0.00, nElo: inf +/- nan
+LOS: 100.00 %, DrawRatio: 0.00 %, PairsRatio: inf
+Games: 2, Wins: 1, Losses: 0, Draws: 1, Points: 1.5 (75.00 %)
+Ptnml(0-2): [0, 0, 0, 1, 0], WL/DD Ratio: nan
+--------------------------------------------------
+Finished match
+Total Time: 00:00:49 (hours:minutes:seconds)
+
+==> vs random bot
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs random)
+Finished game 1 (labzero vs random): 1-0 {White mates}
+Started game 2 of 2 (random vs labzero)
+Finished game 2 (random vs labzero): 0-1 {Black mates}
+--------------------------------------------------
+Results of labzero vs random (2 plies, 1t - NULL, 64MB - NULL):
+Elo: inf +/- nan, nElo: inf +/- nan
+LOS: 100.00 %, DrawRatio: 0.00 %, PairsRatio: inf
+Games: 2, Wins: 2, Losses: 0, Draws: 0, Points: 2.0 (100.00 %)
+Ptnml(0-2): [0, 0, 0, 0, 1], WL/DD Ratio: nan
+--------------------------------------------------
+Finished match
+Total Time: 00:00:02 (hours:minutes:seconds)
+
+==> vs stockfish depth=1
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs stockfish)
+Finished game 1 (labzero vs stockfish): 0-1 {Black mates}
+Started game 2 of 2 (stockfish vs labzero)
+Finished game 2 (stockfish vs labzero): 1-0 {White mates}
+--------------------------------------------------
+Results of labzero vs stockfish (10+0.1, 1t, 64MB - 16MB):
+Elo: -inf +/- nan, nElo: -inf +/- nan
+LOS: 0.00 %, DrawRatio: 0.00 %, PairsRatio: 0.00
+Games: 2, Wins: 0, Losses: 2, Draws: 0, Points: 0.0 (0.00 %)
+Ptnml(0-2): [1, 0, 0, 0, 0], WL/DD Ratio: nan
+--------------------------------------------------
+Finished match
+Total Time: 00:00:24 (hours:minutes:seconds)
+
+==> self-play normal tc
+Warning: No opening book specified! Consider using one, otherwise all games will be played from the starting position.
+Warning: Unknown opening format, 2. All games will be played from the starting position.
+Started game 1 of 2 (labzero vs labzero2)
+Finished game 1 (labzero vs labzero2): 0-1 {Black mates}
+Started game 2 of 2 (labzero2 vs labzero)
+Finished game 2 (labzero2 vs labzero): 1-0 {White mates}
+--------------------------------------------------
+Results of labzero vs labzero2 (60+0.6, 1t, 64MB):
+Elo: -inf +/- nan, nElo: -inf +/- nan
+LOS: 0.00 %, DrawRatio: 0.00 %, PairsRatio: 0.00
+Games: 2, Wins: 0, Losses: 2, Draws: 0, Points: 0.0 (0.00 %)
+Ptnml(0-2): [1, 0, 0, 0, 0], WL/DD Ratio: nan
+--------------------------------------------------
+Finished match
+Total Time: 00:03:58 (hours:minutes:seconds)
+

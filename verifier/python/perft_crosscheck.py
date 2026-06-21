@@ -38,7 +38,7 @@ def load_epd_cases(positions_dir: Path, smoke: bool) -> list[tuple[str, str, lis
     for epd in sorted(positions_dir.glob("*.epd")):
         for line in epd.read_text().splitlines():
             fen = line.strip()
-            if not fen or " " not in fen:
+            if not fen or fen.startswith("#") or " " not in fen:
                 continue
             depths = SMOKE_DEPTHS["default"] if smoke else [1, 2, 3, 4]
             cases.append((f"{epd.stem}:{fen[:20]}", fen, depths))

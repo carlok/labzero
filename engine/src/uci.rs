@@ -67,6 +67,7 @@ pub fn run_uci_loop() {
             let _ = writeln!(out, "readyok");
             let _ = out.flush();
         } else if trimmed == "ucinewgame" {
+            stop_flag().store(false, Ordering::Relaxed);
             board = Board::from_fen(STARTPOS_FEN).expect("startpos");
             board.rep_keys.clear();
             let mut state = search_state();

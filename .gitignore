@@ -8,10 +8,15 @@ __pycache__/
 .venv/
 .venv-host-test/
 
-# Editor
+# Editor / IDE
 .idea/
 .vscode/
 *.swp
+.codegraph/
+.cursor/
+
+# Ephemeral host-ladder tee logs (canonical rows: docs/strength/benchmark_*.txt)
+docs/strength/gamma_*.log
 
 # Secrets / local config
 lichess_bot/config.toml

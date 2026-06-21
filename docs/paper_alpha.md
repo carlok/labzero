@@ -306,13 +306,34 @@ Implemented in v0.4.0 (original code only):
 
 | Sprint | Items |
 |--------|-------|
-| C1 | Depth cap 64, safe TT cutoffs, aspiration, PV ordering, root make/unmake |
+| C1 | Depth cap 64, aspiration, PV ordering, root make/unmake; TT ordering under movetime |
 | C2 | Soft stop, panic reserve, UCI `info`, `Hash`, wtime/increment time model |
 | C3 | Pawn structure, rook files, king safety in eval |
 | C4 | Check evasions in qsearch, optional `OwnBook`/`BookFile` |
 | C6 | Lazy SMP (`Threads` 1–8, shared TT) |
 
 **Measurement:** anchor ladder `TC_SEC=1 THREADS=1`; spot blitz `TC_MODE=wtime 3+2`; spot rapid `TC_SEC=10 THREADS=4`. See [strength/ladder.md](strength/ladder.md).
+
+### Phase D — Strengthening (v0.5.0)
+
+| Sprint | Items |
+|--------|-------|
+| D1a | Tactical EPD + fixed-depth regression tests |
+| D1b | TT `complete` flag; depth-only score cutoffs (movetime ordering-only) |
+| D1c | LMR / aspiration single-knob tune |
+| D2 | wtime spot benchmark, stop/`ucinewgame` hardening, UCI matrix |
+| D3 | Eval weight tune (existing terms) |
+| D4 | Ablation table, TC caveats, ladder sync |
+
+**Ablation (1+0 anchor, T=1):**
+
+| Version | SF 1320 | SF 1800 | SF 2000 |
+|---------|---------|---------|---------|
+| alpha v0.2.0 | 89.1% | — | 17.2% |
+| beta v0.3.0-beta | 93.8% | 51.6% | 34.4% |
+| gamma v0.5.0 | **93.8%** | **46.9%** (probe) | **40.6%** (probe) |
+
+**TC caveat:** All published ladder rows use `TC_MODE=movetime TC_SEC=1 THREADS=1` unless marked otherwise. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo.
 
 ---
 

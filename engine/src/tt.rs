@@ -18,6 +18,7 @@ struct TtEntry {
     depth: u8,
     flag: TtFlag,
     best_move: Option<Move>,
+    complete: bool,
 }
 
 impl TtEntry {
@@ -28,6 +29,7 @@ impl TtEntry {
             depth: 0,
             flag: TtFlag::Exact,
             best_move: None,
+            complete: false,
         }
     }
 }
@@ -58,16 +60,23 @@ impl TranspositionTable {
         self.entries.lock().map(|e| e.len()).unwrap_or(0)
     }
 
-    pub fn probe(&self, key: u64, ply: usize) -> Option<(i32, u8, TtFlag, Option<Move>)> {
+    pub fn probe(&self, key: u64, ply: usize) -> Option<(i32, u8, TtFlag, Option<Move>, bool)> {
         let entries = self.entries.lock().ok()?;
         let e = &entries[(key as usize) & self.mask];
         if e.key == key {
-            Some((from_tt_score(e.score, ply), e.depth, e.flag, e.best_move))
+            Some((
+                from_tt_score(e.score, ply),
+                e.depth,
+                e.flag,
+                e.best_move,
+                e.complete,
+            ))
         } else {
             None
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn store(
         &self,
         key: u64,
@@ -76,6 +85,7 @@ impl TranspositionTable {
         score: i32,
         best_move: Option<Move>,
         ply: usize,
+        complete: bool,
     ) {
         let Ok(mut entries) = self.entries.lock() else {
             return;
@@ -94,6 +104,7 @@ impl TranspositionTable {
             depth,
             flag,
             best_move,
+            complete,
         };
     }
 }

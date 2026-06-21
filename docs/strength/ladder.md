@@ -35,24 +35,36 @@ Eval: tapered mg/eg PSTs, bishop pair.
 
 **Beta bracket (1+0):** ≈ **1800–1900** on this protocol (+~150–200 vs alpha at SF@2000).
 
-## Gamma v0.4.0 (Phase C — C1–C6)
+## Gamma / v0.5.0 (Phase C + D)
 
-Search: TT cutoffs, aspiration, PV ordering, depth cap 64, check qsearch evasions, Lazy SMP.  
-Eval: + pawn structure, rook files, king safety.  
+Search: aspiration, PV ordering, depth cap 64, check qsearch evasions, Lazy SMP; **TT ordering-only under movetime** (score cutoffs for `go depth` only).  
+Eval: pawn structure, rook files, king safety (D3 weight tune).  
 Time: soft stop, wtime/increment support.
 
-**Hypothesis (1+0 anchor):** perf Elo ≈ **1950–2050** (+~60–160 vs beta @ SF@2000).
+**Anchor (1+0, post–TT-fix, v0.5.0 binary):** bracket centre ≈ **SF@1900–2000** (perf Elo ≈ **1920–1960** vs beta ≈1888 @ SF@2000).
 
 | SF_ELO | Score (W–L–D) | Score % | Perf Elo (approx) | Artifacts |
 |--------|---------------|---------|-------------------|-----------|
-| 1320 | _pending_ | — | — | regression |
-| 1900 | _pending_ | — | — | bracket probe |
-| 2000 | _pending_ | — | — | bracket probe / confirm |
-| 2100 | _pending_ | — | — | bracket probe / confirm |
-| 2200 | _pending_ | — | — | bracket probe |
-| 2300 | _pending_ | — | — | bracket probe (ceiling) |
+| 1320 | **15–1–0** | **93.8%** | — | `benchmark_20260621T063529Z` |
+| 1900 | **5–6–5** | **46.9%** | **≈ 1878** | `benchmark_20260621T064836Z` |
+| 2000 | **5–8–3** | **40.6%** | **≈ 1934** | `benchmark_20260621T071050Z` | 16-game probe |
+| 2100 | **3–10–3** | **28.1%** | **≈ 1937** | `benchmark_20260621T073101Z` | 16-game probe |
+| 2200 | _pending_ | — | — | — | probe interrupted |
+| 2300 | _pending_ | — | — | — | not run |
 
 Legacy compare (beta, same protocol): 1320 **93.8%**, 1800 **51.6%** (≈1812 perf), 2000 **34.4%** (≈1888 perf).
+
+**Invalidated:** `benchmark_20260621T062854Z` (1–15 @ SF@1320) — pre–TT-fix run; do not use.
+
+### Ablation (1+0 anchor, T=1)
+
+| Version | SF 1320 | SF 1800 | SF 2000 |
+|---------|---------|---------|---------|
+| alpha v0.2.0 | 89.1% | — | 17.2% |
+| beta v0.3.0-beta | 93.8% | 51.6% | 34.4% |
+| gamma v0.5.0 | **93.8%** | **46.9%** (probe) | **40.6%** (probe) |
+
+**TC caveat:** Anchor rows use `TC_MODE=movetime TC_SEC=1 THREADS=1`. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo. Spot-check rows (below) use different protocols and must not be merged into the ablation table.
 
 ### Measurement round (~2k bracket)
 
@@ -105,16 +117,19 @@ done
 
 **How to record:** copy W–L–D and `labzero %` from each `benchmark_*.txt` footer into the table above; use basename without extension as Artifacts id. Update ablation row in `docs/paper_alpha.md` when Phase C confirm rows exist.
 
-### Spot checks (after anchor)
+### Spot checks (other time controls — not anchor)
 
-| Protocol | SF_ELO | Notes |
-|----------|--------|-------|
-| `TC_MODE=wtime TC_SEC=3 TC_INC=2` | 2000 | blitz @ harder opponent |
-| `TC_SEC=10 THREADS=1` vs `THREADS=4` | 2000 | SMP depth payoff |
+These rows use a **different protocol** than the 1+0 anchor table above. Do not merge into ablation without a TC label.
+
+| Protocol | SF_ELO | Score (W–L–D) | Score % | Artifacts | Notes |
+|----------|--------|---------------|---------|-----------|-------|
+| `TC_SEC=10 movetime` | 2000 | _in progress_ | — | `benchmark_20260621T072038Z` | rapid-like depth probe (v0.5.0) |
+| `TC_MODE=wtime TC_SEC=3 TC_INC=2` | 2000 | 0–8–0 (8 games) | 0.0% | `benchmark_20260621T063138Z` | 0 illegal/errors; clock TC needs more tuning |
+| `TC_SEC=10 THREADS=4` | 2000 | _pending_ | — | — | SMP depth payoff |
 
 ```bash
+SF_ELO=2000 GAMES=16 TC_SEC=10 TC_MODE=movetime THREADS=1 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1 ./scripts/host-benchmark.sh
-SF_ELO=2000 GAMES=16 TC_SEC=10 THREADS=1 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=16 TC_SEC=10 THREADS=4 ./scripts/host-benchmark.sh
 ```
 

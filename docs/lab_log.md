@@ -159,4 +159,44 @@ Chronological record of changes, test runs, failures, and limitations.
 - **SMP:** Lazy SMP (Threads 1–8, shared thread-safe TT)
 - **Book:** optional opening lines (`OwnBook` off by default)
 - **CI:** `./scripts/podman/ci` **PASS** (13 unit tests)
-- **Ladder:** anchor @ SF 1320/1800/2000 pending operator run — see `docs/strength/ladder.md`
+- **Ladder:** anchor rows recorded in `docs/strength/ladder.md` (superseded by v0.5.0 re-measure)
+
+## Phase D — strengthening v0.5.0 (2026-06-21)
+
+- **D1a:** `verifier/positions/tactical.epd` (10 positions); fixed-depth tactical tests in `search.rs`
+- **D1b:** TT `complete` flag; score cutoffs enabled for `go depth` only — **movetime remains ordering-only** (complete-guard cutoffs still regressed SF@1320 under 1s)
+- **D1c:** LMR reduction `move_idx/10` (was `/8`); aspiration windows from depth 5 (was 4)
+- **D2:** UCI protocol matrix; `ucinewgame` clears stop flag; wtime benchmark fix in `host-benchmark.sh`
+- **D3:** eval weight tune — doubled pawn penalty 10→8, isolated 8→6, rook file 12→10
+- **CI:** `./scripts/podman/ci` **PASS** (16 unit tests); gauntlet smoke **0 illegal**
+- **Ladder (1+0 anchor, post–TT-fix):** SF@1320 **15–1–0 (93.8%)**; SF@1900 **5–6–5 (46.9%)**; SF@2000 **5–8–3 (40.6%)**; SF@2100 **3–10–3 (28.1%)** — 0 illegal; see `docs/strength/ladder.md`
+- **Spot wtime 3+2 @ SF2000 (8 games):** **0–8–0**, 0 illegal/errors — protocol OK, strength weak (`benchmark_20260621T063138Z`)
+
+## Host benchmark — gamma anchor (2026-06-21)
+
+Post–TT-fix v0.5.0, `TC_MODE=movetime TC_SEC=1 THREADS=1`, 16 games each:
+
+| SF_ELO | Score | % | Artifact |
+|--------|-------|---|----------|
+| 1320 | 15–1–0 | 93.8% | `benchmark_20260621T063529Z` |
+| 1900 | 5–6–5 | 46.9% | `benchmark_20260621T064836Z` |
+| 2000 | 5–8–3 | 40.6% | `benchmark_20260621T071050Z` |
+| 2100 | 3–10–3 | 28.1% | `benchmark_20260621T073101Z` |
+
+**Invalidated:** `benchmark_20260621T062854Z` (1–15 @ 1320) — TT score cutoffs under movetime (pre-fix).
+
+## CI run 2026-06-21T06:25:39Z
+
+- **Result:** FAIL
+- **Failures:** cargo fmt --check cargo clippy verify smoke
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-21T06:27:18Z
+
+- **Result:** PASS
+- **Command:** `./scripts/podman/ci`
+
+## CI run 2026-06-21T08:04:32Z
+
+- **Result:** PASS
+- **Command:** `./scripts/podman/ci`

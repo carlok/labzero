@@ -37,6 +37,21 @@ Runs perft from optional FEN (default start position).
 
 Search emits `info depth score cp nodes nps time` after each completed iterative-deepening iteration.
 
+## Protocol matrix (Phase D2)
+
+| `go` mode | Example | Expected |
+|-----------|---------|----------|
+| movetime | `go movetime 1000` | search ~1s, `bestmove` |
+| depth | `go depth 8` | fixed depth, no clock stop |
+| wtime/btime | `go wtime 30000 btime 30000 winc 2000 binc 2000` | allocates from clock |
+| wtime + inc | `go wtime 10000 btime 10000 winc 500 binc 500` | increment bonus applied |
+| infinite | `go infinite` | runs until `stop` |
+| stop | `stop` during search | `bestmove` within ~100ms |
+| ucinewgame | after `stop` | clears TT, resets stop flag |
+| Threads>1 | `setoption name Threads value 4` | Lazy SMP, shared TT |
+
+Smoke: `./scripts/podman/verify-smoke` + gauntlet smoke after search/time changes.
+
 ## Strength measurement
 
 Anchor ladder (comparable to beta): `THREADS=1 TC_MODE=movetime TC_SEC=1`.

@@ -199,7 +199,7 @@ fn pawn_structure(board: &Board) -> i32 {
             let file_bb = 0x0101_0101_0101_0101u64 << file;
             let file_pawns = pawns & file_bb;
             if bit_count(file_pawns) > 1 {
-                s -= sign * 10;
+                s -= sign * 8;
             }
             let mut p = file_pawns;
             while p != 0 {
@@ -221,7 +221,7 @@ fn pawn_structure(board: &Board) -> i32 {
                         (1u64 << sq.index()) - 1
                     };
                 if friendly_adj == 0 {
-                    s -= sign * 8;
+                    s -= sign * 6;
                 }
                 p &= p - 1;
             }
@@ -259,7 +259,7 @@ fn king_safety(board: &Board) -> i32 {
         let enemy_rooks =
             board.pieces[crate::square::piece_index(color.opposite(), PieceKind::Rook)];
         if enemy_rooks & file_bb != 0 {
-            s -= sign * 12;
+            s -= sign * 10;
         }
     }
     s
