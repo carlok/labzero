@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.asset }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            asset: labzero-macos-aarch64
+          - runner: ubuntu-latest
+            asset: labzero-linux-x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release --manifest-path engine/Cargo.toml
+
+      - name: Package binary
+        run: |
+          cp target/release/labzero "${{ matrix.asset }}"
+          chmod +x "${{ matrix.asset }}"
+
+      - name: UCI smoke
+        run: printf 'uci\nisready\nquit\n' | "./${{ matrix.asset }}"
+
+      - name: SHA256 checksum
+        run: |
+          if command -v sha256sum >/dev/null; then
+            sha256sum "${{ matrix.asset }}" | awk '{print $1}' > "${{ matrix.asset }}.sha256"
+          else
+            shasum -a 256 "${{ matrix.asset }}" | awk '{print $1}' > "${{ matrix.asset }}.sha256"
+          fi
+          cat "${{ matrix.asset }}.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            ${{ matrix.asset }}
+            ${{ matrix.asset }}.sha256
+
+  release:
+    name: publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Combined checksums file
+        run: |
+          cd dist
+          for f in labzero-*; do
+            [[ "$f" == *.sha256 ]] && continue
+            echo "$(cat "${f}.sha256")  ${f}"
+          done > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/labzero-macos-aarch64
+            dist/labzero-macos-aarch64.sha256
+            dist/labzero-linux-x86_64
+            dist/labzero-linux-x86_64.sha256
+            dist/SHA256SUMS

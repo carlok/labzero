@@ -4,6 +4,7 @@
 
 | Use case | Command | Binary |
 |----------|---------|--------|
+| **Prebuilt UCI binary** | [GitHub Releases](https://github.com/carlok/labzero/releases) | `labzero-macos-aarch64` or `labzero-linux-x86_64` |
 | **UCI GUI on macOS** (Banksia, etc.) | `./scripts/build-host-engine.sh` | `target/release/labzero` |
 | **CI, verify, gauntlet** (Podman) | `./scripts/podman/build-engine` | `.cargo-target/release/labzero` (Linux inside container) |
 

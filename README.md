@@ -6,6 +6,28 @@ Weak but fully legal, tournament-compatible chess engine with an **original** Ru
 
 Research target: an LLM-iterated engine with no copied engine core, independent perft/legality validation, UCI protocol compliance, and automated tournament survival.
 
+## Downloads (prebuilt UCI binary)
+
+Tagged releases include host binaries (no Rust required):
+
+| Platform | Asset |
+|----------|--------|
+| **macOS Apple Silicon** | `labzero-macos-aarch64` |
+| **Linux x86_64** | `labzero-linux-x86_64` |
+
+Get them from **[GitHub Releases](https://github.com/carlok/labzero/releases)** (latest tag, e.g. `v0.5.0`). Each upload has a `.sha256` sidecar; `SHA256SUMS` lists all files.
+
+Quick smoke after download:
+
+```bash
+chmod +x labzero-macos-aarch64   # or labzero-linux-x86_64
+printf 'uci\nisready\nquit\n' | ./labzero-macos-aarch64
+```
+
+Point your UCI GUI (Banksia, Cute Chess, etc.) at that path. To build from source instead, see below.
+
+Maintainers: push a semver tag to publish — `git tag v0.5.0 && git push origin v0.5.0` runs [`.github/workflows/release.yml`](.github/workflows/release.yml).
+
 ## Quick start (Podman)
 
 Requires [Podman](https://podman.io/). On macOS, start a Podman machine first.
