@@ -245,8 +245,8 @@ mod tests {
 
     #[test]
     fn en_passant_hash_consistent() {
-        let ep_setup = Board::from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")
-            .unwrap();
+        let ep_setup =
+            Board::from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1").unwrap();
         assert_hash_oracle(&ep_setup);
         let mut board = ep_setup;
         let black_push = generate_legal_moves(&board)
@@ -261,8 +261,7 @@ mod tests {
 
     #[test]
     fn promotion_hash_consistent() {
-        let mut board =
-            Board::from_fen("8/4P3/8/8/8/8/8/4K2k w - - 0 1").unwrap();
+        let mut board = Board::from_fen("8/4P3/8/8/8/8/8/4K2k w - - 0 1").unwrap();
         assert_hash_oracle(&board);
         let promo = generate_legal_moves(&board)
             .into_iter()

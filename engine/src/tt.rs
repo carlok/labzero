@@ -63,7 +63,12 @@ impl TtShard {
         }
     }
 
-    fn probe(&self, key: u64, slot: usize, ply: usize) -> Option<(i32, u8, TtFlag, Option<Move>, bool)> {
+    fn probe(
+        &self,
+        key: u64,
+        slot: usize,
+        ply: usize,
+    ) -> Option<(i32, u8, TtFlag, Option<Move>, bool)> {
         let entries = self.entries.lock().ok()?;
         let e = &entries[slot & self.mask];
         if e.key == key {
@@ -121,9 +126,7 @@ impl TranspositionTable {
     pub fn new(size: usize) -> Self {
         let total = size.next_power_of_two().max(1024);
         let per_shard = (total / NUM_SHARDS).next_power_of_two().max(16);
-        let shards = (0..NUM_SHARDS)
-            .map(|_| TtShard::new(per_shard))
-            .collect();
+        let shards = (0..NUM_SHARDS).map(|_| TtShard::new(per_shard)).collect();
         Self { shards }
     }
 
