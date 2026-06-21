@@ -55,7 +55,7 @@ That combination was useful for the experiment. I could design the workflow, set
 
 Rust was deliberate. I know many languages, but I did not know Rust. I wanted a language that was fast enough for an engine and strict enough to punish sloppy code. It also forced the coding assistant to carry more of the language-specific work while I kept control of the engineering loop.
 
-The model choice was deliberate too. I did not use the largest or most careful frontier model I could find. I used Cursor's fast auto model, Composer 2.5 Fast, because I wanted to know what a quick everyday coding assistant could do when boxed in by tests.
+The model choice was deliberate too. I did not use the largest or most careful frontier model I could find. I used Cursor's fast auto model, [Composer 2.5 Fast](https://cursor.com/blog/composer-2-5), because I wanted to know what a quick everyday coding assistant could do when boxed in by tests.
 
 ## What LabZero can do
 
