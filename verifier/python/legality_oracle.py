@@ -24,8 +24,9 @@ def load_epd_boards(positions_dir: Path) -> list[chess.Board]:
     for epd in sorted(positions_dir.glob("*.epd")):
         for line in epd.read_text().splitlines():
             fen = line.strip()
-            if fen and " " in fen:
-                boards.append(chess.Board(fen))
+            if not fen or fen.startswith("#") or " " not in fen:
+                continue
+            boards.append(chess.Board(fen))
     return boards
 
 

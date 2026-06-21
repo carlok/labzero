@@ -331,9 +331,11 @@ Implemented in v0.4.0 (original code only):
 |---------|---------|---------|---------|
 | alpha v0.2.0 | 89.1% | — | 17.2% |
 | beta v0.3.0-beta | 93.8% | 51.6% | 34.4% |
-| gamma v0.5.0 | **93.8%** | **46.9%** (probe) | **40.6%** (probe) |
+| gamma v0.5.0 | **93.8%** | **46.9%** (probe) | **37.5%** (32-game confirm, ≈**1911** perf) |
 
 **TC caveat:** All published ladder rows use `TC_MODE=movetime TC_SEC=1 THREADS=1` unless marked otherwise. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo.
+
+**SMP spot (not anchor):** `Threads=8`, 16 games @ SF@2000 → **28.1%** (perf ≈ **1837**), vs **37.5%** (≈ **1911**) at `Threads=1` (32-game confirm). Lazy SMP v1 did not help at 1 s/move on this run (`benchmark_20260621T095930Z`).
 
 ---
 

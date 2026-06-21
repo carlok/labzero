@@ -8,3 +8,5 @@ labzero Threads: 4
 sf weaken:   Skill=0 LimitStrength=True UCI_Elo=2000
 
 games:
+game  1: win  1-0  (0)  [1-0-0]
+game  2: draw 1/2-1/2  (0)  [1-0-1]

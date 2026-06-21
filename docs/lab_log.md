@@ -169,7 +169,7 @@ Chronological record of changes, test runs, failures, and limitations.
 - **D2:** UCI protocol matrix; `ucinewgame` clears stop flag; wtime benchmark fix in `host-benchmark.sh`
 - **D3:** eval weight tune — doubled pawn penalty 10→8, isolated 8→6, rook file 12→10
 - **CI:** `./scripts/podman/ci` **PASS** (16 unit tests); gauntlet smoke **0 illegal**
-- **Ladder (1+0 anchor, post–TT-fix):** SF@1320 **15–1–0 (93.8%)**; SF@1900 **5–6–5 (46.9%)**; SF@2000 **5–8–3 (40.6%)**; SF@2100 **3–10–3 (28.1%)** — 0 illegal; see `docs/strength/ladder.md`
+- **Ladder (1+0 anchor):** SF@1320 **14–0–2 (93.8%)**; SF@2000 **9–17–6 (37.5%, 32-game confirm, ≈1911 perf)** — 0 illegal; see `docs/strength/ladder.md`
 - **Spot wtime 3+2 @ SF2000 (8 games):** **0–8–0**, 0 illegal/errors — protocol OK, strength weak (`benchmark_20260621T063138Z`)
 
 ## Host benchmark — gamma anchor (2026-06-21)
@@ -200,3 +200,28 @@ Post–TT-fix v0.5.0, `TC_MODE=movetime TC_SEC=1 THREADS=1`, 16 games each:
 
 - **Result:** PASS
 - **Command:** `./scripts/podman/ci`
+
+## Host benchmark — paper confirm (2026-06-21)
+
+Post–TT-fix **v0.5.0**, `TC_MODE=movetime TC_SEC=1 THREADS=1`:
+
+| Phase | SF_ELO | Score | % | Perf Elo | Artifact |
+|-------|--------|-------|---|----------|----------|
+| Regression | 1320 | 14–0–2 | 93.8% | — | `benchmark_20260621T084207Z` |
+| **Confirm** | **2000** | **9–17–6** | **37.5%** | **≈ 1911** (95% CI ≈ 1790–2030) | `benchmark_20260621T091006Z` |
+
+**0 illegal**, **0 errors** on both runs.
+
+Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — see `docs/strength/ladder.md`.
+
+**Next:** SMP spot `THREADS=8` @ SF@2000 — **2–9–5 (28.1%, perf ≈ 1837)**; no gain vs T=1 confirm (`benchmark_20260621T095930Z`).
+
+## SMP spot — Threads=8 (2026-06-21)
+
+`TC_MODE=movetime TC_SEC=1 THREADS=8`, 16 games vs SF@2000:
+
+| Score | % | Perf Elo (approx) | vs T=1 confirm | Artifact |
+|-------|---|-------------------|----------------|----------|
+| 2–9–5 | 28.1% | ≈ 1837 (CI ≈ 1660–2020) | **−9.4 pp** / ≈ **−74 Elo** | `benchmark_20260621T095930Z` |
+
+0 illegal, 0 errors. CIs overlap — treat as negative spot result, not proven SMP regression.

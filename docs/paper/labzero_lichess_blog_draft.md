@@ -89,17 +89,22 @@ The beta version improved after adding quiescence search, transposition-table or
 
 That put beta around 1800-1900 on this test. The gamma/v0.5.0 branch adds aspiration, time management, Lazy SMP, tuned structural eval, and a tactical regression suite. **All anchor ladder numbers use:** `TC_MODE=movetime TC_SEC=1 THREADS=1` against Stockfish with `UCI_LimitStrength`. That is project-relative performance Elo, not a Lichess or CCRL rating.
 
-Recorded anchor rows (16 games each, post–TT-fix):
+**Paper-grade anchor (2026-06-21):**
 
-- 15-1-0 vs Stockfish limited to 1320 (93.8%);
-- 5-6-5 vs Stockfish limited to 1900 (46.9%);
-- 5-7-4 vs Stockfish limited to 2000 (43.8%, performance Elo roughly 1950 on this protocol).
+- **14–0–2** vs Stockfish limited to 1320 (93.8%, 16-game regression);
+- **9–17–6** vs Stockfish limited to 2000 (37.5%, **32-game confirm**, `Threads=1`);
+- performance Elo at SF@2000 (**T=1**): **≈ 1911** (95% CI roughly **1790–2030** on this protocol).
 
-A **10+0 movetime** spot check at SF@2000 is running separately to see whether deeper search shifts the bracket. A **wtime 3+2** spot check failed badly (0-8 in 8 games) and needs a re-run after time-management fixes — those rows stay out of the anchor table.
+**Same opponent, Lazy SMP spot (16 games, not anchor):**
+
+- **2–9–5** vs Stockfish limited to 2000 (`Threads=8`, 1+0 movetime);
+- performance Elo **≈ 1837** (95% CI roughly **1660–2020**) — **lower** than the single-thread confirm, not higher. Intervals overlap, so this is a directional negative result, not a firm SMP penalty. Lazy SMP v1 at 1 s/move did not pay off on this run.
+
+16-game bracket probes at SF@1900 (46.9%) and SF@2100 (28.1%) bracket the centre near **SF@1900–2000**. A **wtime 3+2** spot check (0–8, 8 games) stays in a separate table — not merged into the anchor ablation.
 
 The fair version is:
 
-> LabZero is an early, original, legal UCI engine. On the fixed 1-second-per-move anchor it sits near the 1950 region vs limited Stockfish; other time controls are still being measured separately.
+> LabZero is an early, original, legal UCI engine. On the fixed 1-second-per-move anchor (**32 games**, `Threads=1`, vs SF@2000), performance is roughly **1910** vs limited Stockfish — about **+20 Elo** vs beta on the same opponent setting (34.4% → 37.5%), with **0 illegal** moves. Turning on **8 threads** on the same 1+0 protocol did **not** improve that number in a 16-game spot check (28.1%, perf ≈ **1840**).
 
 That is less catchy than "LLM builds 2000 Elo engine in a day", but it is closer to the truth.
 

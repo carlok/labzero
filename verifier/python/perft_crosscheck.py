@@ -31,11 +31,17 @@ SMOKE_DEPTHS = {
 }
 
 
+# EPD files used for search/eval regression — not perft reference suites.
+SKIP_PERFT_EPD = {"tactical.epd"}
+
+
 def load_epd_cases(positions_dir: Path, smoke: bool) -> list[tuple[str, str, list[int]]]:
     cases: list[tuple[str, str, list[int]]] = []
     if not positions_dir.exists():
         return cases
     for epd in sorted(positions_dir.glob("*.epd")):
+        if epd.name in SKIP_PERFT_EPD:
+            continue
         for line in epd.read_text().splitlines():
             fen = line.strip()
             if not fen or fen.startswith("#") or " " not in fen:
