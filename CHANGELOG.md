@@ -3,8 +3,8 @@
 ## 0.5.2 — 2026-06-21
 
 - **SMP:** Lazy SMP v2 — helpers start iterative deepening at staggered depths 3/4/5; aspiration cold-start fix for helper threads
-- **Search:** `search_with_info_from_depth`; null-move EP/hash fix; timed TT score cutoffs re-enabled (post-Zobrist)
-- **Measurement:** 3+2 blitz vs SF@2000 **T=4 32g → 18–9–5 (64.1%, perf ≈ 2100)** after search fixes; SMP v2 confirm **13–12–7**; README **≈2100**
+- **Search:** `search_with_info_from_depth`; null-move EP/hash fix; timed TT score cutoffs re-enabled; **qsearch skips stand-pat in check**
+- **Measurement:** 3+2 blitz vs SF@2000 **T=4 32g → 16–7–9 (64.1%)** after qsearch fix; SF@2100 direct **19–11–2 (62.5%)** validates headline; README **≈2100**
 - **Docs:** ladder/lab_log/architecture sync; benchmark artifacts through `benchmark_20260622T160120Z`
 
 ## 0.5.1 — 2026-06-21

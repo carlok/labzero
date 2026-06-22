@@ -322,6 +322,18 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors on both runs.
 
+## Qsearch-in-check fix (2026-06-22)
+
+**Change:** `search.rs` `qsearch` — compute `in_check` before stand-pat; skip stand-pat in check; search all legal evasions (not noisy-only) until `QSEARCH_MAX`.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`, 32 games vs SF@2000:
+
+| Score | % | Perf Elo (approx) | vs anchor (18–9–5) | Artifact |
+|-------|---|-------------------|---------------------|----------|
+| **16–7–9** | **64.1%** | **≈ 2100** | **20.5/32** W-equiv (≥ 18/32) | `benchmark_20260622T185217Z` |
+
+0 illegal, 0 errors. **Decision:** keep.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

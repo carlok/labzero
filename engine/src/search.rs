@@ -460,18 +460,23 @@ fn qsearch(
     }
     *ctx.nodes += 1;
 
-    let stand_pat = evaluate(board);
-    if stand_pat >= beta {
-        return beta;
-    }
-    if stand_pat > alpha {
-        alpha = stand_pat;
-    }
-    if qs_depth >= QSEARCH_MAX {
-        return alpha;
+    let in_check = board.in_check(board.stm);
+
+    if !in_check {
+        let stand_pat = evaluate(board);
+        if stand_pat >= beta {
+            return beta;
+        }
+        if stand_pat > alpha {
+            alpha = stand_pat;
+        }
+        if qs_depth >= QSEARCH_MAX {
+            return alpha;
+        }
+    } else if qs_depth >= QSEARCH_MAX {
+        return evaluate(board);
     }
 
-    let in_check = board.in_check(board.stm);
     let moves = generate_legal_moves(board);
     if moves.is_empty() {
         if in_check {
@@ -481,10 +486,11 @@ fn qsearch(
     }
 
     let ply = frame.ply;
-    let mut sorted: Vec<Move> = moves
-        .into_iter()
-        .filter(|&m| is_noisy(m) || (in_check && qs_depth == 0))
-        .collect();
+    let mut sorted: Vec<Move> = if in_check {
+        moves
+    } else {
+        moves.into_iter().filter(|&m| is_noisy(m)).collect()
+    };
     order_moves(
         board,
         &mut sorted,
@@ -565,6 +571,7 @@ fn move_order_key(
 mod tests {
     use super::*;
     use crate::fen::STARTPOS_FEN;
+    use crate::square::Square;
     use crate::time::TimeControl;
 
     #[test]
@@ -580,6 +587,28 @@ mod tests {
         let mut state = SearchState::new();
         let res = search(&board, 2, &mut budget, &mut state);
         assert!(res.best_move.is_some());
+    }
+
+    #[test]
+    fn qsearch_in_check_searches_quiet_evasions() {
+        let mut board = Board::from_fen("4r3/8/8/8/8/8/8/4K3 w - - 0 1").unwrap();
+        let mut budget = TimeBudget::new(&TimeControl::default(), true);
+        let mut state = SearchState::new();
+        let mut nodes = 0u64;
+        let mut ctx = SearchCtx {
+            budget: &mut budget,
+            state: &mut state,
+            nodes: &mut nodes,
+        };
+        let frame = Frame {
+            ply: 0,
+            prev_move: Move::quiet(Square::new(4, 0), Square::new(4, 0)),
+        };
+        let _ = qsearch(&mut board, i32::MIN + 1, i32::MAX - 1, &mut ctx, frame, 1);
+        assert!(
+            nodes > 1,
+            "expected quiet king evasions to be searched, nodes={nodes}"
+        );
     }
 
     #[test]

@@ -39,7 +39,7 @@ Eval: tapered mg/eg PSTs, bishop pair.
 
 ## Gamma / v0.5.0 (Phase C + D)
 
-Search: aspiration, PV ordering, depth cap 64, check qsearch evasions, Lazy SMP; **TT score cutoffs** under timed search (complete-node guard, post-Zobrist re-test).  
+Search: aspiration, PV ordering, depth cap 64, qsearch check evasions (all legal moves in check), Lazy SMP; **TT score cutoffs** under timed search (complete-node guard, post-Zobrist re-test).  
 Eval: pawn structure, rook files, king safety (D3 weight tune).  
 Time: soft stop, wtime/increment support.
 
@@ -138,6 +138,7 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=4` (+ timed TT cutoffs) | 2000 | **18–9–5** | **64.1%** | `benchmark_20260622T160120Z` | 32-game; perf **≈ 2100**; **keep** |
 | `3+2 wtime THREADS=4` | **2100** | **19–11–2** | **62.5%** | `benchmark_20260622T172332Z` | **32-game headline validation**; perf **≈ 2189** |
 | `3+2 wtime THREADS=4` | **2200** | **4–8–4** | **37.5%** | `benchmark_20260622T181751Z` | 16-game probe; perf **≈ 2111** |
+| `3+2 wtime THREADS=4` (+ qsearch-in-check) | 2000 | **16–7–9** | **64.1%** | `benchmark_20260622T185217Z` | 32-game; perf **≈ 2100**; **keep** |
 | `3+2 wtime THREADS=8` (Lazy SMP v2) | 2000 | **11–15–6** | **43.8%** | `benchmark_20260622T131945Z` | 32-game diagnostic; perf **≈ 1956**; no gain vs T=4 |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
