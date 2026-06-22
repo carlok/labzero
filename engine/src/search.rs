@@ -336,7 +336,7 @@ fn negamax(
         && board.non_pawn_material(board.stm) >= 2
         && frame.prev_move.from.index() != frame.prev_move.to.index()
     {
-        board.null_move();
+        let null_undo = board.null_move();
         let null_depth = depth.saturating_sub(1 + NULL_MOVE_R);
         let null_score = -negamax(
             board,
@@ -346,7 +346,7 @@ fn negamax(
             ctx,
             frame.child(Move::quiet(frame.prev_move.from, frame.prev_move.from)),
         );
-        board.unnull_move();
+        board.unnull_move(null_undo);
         if null_score >= beta {
             return beta;
         }

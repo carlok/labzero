@@ -4,7 +4,7 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-**Headline (v0.5.2):** **≈2050** on limited-Stockfish benchmarks — 3+2 wtime **T=4** spot (perf **≈ 2044**, `benchmark_20260621T184359Z`); 32-game blitz T=1 confirm **≈ 1990**; 1+0 anchor **≈ 1911**. Not Lichess/CCRL/FIDE Elo.
+**Headline (v0.5.2):** **≈2010** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** confirm (perf **≈ 2011**, `benchmark_20260622T120949Z`); 16-game T=4 spot **≈ 2044** (`benchmark_20260621T184359Z`); 32-game blitz T=1 **≈ 1990**; 1+0 anchor **≈ 1911**. **T=8** 32-game diagnostic **43.8%** (≈ 1956). Not Lichess/CCRL/FIDE Elo.
 
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 
@@ -132,13 +132,18 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=1` (post Zobrist) | 2000 | **10–6–0** | **62.5%** | `benchmark_20260621T162932Z` | perf **≈ 2089**; 0 illegal |
 | `3+2 wtime THREADS=4` (post Zobrist) | 2000 | **7–7–2** | **50.0%** | `benchmark_20260621T165748Z` | perf **≈ 2000**; SMP helps vs pre-Zobrist |
 | `3+2 wtime THREADS=1` (Lazy SMP v2) | 2000 | **3–8–5** | **34.4%** | `benchmark_20260621T181146Z` | 16-game sanity; main unchanged; high variance |
-| `3+2 wtime THREADS=4` (Lazy SMP v2) | 2000 | **7–5–4** | **56.2%** | `benchmark_20260621T184359Z` | perf **≈ 2044**; helper start 3/4/5; **keep** |
+| `3+2 wtime THREADS=4` (Lazy SMP v2) | 2000 | **7–5–4** | **56.2%** | `benchmark_20260621T184359Z` | 16-game spot; perf **≈ 2044** |
+| `3+2 wtime THREADS=4` (Lazy SMP v2) | 2000 | **13–12–7** | **51.6%** | `benchmark_20260622T120949Z` | **32-game confirm**; perf **≈ 2011**; 0 illegal |
+| `3+2 wtime THREADS=4` (+ null-move EP fix) | 2000 | **15–9–8** | **59.4%** | `benchmark_20260622T144847Z` | 32-game; perf **≈ 2066**; correctness fix |
+| `3+2 wtime THREADS=8` (Lazy SMP v2) | 2000 | **11–15–6** | **43.8%** | `benchmark_20260622T131945Z` | 32-game diagnostic; perf **≈ 1956**; no gain vs T=4 |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
 ```bash
 SF_ELO=2000 GAMES=16 TC_SEC=10 TC_MODE=movetime THREADS=1 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
+SF_ELO=2000 GAMES=32 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
+SF_ELO=2000 GAMES=32 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=8 ./scripts/host-benchmark.sh
 ```
 
 Gauntlet smoke (Podman): **0 illegal** required after engine changes.

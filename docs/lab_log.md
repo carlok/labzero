@@ -274,7 +274,30 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 | 1 | 3–8–5 | 34.4% | ≈ 1888 | −28.1 pp (noise; main path unchanged) | `benchmark_20260621T181146Z` |
 | 4 | **7–5–4** | **56.2%** | **≈ 2044** | **+6.2 pp** vs post-Zobrist T=4 | `benchmark_20260621T184359Z` |
 
-0 illegal, 0 errors. **Decision:** keep Lazy SMP v2 — T=4 **9/16 W-equivalent** (≥ keep threshold); beats post-Zobrist **7–7–2**. **Headline estimate:** **≈2050** perf on this protocol (T=4 blitz row; post-Zobrist T=1 **2089** treated as high-variance spot).
+0 illegal, 0 errors. **Decision:** keep Lazy SMP v2 — T=4 **9/16 W-equivalent** (≥ keep threshold); beats post-Zobrist **7–7–2**.
+
+### 32-game confirm — Lazy SMP v2 (2026-06-22)
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2`, vs SF@2000:
+
+| Threads | Score | % | Perf Elo (approx) | Notes | Artifact |
+|---------|-------|---|-------------------|-------|----------|
+| **4** | **13–12–7** | **51.6%** | **≈ 2011** | **paper-grade T=4 confirm**; ~even vs SF@2000 | `benchmark_20260622T120949Z` |
+| 8 | 11–15–6 | 43.8% | ≈ 1956 | diagnostic; worse than T=4 | `benchmark_20260622T131945Z` |
+
+0 illegal, 0 errors. **Headline:** **≈2010** on this protocol (32g T=4 confirm); 16g T=4 spot **≈ 2044** was high-variance.
+
+## Null-move EP correctness (2026-06-22)
+
+**Change:** `NullUndo` in `board.rs` — null move clears `ep_square` and EP hash XOR; `unnull_move` restores prior EP state. Fixes stale EP rights / wrong Zobrist key in null-move subtrees.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`, 32 games vs SF@2000:
+
+| Score | % | Perf Elo (approx) | vs SMP v2 anchor | Artifact |
+|-------|---|-------------------|------------------|----------|
+| **15–9–8** | **59.4%** | **≈ 2066** | **+7.8 pp** vs 13–12–7 | `benchmark_20260622T144847Z` |
+
+0 illegal, 0 errors. **Decision:** keep — correctness fix; tests + smoke pass.
 
 ## CI run 2026-06-21T17:51:27Z
 

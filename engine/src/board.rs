@@ -8,6 +8,11 @@ use crate::square::{
 };
 use crate::zobrist;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NullUndo {
+    pub ep_square: Option<Square>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Board {
     pub pieces: [Bitboard; 12],
@@ -158,14 +163,26 @@ impl Board {
         self.rep_keys.push(self.hash);
     }
 
-    pub fn null_move(&mut self) {
+    pub fn null_move(&mut self) -> NullUndo {
+        let undo = NullUndo {
+            ep_square: self.ep_square,
+        };
+        if let Some(ep) = self.ep_square {
+            self.hash ^= zobrist::ep_file_key(ep.file());
+            self.ep_square = None;
+        }
         self.stm = self.stm.opposite();
         self.hash ^= zobrist::side_key();
+        undo
     }
 
-    pub fn unnull_move(&mut self) {
+    pub fn unnull_move(&mut self, undo: NullUndo) {
         self.stm = self.stm.opposite();
         self.hash ^= zobrist::side_key();
+        if let Some(ep) = undo.ep_square {
+            self.ep_square = Some(ep);
+            self.hash ^= zobrist::ep_file_key(ep.file());
+        }
     }
 
     pub fn non_pawn_material(&self, color: Color) -> u32 {
@@ -270,6 +287,51 @@ mod tests {
         let undo = board.make_move(promo);
         assert_hash_oracle(&board);
         board.unmake_move(undo);
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn null_move_clears_ep_square() {
+        let board =
+            Board::from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1").unwrap();
+        assert!(board.ep_square.is_some());
+        let mut board = board;
+        let _ = board.null_move();
+        assert!(board.ep_square.is_none());
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn null_unnull_restores_ep_and_hash() {
+        let board =
+            Board::from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1").unwrap();
+        assert_hash_oracle(&board);
+        let stm_before = board.stm;
+        let ep_before = board.ep_square;
+        let hash_before = board.hash;
+        let mut board = board;
+        let undo = board.null_move();
+        assert_hash_oracle(&board);
+        board.unnull_move(undo);
+        assert_eq!(board.stm, stm_before);
+        assert_eq!(board.ep_square, ep_before);
+        assert_eq!(board.hash, hash_before);
+        assert_hash_oracle(&board);
+    }
+
+    #[test]
+    fn null_unnull_without_ep_restores_hash() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        assert_hash_oracle(&board);
+        assert!(board.ep_square.is_none());
+        let stm_before = board.stm;
+        let hash_before = board.hash;
+        let mut board = board;
+        let undo = board.null_move();
+        assert_hash_oracle(&board);
+        board.unnull_move(undo);
+        assert_eq!(board.stm, stm_before);
+        assert_eq!(board.hash, hash_before);
         assert_hash_oracle(&board);
     }
 

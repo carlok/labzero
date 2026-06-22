@@ -335,7 +335,7 @@ Implemented in v0.4.0 (original code only):
 
 **TC caveat:** All published ladder rows use `TC_MODE=movetime TC_SEC=1 THREADS=1` unless marked otherwise. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo.
 
-**SMP (not anchor):** Lazy SMP v2 (helper start depths 3/4/5), post-Zobrist `3+2 wtime`, 16 games @ SF@2000: **T=1 → 34.4%** (3–8–5, sanity; main unchanged, `benchmark_20260621T181146Z`); **T=4 → 56.2%** (7–5–4, perf ≈ **2044**, `benchmark_20260621T184359Z`). Prior post-Zobrist: T=1 **62.5%**, T=4 **50.0%** (7–7–2). **T=4 now +6.2 pp** vs post-Zobrist baseline; keep. **Headline ≈2050** (T=4 blitz; post-Zobrist T=1 **2089** = noisy 16-game spot).
+**SMP (not anchor):** Lazy SMP v2 (helper start depths 3/4/5), `3+2 wtime` @ SF@2000: **32g T=4 confirm → 51.6%** (13–12–7, `benchmark_20260622T120949Z`); post null-move EP fix **32g T=4 → 59.4%** (15–9–8, perf ≈ **2066**, `benchmark_20260622T144847Z`). **Headline ≈2010** (pre-fix confirm); use **Threads=4**, not 8.
 
 **Blitz confirm (not anchor):** `TC_MODE=wtime 3+2`, **32 games** @ SF@2000 → **10–11–11** (**48.4%**, perf ≈ **1989**, CI ≈ 1860–2115), 0 illegal (`benchmark_20260621T140403Z`). Not the 1+0 headline row (37.5%, ≈1911).
 
