@@ -321,12 +321,10 @@ fn negamax(
     let key = board.hash;
     let mut tt_move = None;
     if let Some((tt_score, tt_depth, flag, bm, complete)) = ctx.state.tt.probe(key, frame.ply) {
-        // Score cutoffs only for fixed-depth search; movetime keeps ordering-only
-        // (complete-node guard alone still regressed SF@1320 in ladder probes).
-        if !ctx.budget.is_timed() {
-            if let Some(score) = tt_cutoff(tt_score, tt_depth, flag, depth, alpha, beta, complete) {
-                return score;
-            }
+        // Re-enabled for timed search post-Zobrist (prior 1+0 regression was pre-real-hash).
+        // Safeguards: complete node, sufficient depth, mate exclusion; partial nodes skip store.
+        if let Some(score) = tt_cutoff(tt_score, tt_depth, flag, depth, alpha, beta, complete) {
+            return score;
         }
         tt_move = bm;
     }

@@ -12,7 +12,7 @@
 | `make_unmake.rs` | Apply/revert moves; incremental hash XOR on make |
 | `fen.rs` | FEN parse/serialize |
 | `perft.rs` | Perft divider |
-| `search.rs` | Negamax, α–β, ID, aspiration, qsearch, null move, LMR, killers/history, TT cutoffs |
+| `search.rs` | Negamax, α–β, ID, aspiration, qsearch, null move, LMR, killers/history, TT cutoffs (timed + fixed-depth) |
 | `eval.rs` | Tapered mg/eg PSTs, bishop pair, pawn structure, rook files, king safety |
 | `tt.rs` | 64-shard transposition table, mate-aware scores (per-shard `Mutex`) |
 | `see.rs` | Static exchange eval for capture ordering |

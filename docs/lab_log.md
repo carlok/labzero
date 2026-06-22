@@ -299,6 +299,18 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** keep — correctness fix; tests + smoke pass.
 
+## Timed TT score cutoffs re-enabled (2026-06-22)
+
+**Change:** `search.rs` — remove `is_timed()` gate around `tt_cutoff`; safeguards unchanged (`complete`, depth, mate exclusion, partial-node no-store).
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`, 32 games vs SF@2000:
+
+| Score | % | Perf Elo (approx) | vs SMP v2 anchor (13–12–7) | Artifact |
+|-------|---|-------------------|------------------------------|----------|
+| **18–9–5** | **64.1%** | **≈ 2100** | **+12.5 pp** | `benchmark_20260622T160120Z` |
+
+0 illegal, 0 errors. **Decision:** keep — **20.5/32** W-equivalent (≥ 16/32 threshold).
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

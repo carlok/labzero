@@ -319,7 +319,7 @@ Implemented in v0.4.0 (original code only):
 | Sprint | Items |
 |--------|-------|
 | D1a | Tactical EPD + fixed-depth regression tests |
-| D1b | TT `complete` flag; depth-only score cutoffs (movetime ordering-only) |
+| D1b | TT `complete` flag; score cutoffs re-enabled for timed search (post-Zobrist) |
 | D1c | LMR / aspiration single-knob tune |
 | D2 | wtime spot benchmark, stop/`ucinewgame` hardening, UCI matrix |
 | D3 | Eval weight tune (existing terms) |
@@ -335,7 +335,7 @@ Implemented in v0.4.0 (original code only):
 
 **TC caveat:** All published ladder rows use `TC_MODE=movetime TC_SEC=1 THREADS=1` unless marked otherwise. Performance Elo is project-relative vs Stockfish `UCI_LimitStrength`; not Lichess/CCRL/FIDE Elo.
 
-**SMP (not anchor):** Lazy SMP v2 (helper start depths 3/4/5), `3+2 wtime` @ SF@2000: **32g T=4 confirm → 51.6%** (13–12–7, `benchmark_20260622T120949Z`); post null-move EP fix **32g T=4 → 59.4%** (15–9–8, perf ≈ **2066**, `benchmark_20260622T144847Z`). **Headline ≈2010** (pre-fix confirm); use **Threads=4**, not 8.
+**SMP (not anchor):** Lazy SMP v2 + null-move EP fix + timed TT cutoffs, `3+2 wtime` @ SF@2000 **32g T=4 → 64.1%** (18–9–5, perf ≈ **2100**, `benchmark_20260622T160120Z`). Prior SMP v2 anchor **51.6%** (13–12–7). Use **Threads=4**, not 8.
 
 **Blitz confirm (not anchor):** `TC_MODE=wtime 3+2`, **32 games** @ SF@2000 → **10–11–11** (**48.4%**, perf ≈ **1989**, CI ≈ 1860–2115), 0 illegal (`benchmark_20260621T140403Z`). Not the 1+0 headline row (37.5%, ≈1911).
 
