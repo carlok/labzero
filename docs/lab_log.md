@@ -311,6 +311,17 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** keep — **20.5/32** W-equivalent (≥ 16/32 threshold).
 
+## Headline validation — SF@2100 direct (2026-06-22)
+
+**Protocol:** `TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`, vs limited Stockfish:
+
+| SF_ELO | Games | Score | % | Perf Elo (approx) | Decision | Artifact |
+|--------|-------|-------|---|-------------------|----------|----------|
+| **2100** | 32 | **19–11–2** | **62.5%** | **≈ 2189** | **Keep headline ≈2100** (>60%) | `benchmark_20260622T172332Z` |
+| 2200 | 16 | 4–8–4 | 37.5% | ≈ 2111 | probe (below 50% vs SF@2200) | `benchmark_20260622T181751Z` |
+
+0 illegal, 0 errors on both runs.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

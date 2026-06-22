@@ -136,6 +136,8 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=4` (Lazy SMP v2) | 2000 | **13–12–7** | **51.6%** | `benchmark_20260622T120949Z` | **32-game confirm**; perf **≈ 2011**; 0 illegal |
 | `3+2 wtime THREADS=4` (+ null-move EP fix) | 2000 | **15–9–8** | **59.4%** | `benchmark_20260622T144847Z` | 32-game; perf **≈ 2066**; correctness fix |
 | `3+2 wtime THREADS=4` (+ timed TT cutoffs) | 2000 | **18–9–5** | **64.1%** | `benchmark_20260622T160120Z` | 32-game; perf **≈ 2100**; **keep** |
+| `3+2 wtime THREADS=4` | **2100** | **19–11–2** | **62.5%** | `benchmark_20260622T172332Z` | **32-game headline validation**; perf **≈ 2189** |
+| `3+2 wtime THREADS=4` | **2200** | **4–8–4** | **37.5%** | `benchmark_20260622T181751Z` | 16-game probe; perf **≈ 2111** |
 | `3+2 wtime THREADS=8` (Lazy SMP v2) | 2000 | **11–15–6** | **43.8%** | `benchmark_20260622T131945Z` | 32-game diagnostic; perf **≈ 1956**; no gain vs T=4 |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
@@ -144,6 +146,8 @@ SF_ELO=2000 GAMES=16 TC_SEC=10 TC_MODE=movetime THREADS=1 ./scripts/host-benchma
 SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=1 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=32 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
+SF_ELO=2100 GAMES=32 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
+SF_ELO=2200 GAMES=16 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4 ./scripts/host-benchmark.sh
 SF_ELO=2000 GAMES=32 TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=8 ./scripts/host-benchmark.sh
 ```
 
