@@ -4,7 +4,7 @@
 
 # labzero
 
-≈2050 on limited-Stockfish benchmarks — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md).
+≈2100 on limited-Stockfish benchmarks — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md).
 
 **[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
 
