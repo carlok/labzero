@@ -1,6 +1,6 @@
 [package]
 name = "labzero"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 description = "Original weak UCI chess engine for labzero research"
 license = "MIT"

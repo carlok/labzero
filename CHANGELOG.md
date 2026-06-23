@@ -1,11 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.5.4 — 2026-06-23
 
 - **SEE:** fix `see_capture_value` sign semantics for capture move ordering (undefended wins positive; defended losses negative); direct unit tests in `engine/src/see.rs`
 - **Search:** bounded history gravity + quiet malus on beta cutoffs (`HISTORY_MAX`, capped `history_bonus`, penalize earlier quiet non-cutoffs)
-- **Measurement:** 3+2 blitz **T=4** vs SF@2000 **20–6–6 (71.9%, 23/32 W-equiv)**; SF@2200 **16g 7–7–2**, **32g 12–7–13 (57.8%, 18.5/32 W-equiv)**; 0 illegal/errors
-- **Note:** qsearch SEE pruning closed (two rollbacks); history ordering tune kept
+- **Measurement:** 3+2 blitz **T=4** vs SF@2000 **20–6–6 (71.9%, 23/32 W-equiv)**; SF@2200 **16g 7–7–2**, **32g 12–7–13 (57.8%, perf ≈ 2257)**; 0 illegal/errors
+- **Headline:** README/ladder **≈2200** on limited-Stockfish benchmarks (was ≈2100)
+- **Note:** qsearch SEE pruning attempted twice and rolled back; not included in this release
+- **Docs:** ladder/lab_log sync; benchmark artifacts through `benchmark_20260623T104424Z`
 
 ## 0.5.3 — 2026-06-22
 

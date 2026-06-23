@@ -368,7 +368,7 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 | 2200 | 16 | **7–7–2** | **50.0%** | **≈ 2200** | **8/16** (probe) | `benchmark_20260623T100753Z` |
 | 2200 | 32 | **12–7–13** | **57.8%** | **≈ 2257** | **18.5/32** (strong keep) | `benchmark_20260623T104424Z` |
 
-0 illegal, 0 errors. **Decision:** keep — SF@2000 **+2.5 W-equiv** vs SEE-fix anchor; SF@2200 32g **18.5/32** (≥ 17/32 strong tier). README headline stays **≈2100**.
+0 illegal, 0 errors. **Decision:** keep — SF@2000 **+2.5 W-equiv** vs SEE-fix anchor; SF@2200 32g **18.5/32** (≥ 17/32 strong tier). **Headline revised to ≈2200** (README, ladder) from SF@2200 32g perf **≈ 2257**.
 
 ## CI run 2026-06-21T17:51:27Z
 

@@ -4,7 +4,7 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-**Headline (v0.5.3):** **≈2100** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** with qsearch-in-check + timed TT cutoffs (perf **≈ 2100**, `benchmark_20260622T185217Z`); direct SF@2100 **62.5%** (`benchmark_20260622T172332Z`); 1+0 anchor **≈ 1911**. **T=8** diagnostic **43.8%**. Not Lichess/CCRL/FIDE Elo.
+**Headline:** **≈2200** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** with history gravity + quiet malus (**57.8%** vs SF@2200, perf **≈ 2257**, `benchmark_20260623T104424Z`); SF@2000 **71.9%** (`benchmark_20260623T090318Z`); 1+0 anchor **≈ 1911**. Prior v0.5.3 row **≈2100** (SF@2100 **62.5%**, `benchmark_20260622T172332Z`). Not Lichess/CCRL/FIDE Elo.
 
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 
