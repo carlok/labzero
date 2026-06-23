@@ -334,6 +334,22 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** keep.
 
+## SEE capture-ordering sign fix (2026-06-23)
+
+**Change:** `engine/src/see.rs` — `see_capture_value` returns positive for materially favorable captures and negative for losing ones (early return when no recapture; invert defender-stop path). Move-ordering callers unchanged. **No qsearch pruning** in this patch.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | Perf Elo (approx) | vs anchor | Artifact |
+|--------|-------|-------|---|-------------------|-----------|----------|
+| 2000 | 32 | **18–9–5** | **64.1%** | **≈ 2100** | **20.5/32** W-equiv (keep) | `benchmark_20260623T044106Z` |
+| 2200 | 16 | **5–3–8** | **56.2%** | **≈ 2245** | probe (≥ 7.5/16) | `benchmark_20260623T055140Z` |
+| 2200 | 32 | **15–14–3** | **51.6%** | **≈ 2211** | ~even vs SF@2200 | `benchmark_20260623T062210Z` |
+
+0 illegal, 0 errors. **Decision:** keep — SF@2000 gate passed; SF@2200 improved vs pre-fix probe (4–8–4). README headline stays **≈2100**.
+
+**Deferred:** qsearch SEE pruning — prior attempt regressed to **5–22–5** (`benchmark_20260622T205652Z`, rolled back) because pre-fix SEE sign was inverted.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

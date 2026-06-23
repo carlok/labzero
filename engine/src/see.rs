@@ -33,6 +33,10 @@ pub fn see_capture_value(board: &Board, mv: Move) -> i32 {
     let mut attackers = attackers_to(board, target, occupied);
     let mut stm = side.opposite();
 
+    if attackers == 0 {
+        return balance;
+    }
+
     while attackers != 0 {
         let piece = least_valuable_attacker(board, target, attackers, stm, occupied);
         let Some((sq, _kind, value)) = piece else {
@@ -40,7 +44,7 @@ pub fn see_capture_value(board: &Board, mv: Move) -> i32 {
         };
         balance = value - balance;
         if balance >= 0 {
-            return balance;
+            return -balance;
         }
         occupied &= !bb(sq);
         attackers = attackers_to(board, target, occupied);
@@ -117,4 +121,45 @@ fn least_valuable_attacker(
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::movegen::generate_legal_moves;
+    use crate::square::Square;
+
+    fn capture_to(board: &Board, to: Square) -> Move {
+        generate_legal_moves(board)
+            .into_iter()
+            .find(|m| m.kind == MoveKind::Capture && m.to == to)
+            .unwrap_or_else(|| panic!("no capture to {:?}", to))
+    }
+
+    #[test]
+    fn see_pawn_takes_undefended_queen_positive() {
+        let board = Board::from_fen("8/8/8/3q4/4P3/8/8/8 w - - 0 1").unwrap();
+        let mv = capture_to(&board, Square::new(3, 4));
+        let see = see_capture_value(&board, mv);
+        assert!(see > 500, "see={see}");
+    }
+
+    #[test]
+    fn see_queen_sac_on_defended_pawn_negative() {
+        let board = Board::from_fen("r3k3/p7/8/8/Q7/8/8/4K3 w - - 0 1").unwrap();
+        let mv = capture_to(&board, Square::new(0, 6));
+        let see = see_capture_value(&board, mv);
+        assert!(see < -100, "see={see}");
+    }
+
+    #[test]
+    fn see_equal_pawn_capture_near_neutral() {
+        let board = Board::from_fen("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1").unwrap();
+        let mv = generate_legal_moves(&board)
+            .into_iter()
+            .find(|m| m.kind == MoveKind::Capture)
+            .expect("pawn capture");
+        let see = see_capture_value(&board, mv);
+        assert!(see.abs() <= 50, "see={see}");
+    }
 }

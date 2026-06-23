@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **SEE:** fix `see_capture_value` sign semantics for capture move ordering (undefended wins positive; defended losses negative); direct unit tests in `engine/src/see.rs`
+- **Measurement:** 3+2 blitz **T=4** vs SF@2000 **18–9–5 (64.1%, 20.5/32 W-equiv)** — matches v0.5.3 anchor; SF@2200 **16g 5–3–8 (56.2%)**, **32g 15–14–3 (51.6%)**; 0 illegal/errors
+- **Note:** qsearch SEE pruning deferred (failed probe `benchmark_20260622T205652Z` rolled back — inverted SEE sign)
+
 ## 0.5.3 — 2026-06-22
 
 - **Search:** null-move EP/hash fix (`NullUndo`); timed TT score cutoffs re-enabled post-Zobrist; **qsearch skips stand-pat in check** (full legal evasions)
