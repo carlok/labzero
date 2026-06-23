@@ -27,6 +27,12 @@ fi
 # Podman CI sets CARGO_TARGET_DIR=.cargo-target (Linux). Host GUI builds must use target/.
 unset CARGO_TARGET_DIR
 
+echo "==> cargo fmt"
+cargo fmt --manifest-path engine/Cargo.toml
+
+echo "==> cargo clippy"
+cargo clippy --manifest-path engine/Cargo.toml -- -D warnings
+
 echo "==> cargo build --release (host native)"
 cargo build --release --manifest-path engine/Cargo.toml
 

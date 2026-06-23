@@ -434,8 +434,7 @@ fn negamax(
                 let ti = mv.to.index() as usize;
                 let bonus = history_bonus(depth);
                 update_history(&mut ctx.state.history[side][fi][ti], bonus);
-                for i in 0..move_idx {
-                    let prior = sorted[i];
+                for &prior in sorted.iter().take(move_idx) {
                     if !is_noisy(prior) {
                         let pfi = prior.from.index() as usize;
                         let pti = prior.to.index() as usize;
