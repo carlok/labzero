@@ -22,11 +22,15 @@ Each iteration should be small enough to judge on its own. A change is only wort
 
 LabZero already has a working Rust UCI engine with legal move generation, FEN support, make/unmake, repetition and fifty-move draw handling, and a verification harness.
 
-The current search already includes iterative deepening, alpha-beta, quiescence search, transposition-table cutoffs, aspiration windows, PV/TT move ordering, null move pruning, late move reduction, killer/history heuristics, SEE-based capture ordering, check extensions, and Lazy SMP with a shared transposition table.
+The current search already includes iterative deepening, alpha-beta, quiescence search, transposition-table cutoffs, aspiration windows, PV/TT move ordering, null move pruning, late move reduction, killer/history heuristics (including bounded history gravity and quiet malus on beta cutoffs), SEE-based capture ordering, check extensions, and Lazy SMP with a shared transposition table.
 
 The current evaluation already includes material, tapered piece-square tables, bishop pair, pawn-structure terms, rook file bonuses, and king-safety terms. The current UCI path supports `Hash`, `Threads`, `OwnBook`, `go depth`, `go movetime`, and clock-style `wtime/btime/winc/binc` input.
 
-The recorded beta ladder suggests roughly 1800-1900 performance on the constrained Stockfish limited-Elo protocol. The gamma ladder should be treated as pending until fresh rows are recorded and documented.
+**Package v0.5.4** (main @ `a35594f`, post-tag clippy fix). Headline strength **≈2200** on limited-Stockfish 3+2 blitz (T=4). Kept measurement: SF@2000 **20–6–6** (23/32 W-equiv); SF@2200 **12–7–13** (18.5/32); **0 illegal/errors**. Artifacts through `benchmark_20260623T104424Z`.
+
+**Next step (robustness, before strength tuning):** async UCI stop — `go infinite` and long searches must answer `stop` and `isready` promptly; covered by `verifier/python/uci_async_stop_tester.py`.
+
+**Next strength probe (after async stop):** SF@2300, `GAMES=16`, `TC_MODE=wtime`, `TC_SEC=3`, `TC_INC=2`, `THREADS=4`.
 
 ## Phase 1: Measurement Before Tuning
 

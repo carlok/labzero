@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **UCI:** make `go infinite` and long searches responsive to `stop` by running search in one worker while the main loop continues reading commands
+
 ## 0.5.4 — 2026-06-23
 
 - **SEE:** fix `see_capture_value` sign semantics for capture move ordering (undefended wins positive; defended losses negative); direct unit tests in `engine/src/see.rs`
