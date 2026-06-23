@@ -45,8 +45,8 @@ Search emits `info depth score cp nodes nps time` after each completed iterative
 | depth | `go depth 8` | fixed depth, no clock stop |
 | wtime/btime | `go wtime 30000 btime 30000 winc 2000 binc 2000` | allocates from clock |
 | wtime + inc | `go wtime 10000 btime 10000 winc 500 binc 500` | increment bonus applied |
-| infinite | `go infinite` | runs until `stop` |
-| stop | `stop` during search | `bestmove` within ~100ms |
+| infinite | `go infinite` | runs until `stop`; covered by raw async UCI tester |
+| stop | `stop` during search | `bestmove` within ~1s in raw async tester |
 | ucinewgame | after `stop` | clears TT, resets stop flag |
 | Threads>1 | `setoption name Threads value 4` | Lazy SMP, shared TT |
 

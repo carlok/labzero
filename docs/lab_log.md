@@ -370,6 +370,20 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** keep — SF@2000 **+2.5 W-equiv** vs SEE-fix anchor; SF@2200 32g **18.5/32** (≥ 17/32 strong tier). **Headline revised to ≈2200** (README, ladder) from SF@2200 32g perf **≈ 2257**.
 
+## Eval v2: passed pawns + mobility (2026-06-23)
+
+**Change:** `engine/src/eval.rs` — original passed-pawn bonuses by relative rank (MG/EG tables), protected-passer bonus, and pseudo-attack mobility for knights/bishops/rooks/queens; phase-tapered. Four unit tests in `eval.rs`.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | W-equiv | Artifact |
+|--------|-------|-------|---|---------|----------|
+| 2300 | 16 | **8–4–4** | **62.5%** | **10/16** (probe) | `benchmark_20260623T131324Z` |
+| 2200 | 16 | **12–1–3** | **84.4%** | **13.5/16** (keep) | `benchmark_20260623T134940Z` |
+| 2300 | 32 | **19–5–8** | **71.9%** | **23/32** (headline) | `benchmark_20260623T150655Z` |
+
+0 illegal, 0 errors. **Decision:** keep — SF@2200 keep gate passed (≥ 8/16); SF@2300 32g **23/32** (≥ 16/32 headline gate). **Headline revised to ≈2300** (README, ladder).
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

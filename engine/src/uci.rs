@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
+use std::thread::{self, JoinHandle};
 
 use rand::seq::SliceRandom;
 
@@ -43,52 +44,108 @@ fn restore_search_state(state: SearchState) {
     *SEARCH_STATE.lock().expect("search state lock") = Some(state);
 }
 
+type SearchWorker = JoinHandle<()>;
+
+fn write_uci_line(out_lock: &Arc<Mutex<()>>, line: &str) {
+    if let Ok(_guard) = out_lock.lock() {
+        let stdout = io::stdout();
+        let mut out = stdout.lock();
+        let _ = writeln!(out, "{line}");
+        let _ = out.flush();
+    }
+}
+
+fn write_uci_bytes(out_lock: &Arc<Mutex<()>>, bytes: &[u8]) {
+    if let Ok(_guard) = out_lock.lock() {
+        let stdout = io::stdout();
+        let mut out = stdout.lock();
+        let _ = out.write_all(bytes);
+        let _ = out.flush();
+    }
+}
+
+fn stop_and_join_active_search(active: &mut Option<SearchWorker>) {
+    if let Some(handle) = active.take() {
+        stop_flag().store(true, Ordering::Relaxed);
+        let _ = handle.join();
+        stop_flag().store(false, Ordering::Relaxed);
+    }
+}
+
+fn spawn_go_worker(board: Board, tc: TimeControl, out_lock: Arc<Mutex<()>>) -> SearchWorker {
+    stop_flag().store(false, Ordering::Relaxed);
+    thread::spawn(move || {
+        let mut buf = Vec::new();
+        run_go_and_reply(&board, &tc, &mut buf);
+        write_uci_bytes(&out_lock, &buf);
+    })
+}
+
 pub fn run_uci_loop() {
     let mut board = Board::from_fen(STARTPOS_FEN).expect("startpos");
     let stdin = io::stdin();
-    let stdout = io::stdout();
-    let mut out = stdout.lock();
+    let out_lock = Arc::new(Mutex::new(()));
+    let mut active_search: Option<SearchWorker> = None;
 
     for line in stdin.lock().lines().map_while(Result::ok) {
         let trimmed = line.trim();
         if trimmed.is_empty() {
             continue;
         }
+
         if trimmed == "uci" {
-            let _ = writeln!(out, "id name labzero");
-            let _ = writeln!(out, "id author labzero");
-            let _ = writeln!(out, "id version {}", env!("CARGO_PKG_VERSION"));
-            let _ = writeln!(out, "option name Hash type spin default 64 min 1 max 1024");
-            let _ = writeln!(out, "option name Threads type spin default 1 min 1 max 8");
-            let _ = writeln!(out, "option name OwnBook type check default false");
-            let _ = writeln!(out, "uciok");
-            let _ = out.flush();
+            write_uci_line(&out_lock, "id name labzero");
+            write_uci_line(&out_lock, "id author labzero");
+            write_uci_line(
+                &out_lock,
+                &format!("id version {}", env!("CARGO_PKG_VERSION")),
+            );
+            write_uci_line(
+                &out_lock,
+                "option name Hash type spin default 64 min 1 max 1024",
+            );
+            write_uci_line(
+                &out_lock,
+                "option name Threads type spin default 1 min 1 max 8",
+            );
+            write_uci_line(&out_lock, "option name OwnBook type check default false");
+            write_uci_line(&out_lock, "uciok");
         } else if trimmed == "isready" {
-            let _ = writeln!(out, "readyok");
-            let _ = out.flush();
+            write_uci_line(&out_lock, "readyok");
         } else if trimmed == "ucinewgame" {
-            stop_flag().store(false, Ordering::Relaxed);
+            stop_and_join_active_search(&mut active_search);
             board = Board::from_fen(STARTPOS_FEN).expect("startpos");
             board.rep_keys.clear();
             let mut state = search_state();
             state.clear();
             restore_search_state(state);
+            stop_flag().store(false, Ordering::Relaxed);
         } else if trimmed == "stop" {
             stop_flag().store(true, Ordering::Relaxed);
         } else if trimmed == "quit" {
+            stop_and_join_active_search(&mut active_search);
             break;
         } else if let Some(rest) = trimmed.strip_prefix("setoption ") {
+            stop_and_join_active_search(&mut active_search);
             apply_setoption(rest);
         } else if let Some(rest) = trimmed.strip_prefix("position ") {
+            stop_and_join_active_search(&mut active_search);
             apply_position(&mut board, rest);
         } else if let Some(rest) = trimmed.strip_prefix("go ") {
+            stop_and_join_active_search(&mut active_search);
             let tc = parse_go(rest);
-            run_go_and_reply(&board, &tc, &mut out);
+            active_search = Some(spawn_go_worker(board.clone(), tc, Arc::clone(&out_lock)));
         } else if trimmed == "go" {
-            let tc = TimeControl::default();
-            run_go_and_reply(&board, &tc, &mut out);
+            stop_and_join_active_search(&mut active_search);
+            active_search = Some(spawn_go_worker(
+                board.clone(),
+                TimeControl::default(),
+                Arc::clone(&out_lock),
+            ));
         }
     }
+
+    stop_and_join_active_search(&mut active_search);
 }
 
 fn apply_setoption(rest: &str) {
@@ -209,8 +266,6 @@ fn parse_go(rest: &str) -> TimeControl {
 }
 
 fn run_go_and_reply(board: &Board, tc: &TimeControl, out: &mut impl Write) {
-    stop_flag().store(false, Ordering::Relaxed);
-
     let moves = generate_legal_moves(board);
     if moves.is_empty() {
         let _ = writeln!(out, "bestmove 0000");
@@ -286,6 +341,7 @@ impl InfoWriter {
 
 #[allow(dead_code)]
 fn run_go(board: &Board, tc: &TimeControl) -> SearchResult {
+    stop_flag().store(false, Ordering::Relaxed);
     let mut buf = Vec::new();
     run_go_and_reply(board, tc, &mut buf);
     SearchResult {

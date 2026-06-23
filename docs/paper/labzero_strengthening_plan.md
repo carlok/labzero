@@ -22,11 +22,13 @@ Each iteration should be small enough to judge on its own. A change is only wort
 
 LabZero already has a working Rust UCI engine with legal move generation, FEN support, make/unmake, repetition and fifty-move draw handling, and a verification harness.
 
-The current search already includes iterative deepening, alpha-beta, quiescence search, transposition-table cutoffs, aspiration windows, PV/TT move ordering, null move pruning, late move reduction, killer/history heuristics, SEE-based capture ordering, check extensions, and Lazy SMP with a shared transposition table.
+The current search already includes iterative deepening, alpha-beta, quiescence search, transposition-table cutoffs, aspiration windows, PV/TT move ordering, null move pruning, late move reduction, killer/history heuristics (including bounded history gravity and quiet malus on beta cutoffs), SEE-based capture ordering, check extensions, and Lazy SMP with a shared transposition table.
 
-The current evaluation already includes material, tapered piece-square tables, bishop pair, pawn-structure terms, rook file bonuses, and king-safety terms. The current UCI path supports `Hash`, `Threads`, `OwnBook`, `go depth`, `go movetime`, and clock-style `wtime/btime/winc/binc` input.
+The current evaluation already includes material, tapered piece-square tables, bishop pair, pawn-structure terms, rook file bonuses, king-safety terms, **passed-pawn bonuses**, and **piece mobility**. The current UCI path supports `Hash`, `Threads`, `OwnBook`, `go depth`, `go movetime`, and clock-style `wtime/btime/winc/binc` input.
 
-The recorded beta ladder suggests roughly 1800-1900 performance on the constrained Stockfish limited-Elo protocol. The gamma ladder should be treated as pending until fresh rows are recorded and documented.
+**Package v0.5.4+** (async UCI stop on `codex/uci-async-stop`; eval v2 on `codex/eval-v2-passed-mobility`). Headline strength **≈2300** on limited-Stockfish 3+2 blitz (T=4). Kept measurement: SF@2200 **12–1–3** (13.5/16 keep); SF@2300 **19–5–8** (23/32 headline); **0 illegal/errors**. Artifacts through `benchmark_20260623T150655Z`.
+
+**Next step:** tactical regression from benchmark PGNs or measurement harness tuning — do not stack more eval terms without a fresh keep gate.
 
 ## Phase 1: Measurement Before Tuning
 

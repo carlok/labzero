@@ -34,7 +34,7 @@ Automated substitute (2026-06-20): 200-game fuzz + gauntlet smoke (8 games) + bo
 - [x] `isready` → `readyok`
 - [x] `position fen ...` accepted
 - [x] `go movetime 1000` returns legal `bestmove`
-- [x] `stop` during long think does not hang GUI (gauntlet TC suites)
+- [x] `stop` during long think does not hang GUI (raw async UCI tester PASS)
 - [x] `quit` exits cleanly
 
 ## Sign-off

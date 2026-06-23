@@ -2,7 +2,10 @@ use crate::board::Board;
 use crate::color::Color;
 use crate::mov::Move;
 use crate::piece::PieceKind;
-use crate::square::{bit_count, Square};
+use crate::square::{
+    bb, bit_count, knight_attack_bb, pawn_attack_bb, piece_index, pop_lsb, sliding_attacks, Square,
+    BISHOP_DIRS, FILES, RANKS, ROOK_DIRS,
+};
 
 const MATERIAL: [i32; 6] = [100, 320, 330, 500, 900, 0];
 
@@ -124,6 +127,135 @@ fn piece_pst(kind: PieceKind, sq: Square, phase: i32) -> i32 {
     (phase * mg + (256 - phase) * eg) / 256
 }
 
+fn taper_mg_eg(mg: i32, eg: i32, phase: i32) -> i32 {
+    (phase * mg + (256 - phase) * eg) / 256
+}
+
+fn is_passed_pawn(board: &Board, color: Color, sq: Square) -> bool {
+    let enemy = color.opposite();
+    let enemy_pawns = board.pieces[piece_index(enemy, PieceKind::Pawn)];
+    let file = sq.file();
+    let rank = sq.rank();
+
+    let mut file_mask = 0u64;
+    for df in -1i8..=1 {
+        let f = file as i8 + df;
+        if (0..8).contains(&f) {
+            file_mask |= FILES[f as usize];
+        }
+    }
+
+    let enemy_on_files = enemy_pawns & file_mask;
+    let ahead = if color == Color::White {
+        let mut mask = 0u64;
+        for r in (rank + 1)..8 {
+            mask |= RANKS[r as usize];
+        }
+        mask
+    } else {
+        let mut mask = 0u64;
+        for r in 0..rank {
+            mask |= RANKS[r as usize];
+        }
+        mask
+    };
+    enemy_on_files & ahead == 0
+}
+
+fn is_protected_passer(board: &Board, color: Color, sq: Square) -> bool {
+    let pawns = board.pieces[piece_index(color, PieceKind::Pawn)];
+    let mut p = pawns;
+    while let Some(def_sq) = pop_lsb(&mut p) {
+        if def_sq == sq {
+            continue;
+        }
+        if pawn_attack_bb(def_sq, color) & bb(sq) != 0 {
+            return true;
+        }
+    }
+    false
+}
+
+fn passed_pawns(board: &Board, phase: i32) -> i32 {
+    const MG_RANK: [i32; 8] = [0, 0, 8, 16, 28, 45, 75, 0];
+    const EG_RANK: [i32; 8] = [0, 0, 12, 28, 50, 85, 140, 0];
+    const MG_PROTECTED: i32 = 10;
+    const EG_PROTECTED: i32 = 18;
+
+    let mut s = 0;
+    for color in [Color::White, Color::Black] {
+        let sign = if color == Color::White { 1 } else { -1 };
+        let pawns = board.pieces[piece_index(color, PieceKind::Pawn)];
+        let mut p = pawns;
+        while let Some(sq) = pop_lsb(&mut p) {
+            if !is_passed_pawn(board, color, sq) {
+                continue;
+            }
+            let rel_rank = if color == Color::White {
+                sq.rank() as usize
+            } else {
+                (7 - sq.rank()) as usize
+            };
+            let bonus = taper_mg_eg(MG_RANK[rel_rank], EG_RANK[rel_rank], phase);
+            s += sign * bonus;
+            if is_protected_passer(board, color, sq) {
+                s += sign * taper_mg_eg(MG_PROTECTED, EG_PROTECTED, phase);
+            }
+        }
+    }
+    s
+}
+
+fn mobility(board: &Board, phase: i32) -> i32 {
+    const KNIGHT_MG: i32 = 4;
+    const KNIGHT_EG: i32 = 3;
+    const BISHOP_MG: i32 = 4;
+    const BISHOP_EG: i32 = 4;
+    const ROOK_MG: i32 = 2;
+    const ROOK_EG: i32 = 3;
+    const QUEEN_MG: i32 = 1;
+    const QUEEN_EG: i32 = 1;
+
+    let occ = board.occupied();
+    let mut s = 0;
+    for color in [Color::White, Color::Black] {
+        let sign = if color == Color::White { 1 } else { -1 };
+        let own = board.color_bb(color);
+
+        let mut knights = board.pieces[piece_index(color, PieceKind::Knight)];
+        while let Some(sq) = pop_lsb(&mut knights) {
+            let attacks = bit_count(knight_attack_bb(sq) & !own);
+            let w = taper_mg_eg(KNIGHT_MG, KNIGHT_EG, phase);
+            s += sign * attacks as i32 * w;
+        }
+
+        let mut bishops = board.pieces[piece_index(color, PieceKind::Bishop)];
+        while let Some(sq) = pop_lsb(&mut bishops) {
+            let attacks = bit_count(sliding_attacks(sq, occ, &BISHOP_DIRS) & !own);
+            let w = taper_mg_eg(BISHOP_MG, BISHOP_EG, phase);
+            s += sign * attacks as i32 * w;
+        }
+
+        let mut rooks = board.pieces[piece_index(color, PieceKind::Rook)];
+        while let Some(sq) = pop_lsb(&mut rooks) {
+            let attacks = bit_count(sliding_attacks(sq, occ, &ROOK_DIRS) & !own);
+            let w = taper_mg_eg(ROOK_MG, ROOK_EG, phase);
+            s += sign * attacks as i32 * w;
+        }
+
+        let mut queens = board.pieces[piece_index(color, PieceKind::Queen)];
+        while let Some(sq) = pop_lsb(&mut queens) {
+            let attacks = bit_count(
+                (sliding_attacks(sq, occ, &BISHOP_DIRS) | sliding_attacks(sq, occ, &ROOK_DIRS))
+                    & !own,
+            );
+            let w = taper_mg_eg(QUEEN_MG, QUEEN_EG, phase);
+            s += sign * attacks as i32 * w;
+        }
+    }
+    s
+}
+
 pub fn evaluate(board: &Board) -> i32 {
     let phase = game_phase(board);
     let mut score = 0i32;
@@ -144,6 +276,8 @@ pub fn evaluate(board: &Board) -> i32 {
     score += bishop_pair(board);
     score += rook_files(board);
     score += pawn_structure(board);
+    score += passed_pawns(board, phase);
+    score += mobility(board, phase);
     score += king_safety(board);
 
     if board.stm == Color::White {
@@ -288,5 +422,45 @@ mod tests {
         let kpk = Board::from_fen("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1").unwrap();
         let kpk_score = evaluate(&kpk);
         assert!(kpk_score > 80, "kpk score was {kpk_score}");
+    }
+
+    #[test]
+    fn advanced_passed_pawn_beats_second_rank() {
+        let advanced = Board::from_fen("7k/8/4P3/8/8/8/8/4K3 w - - 0 1").unwrap();
+        let second_rank = Board::from_fen("7k/8/8/8/8/4P3/8/4K3 w - - 0 1").unwrap();
+        assert!(
+            evaluate(&advanced) > evaluate(&second_rank),
+            "e6 passer should outscore e3 passer"
+        );
+    }
+
+    #[test]
+    fn blocked_pawn_not_passed() {
+        let blocked = Board::from_fen("4k3/8/3p4/4P3/8/8/8/4K3 w - - 0 1").unwrap();
+        let clear = Board::from_fen("4k3/8/8/4P3/8/8/8/4K3 w - - 0 1").unwrap();
+        assert!(
+            evaluate(&clear) > evaluate(&blocked),
+            "unblocked passer should score higher than blocked e5"
+        );
+    }
+
+    #[test]
+    fn protected_passer_beats_unprotected() {
+        let protected = Board::from_fen("7k/8/8/4P3/3P4/8/8/4K3 w - - 0 1").unwrap();
+        let unprotected = Board::from_fen("7k/8/8/4P3/8/8/8/4K3 w - - 0 1").unwrap();
+        assert!(
+            evaluate(&protected) > evaluate(&unprotected),
+            "protected e5 should outscore lone e5"
+        );
+    }
+
+    #[test]
+    fn open_bishop_mobility_beats_blocked() {
+        let open = Board::from_fen("4k3/8/8/8/8/8/6B1/4K3 w - - 0 1").unwrap();
+        let blocked = Board::from_fen("4k3/ppp5/8/8/8/8/8/2B1K3 w - - 0 1").unwrap();
+        assert!(
+            evaluate(&open) > evaluate(&blocked),
+            "open g2 bishop should outscore blocked c1 bishop"
+        );
     }
 }
