@@ -398,6 +398,18 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** SF@2400 32g **≥ 16/32** headline gate → **≈2400** (README, ladder). No SF@2500 32g (2400 32g **17/32** < 18/32 trigger).
 
+## Eval v3: king pressure + hanging threats (2026-06-23)
+
+**Change:** `eval.rs` — king-pressure ring attackers + hanging-piece threat penalties (reverted).
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | W-equiv | Artifact |
+|--------|-------|-------|---|---------|----------|
+| 2300 | 16 | **5–3–8** | **56.2%** | **9/16** (keep) | `benchmark_20260623T191448Z` |
+
+0 illegal, 0 errors. **Rollback** — below **10/16** SF@2300 keep gate. Full revert on `codex/eval-v3-king-pressure`.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS
