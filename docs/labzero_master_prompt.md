@@ -36,11 +36,11 @@ Before changing code:
 
 Current baseline (verify in repo before assuming):
 - Package v0.5.4 on main at a35594f (post-release clippy fix after tag v0.5.4).
-- Headline strength ≈2200 on limited-Stockfish 3+2 blitz benchmarks (T=4).
-- Kept patches: SEE sign fix; bounded history gravity + quiet malus on beta cutoffs.
-- SF@2000 32g: 20–6–6 (23/32 W-equiv); SF@2200 32g: 12–7–13 (18.5/32); 0 illegal/errors.
-- Next robustness fix: async UCI stop (`go infinite` / long searches answer `stop` promptly).
-- Next strength probe after async stop: SF@2300, GAMES=16, TC_MODE=wtime, TC_SEC=3, TC_INC=2, THREADS=4.
+- Async UCI stop landed on codex/uci-async-stop (worker-thread go, raw async tester).
+- Headline strength ≈2300 on limited-Stockfish 3+2 blitz benchmarks (T=4).
+- Kept patches: SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
+- SF@2300 32g: 19–5–8 (23/32 W-equiv); SF@2200 16g keep: 12–1–3; 0 illegal/errors.
+- Next: tactical PGN mining or benchmark harness — not another eval term without keep gate.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;
