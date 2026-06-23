@@ -37,10 +37,10 @@ Before changing code:
 Current baseline (verify in repo before assuming):
 - Package v0.5.4 on main at a35594f (post-release clippy fix after tag v0.5.4).
 - Async UCI stop landed on codex/uci-async-stop (worker-thread go, raw async tester).
-- Headline strength ≈2300 on limited-Stockfish 3+2 blitz benchmarks (T=4).
+- Headline strength ≈2400 on limited-Stockfish 3+2 blitz benchmarks (T=4).
 - Kept patches: SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
-- SF@2300 32g: 19–5–8 (23/32 W-equiv); SF@2200 16g keep: 12–1–3; 0 illegal/errors.
-- Next: tactical PGN mining or benchmark harness — not another eval term without keep gate.
+- SF@2400 32g: 11–9–12 (17/32 W-equiv); SF@2300 32g: 19–5–8 (23/32); 0 illegal/errors.
+- Next: eval v3 king pressure + hanging threats on `codex/eval-v3-king-pressure`.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;

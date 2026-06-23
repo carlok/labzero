@@ -26,9 +26,9 @@ The current search already includes iterative deepening, alpha-beta, quiescence 
 
 The current evaluation already includes material, tapered piece-square tables, bishop pair, pawn-structure terms, rook file bonuses, king-safety terms, **passed-pawn bonuses**, and **piece mobility**. The current UCI path supports `Hash`, `Threads`, `OwnBook`, `go depth`, `go movetime`, and clock-style `wtime/btime/winc/binc` input.
 
-**Package v0.5.4+** (async UCI stop on `codex/uci-async-stop`; eval v2 on `codex/eval-v2-passed-mobility`). Headline strength **≈2300** on limited-Stockfish 3+2 blitz (T=4). Kept measurement: SF@2200 **12–1–3** (13.5/16 keep); SF@2300 **19–5–8** (23/32 headline); **0 illegal/errors**. Artifacts through `benchmark_20260623T150655Z`.
+**Package v0.5.4+** (async UCI stop + eval v2 on `main`). Headline strength **≈2400** on limited-Stockfish 3+2 blitz (T=4). Direct measurement: SF@2400 **11–9–12** (17/32); SF@2300 **19–5–8** (23/32); **0 illegal/errors**. Artifacts through `benchmark_20260623T175115Z`.
 
-**Next step:** tactical regression from benchmark PGNs or measurement harness tuning — do not stack more eval terms without a fresh keep gate.
+**Next step:** eval v3 — original king-pressure and hanging-piece threat terms (`codex/eval-v3-king-pressure`). Keep gate SF@2300 16g **≥ 10/16**; headline gate SF@2400 32g vs direct baseline.
 
 ## Phase 1: Measurement Before Tuning
 

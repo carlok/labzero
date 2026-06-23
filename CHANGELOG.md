@@ -5,7 +5,7 @@
 - **UCI:** make `go infinite` and long searches responsive to `stop` by running search in one worker while the main loop continues reading commands
 - **Eval v2:** original passed-pawn and mobility terms (phase-tapered rank bonuses, protected-passer bonus, pseudo-attack mobility for N/B/R/Q)
 - **Measurement:** 3+2 blitz **T=4** vs SF@2200 **12–1–3 (84.4%, 13.5/16 W-equiv keep)**; SF@2300 **16g 8–4–4**, **32g 19–5–8 (71.9%, 23/32 W-equiv)**; 0 illegal/errors
-- **Headline:** README/ladder **≈2300** on limited-Stockfish benchmarks (was ≈2200)
+- **Headline:** README/ladder **≈2300** on limited-Stockfish benchmarks (was ≈2200); direct SF@2400 **32g 11–9–12 (17/32 W-equiv)** raises headline to **≈2400** (`benchmark_20260623T175115Z`)
 
 ## 0.5.4 — 2026-06-23
 

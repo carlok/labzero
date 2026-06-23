@@ -384,6 +384,20 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** keep — SF@2200 keep gate passed (≥ 8/16); SF@2300 32g **23/32** (≥ 16/32 headline gate). **Headline revised to ≈2300** (README, ladder).
 
+## Direct SF@2400/2500 measurement (2026-06-23)
+
+**Change:** none (measurement-only on eval v2 baseline).
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | W-equiv | Artifact |
+|--------|-------|-------|---|---------|----------|
+| 2400 | 16 | **5–4–7** | **53.1%** | **8.5/16** (probe) | `benchmark_20260623T163900Z` |
+| 2500 | 16 | **3–3–10** | **50.0%** | **8/16** (probe) | `benchmark_20260623T171507Z` |
+| 2400 | 32 | **11–9–12** | **53.1%** | **17/32** (headline) | `benchmark_20260623T175115Z` |
+
+0 illegal, 0 errors. **Decision:** SF@2400 32g **≥ 16/32** headline gate → **≈2400** (README, ladder). No SF@2500 32g (2400 32g **17/32** < 18/32 trigger).
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

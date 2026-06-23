@@ -4,7 +4,7 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-**Headline:** **≈2300** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** with eval v2 passed-pawn + mobility (**71.9%** vs SF@2300, **23/32** W-equiv, `benchmark_20260623T150655Z`); prior **≈2200** row vs SF@2200 **57.8%** (`benchmark_20260623T104424Z`); SF@2000 **71.9%** (`benchmark_20260623T090318Z`); 1+0 anchor **≈ 1911**. Not Lichess/CCRL/FIDE Elo.
+**Headline:** **≈2400** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** direct vs SF@2400 (**53.1%**, **17/32** W-equiv, `benchmark_20260623T175115Z`); prior SF@2300 **71.9%** / **23/32** (`benchmark_20260623T150655Z`); SF@2000 **71.9%** (`benchmark_20260623T090318Z`); 1+0 anchor **≈ 1911**. Not Lichess/CCRL/FIDE Elo.
 
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 
@@ -147,7 +147,10 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=4` (+ history gravity/malus) | **2200** | **12–7–13** | **57.8%** | `benchmark_20260623T104424Z` | 32-game confirm; perf **≈ 2257**; **18.5/32** W-equiv |
 | `3+2 wtime THREADS=4` (+ eval v2 passed/mobility) | **2200** | **12–1–3** | **84.4%** | `benchmark_20260623T134940Z` | 16-game keep gate; **13.5/16** W-equiv |
 | `3+2 wtime THREADS=4` (+ eval v2 passed/mobility) | **2300** | **8–4–4** | **62.5%** | `benchmark_20260623T131324Z` | 16-game probe; **10/16** W-equiv |
-| `3+2 wtime THREADS=4` (+ eval v2 passed/mobility) | **2300** | **19–5–8** | **71.9%** | `benchmark_20260623T150655Z` | **32-game headline**; **23/32** W-equiv; **≈2300** claim |
+| `3+2 wtime THREADS=4` (+ eval v2 passed/mobility) | **2300** | **19–5–8** | **71.9%** | `benchmark_20260623T150655Z` | **32-game**; **23/32** W-equiv |
+| `3+2 wtime THREADS=4` (eval v2, direct bracket) | **2400** | **5–4–7** | **53.1%** | `benchmark_20260623T163900Z` | 16-game probe; **8.5/16** W-equiv |
+| `3+2 wtime THREADS=4` (eval v2, direct bracket) | **2500** | **3–3–10** | **50.0%** | `benchmark_20260623T171507Z` | 16-game probe; **8/16** W-equiv |
+| `3+2 wtime THREADS=4` (eval v2, direct bracket) | **2400** | **11–9–12** | **53.1%** | `benchmark_20260623T175115Z` | **32-game headline**; **17/32** W-equiv; **≈2400** claim |
 | `3+2 wtime THREADS=8` (Lazy SMP v2) | 2000 | **11–15–6** | **43.8%** | `benchmark_20260622T131945Z` | 32-game diagnostic; perf **≈ 1956**; no gain vs T=4 |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 
