@@ -350,6 +350,12 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 **Deferred:** qsearch SEE pruning — prior attempt regressed to **5–22–5** (`benchmark_20260622T205652Z`, rolled back) because pre-fix SEE sign was inverted.
 
+## Qsearch SEE pruning retry (2026-06-23)
+
+**Change (rolled back):** conservative qsearch SEE prune — margin **-250**, skip first qsearch ply (`qs_depth == 0`) and all in-check evasions; promotions/EP always kept.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`, 32 games vs SF@2000: **15–11–6** (56.2%, **18/32** W-equiv). 0 illegal, 0 errors. **Rollback** — below **19/32** gate (anchor **20.5/32**, `benchmark_20260623T044106Z`). Artifact: `benchmark_20260623T073759Z`.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS
