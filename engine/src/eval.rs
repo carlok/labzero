@@ -3,8 +3,8 @@ use crate::color::Color;
 use crate::mov::Move;
 use crate::piece::PieceKind;
 use crate::square::{
-    bb, bit_count, knight_attack_bb, pawn_attack_bb, piece_index, pop_lsb, sliding_attacks, Square,
-    BISHOP_DIRS, FILES, RANKS, ROOK_DIRS,
+    bb, bit_count, king_attack_bb, knight_attack_bb, pawn_attack_bb, piece_index, pop_lsb,
+    sliding_attacks, Square, BISHOP_DIRS, FILES, RANKS, ROOK_DIRS,
 };
 
 const MATERIAL: [i32; 6] = [100, 320, 330, 500, 900, 0];
@@ -256,6 +256,82 @@ fn mobility(board: &Board, phase: i32) -> i32 {
     s
 }
 
+fn piece_attacks(_board: &Board, color: Color, kind: PieceKind, sq: Square, occ: u64) -> u64 {
+    match kind {
+        PieceKind::Pawn => pawn_attack_bb(sq, color),
+        PieceKind::Knight => knight_attack_bb(sq),
+        PieceKind::Bishop => sliding_attacks(sq, occ, &BISHOP_DIRS),
+        PieceKind::Rook => sliding_attacks(sq, occ, &ROOK_DIRS),
+        PieceKind::Queen => {
+            sliding_attacks(sq, occ, &BISHOP_DIRS) | sliding_attacks(sq, occ, &ROOK_DIRS)
+        }
+        PieceKind::King => king_attack_bb(sq),
+    }
+}
+
+fn king_ring(sq: Square) -> u64 {
+    king_attack_bb(sq) | bb(sq)
+}
+
+fn king_pressure(board: &Board, phase: i32) -> i32 {
+    const ATTACKERS: [(PieceKind, i32); 5] = [
+        (PieceKind::Pawn, 1),
+        (PieceKind::Knight, 4),
+        (PieceKind::Bishop, 4),
+        (PieceKind::Rook, 3),
+        (PieceKind::Queen, 2),
+    ];
+    let occ = board.occupied();
+    let scale = taper_mg_eg(6, 2, phase);
+    let mut s = 0;
+    for attacker in [Color::White, Color::Black] {
+        let sign = if attacker == Color::White { 1 } else { -1 };
+        let defender = attacker.opposite();
+        let king_bb = board.pieces[crate::square::piece_index(defender, PieceKind::King)];
+        if king_bb == 0 {
+            continue;
+        }
+        let ring = king_ring(board.king_square(defender));
+        let mut units = 0i32;
+        for (kind, weight) in ATTACKERS {
+            let mut pieces = board.pieces[piece_index(attacker, kind)];
+            while let Some(sq) = pop_lsb(&mut pieces) {
+                if piece_attacks(board, attacker, kind, sq, occ) & ring != 0 {
+                    units += weight;
+                }
+            }
+        }
+        s += sign * units.min(24) * scale;
+    }
+    s
+}
+
+fn hanging_piece_threats(board: &Board, phase: i32) -> i32 {
+    const MG: [i32; 5] = [4, 14, 14, 22, 36];
+    const EG: [i32; 5] = [5, 12, 12, 20, 30];
+    let mut s = 0;
+    for sq in 0..64u8 {
+        let sq = Square(sq);
+        let Some(piece) = board.piece_at(sq) else {
+            continue;
+        };
+        if piece.kind == PieceKind::King {
+            continue;
+        }
+        let owner = piece.color;
+        let enemy = owner.opposite();
+        if board.is_square_attacked(sq, enemy) && !board.is_square_attacked(sq, owner) {
+            let pen = taper_mg_eg(MG[piece.kind.index()], EG[piece.kind.index()], phase);
+            if owner == Color::White {
+                s -= pen;
+            } else {
+                s += pen;
+            }
+        }
+    }
+    s
+}
+
 pub fn evaluate(board: &Board) -> i32 {
     let phase = game_phase(board);
     let mut score = 0i32;
@@ -278,6 +354,8 @@ pub fn evaluate(board: &Board) -> i32 {
     score += pawn_structure(board);
     score += passed_pawns(board, phase);
     score += mobility(board, phase);
+    score += king_pressure(board, phase);
+    score += hanging_piece_threats(board, phase);
     score += king_safety(board);
 
     if board.stm == Color::White {
@@ -461,6 +539,39 @@ mod tests {
         assert!(
             evaluate(&open) > evaluate(&blocked),
             "open g2 bishop should outscore blocked c1 bishop"
+        );
+    }
+
+    #[test]
+    fn king_pressure_near_enemy_king_beats_far() {
+        let near = Board::from_fen("7k/8/8/8/8/8/6Q1/4K3 w - - 0 1").unwrap();
+        let far = Board::from_fen("7k/8/8/8/8/8/8/Q3K3 w - - 0 1").unwrap();
+        assert!(
+            evaluate(&near) > evaluate(&far),
+            "queen near black king should outscore distant queen"
+        );
+    }
+
+    #[test]
+    fn defended_hanging_target_avoids_full_penalty() {
+        let undefended = Board::from_fen("6k1/8/8/8/8/8/7q/4K2R w - - 0 1").unwrap();
+        let defended = Board::from_fen("6k1/8/8/8/8/5n2/7q/4K2R w - - 0 1").unwrap();
+        assert!(
+            evaluate(&undefended) > evaluate(&defended),
+            "defended queen should reduce hanging threat bonus for white"
+        );
+    }
+
+    #[test]
+    fn hanging_threat_symmetry_flips_sign() {
+        let white_attacks = Board::from_fen("6k1/8/8/8/8/8/7r/6K1 w - - 0 1").unwrap();
+        let black_attacks = Board::from_fen("6K1/8/8/8/8/8/7R/6k1 w - - 0 1").unwrap();
+        let attack_score = evaluate(&white_attacks);
+        let defend_score = evaluate(&black_attacks);
+        assert_ne!(attack_score, 0, "hanging threat term should be non-zero");
+        assert_eq!(
+            attack_score, -defend_score,
+            "color-swapped hanging rook threats should negate: attack={attack_score} defend={defend_score}"
         );
     }
 }
