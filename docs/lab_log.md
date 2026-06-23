@@ -356,6 +356,20 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 `TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`, 32 games vs SF@2000: **15–11–6** (56.2%, **18/32** W-equiv). 0 illegal, 0 errors. **Rollback** — below **19/32** gate (anchor **20.5/32**, `benchmark_20260623T044106Z`). Artifact: `benchmark_20260623T073759Z`.
 
+## History gravity + quiet malus (2026-06-23)
+
+**Change:** `search.rs` — bounded history updates (`HISTORY_MAX=16384`, `history_bonus(depth)` capped at 2048, gravity formula); on quiet beta cutoffs, positive gravity on cutoff move and negative gravity on earlier quiet non-cutoffs in the same ordered list. Killers unchanged.
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | Perf Elo (approx) | W-equiv | Artifact |
+|--------|-------|-------|---|-------------------|---------|----------|
+| 2000 | 32 | **20–6–6** | **71.9%** | **≈ 2163** | **23/32** (keep) | `benchmark_20260623T090318Z` |
+| 2200 | 16 | **7–7–2** | **50.0%** | **≈ 2200** | **8/16** (probe) | `benchmark_20260623T100753Z` |
+| 2200 | 32 | **12–7–13** | **57.8%** | **≈ 2257** | **18.5/32** (strong keep) | `benchmark_20260623T104424Z` |
+
+0 illegal, 0 errors. **Decision:** keep — SF@2000 **+2.5 W-equiv** vs SEE-fix anchor; SF@2200 32g **18.5/32** (≥ 17/32 strong tier). README headline stays **≈2100**.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS

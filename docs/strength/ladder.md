@@ -142,6 +142,9 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=4` (+ SEE sign fix) | 2000 | **18–9–5** | **64.1%** | `benchmark_20260623T044106Z` | 32-game; perf **≈ 2100**; matches v0.5.3 anchor |
 | `3+2 wtime THREADS=4` (+ SEE sign fix) | **2200** | **5–3–8** | **56.2%** | `benchmark_20260623T055140Z` | 16-game probe; perf **≈ 2245** |
 | `3+2 wtime THREADS=4` (+ SEE sign fix) | **2200** | **15–14–3** | **51.6%** | `benchmark_20260623T062210Z` | 32-game confirm; perf **≈ 2211** |
+| `3+2 wtime THREADS=4` (+ history gravity/malus) | 2000 | **20–6–6** | **71.9%** | `benchmark_20260623T090318Z` | 32-game; perf **≈ 2163**; **23/32** W-equiv |
+| `3+2 wtime THREADS=4` (+ history gravity/malus) | **2200** | **7–7–2** | **50.0%** | `benchmark_20260623T100753Z` | 16-game probe |
+| `3+2 wtime THREADS=4` (+ history gravity/malus) | **2200** | **12–7–13** | **57.8%** | `benchmark_20260623T104424Z` | 32-game confirm; perf **≈ 2257**; **18.5/32** W-equiv |
 | `3+2 wtime THREADS=8` (Lazy SMP v2) | 2000 | **11–15–6** | **43.8%** | `benchmark_20260622T131945Z` | 32-game diagnostic; perf **≈ 1956**; no gain vs T=4 |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 

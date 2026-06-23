@@ -18,6 +18,16 @@ const NULL_MOVE_R: u32 = 2;
 const LMR_FULL: usize = 4;
 const ASPIRATION_DELTA: i32 = 50;
 const ASPIRATION_MIN_DEPTH: u32 = 5;
+const HISTORY_MAX: i32 = 16_384;
+
+fn history_bonus(depth: u32) -> i32 {
+    ((depth * depth) as i32 * 16).min(2_048)
+}
+
+fn update_history(entry: &mut i32, bonus: i32) {
+    let delta = bonus - *entry * bonus.abs() / HISTORY_MAX;
+    *entry = (*entry + delta).clamp(-HISTORY_MAX, HISTORY_MAX);
+}
 
 struct SearchCtx<'a> {
     budget: &'a mut TimeBudget,
@@ -380,7 +390,7 @@ fn negamax(
     let move_count = sorted.len();
     let mut searched = 0usize;
 
-    for (move_idx, mv) in sorted.into_iter().enumerate() {
+    for (move_idx, &mv) in sorted.iter().enumerate() {
         if ctx.budget.should_stop() {
             break;
         }
@@ -422,7 +432,16 @@ fn negamax(
                 let side = board.stm.index();
                 let fi = mv.from.index() as usize;
                 let ti = mv.to.index() as usize;
-                ctx.state.history[side][fi][ti] += (depth * depth) as i32;
+                let bonus = history_bonus(depth);
+                update_history(&mut ctx.state.history[side][fi][ti], bonus);
+                for i in 0..move_idx {
+                    let prior = sorted[i];
+                    if !is_noisy(prior) {
+                        let pfi = prior.from.index() as usize;
+                        let pti = prior.to.index() as usize;
+                        update_history(&mut ctx.state.history[side][pfi][pti], -bonus);
+                    }
+                }
             }
             flag = TtFlag::Lower;
             break;
@@ -570,9 +589,57 @@ fn move_order_key(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::color::Color;
     use crate::fen::STARTPOS_FEN;
     use crate::square::Square;
     use crate::time::TimeControl;
+
+    #[test]
+    fn history_positive_gravity_saturates() {
+        let mut entry = 0;
+        for _ in 0..50 {
+            update_history(&mut entry, 2_048);
+        }
+        assert!(entry <= HISTORY_MAX);
+        assert!(entry > 0);
+        let before = entry;
+        update_history(&mut entry, 2_048);
+        assert!(entry - before < 2_048);
+    }
+
+    #[test]
+    fn history_negative_gravity_saturates() {
+        let mut entry = 0;
+        for _ in 0..50 {
+            update_history(&mut entry, -2_048);
+        }
+        assert!(entry >= -HISTORY_MAX);
+        assert!(entry < 0);
+        let before = entry;
+        update_history(&mut entry, -2_048);
+        assert!(before - entry < 2_048);
+    }
+
+    #[test]
+    fn history_ordering_prefers_positive_over_negative() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let good = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let bad = Move::quiet(Square::new(3, 1), Square::new(3, 3));
+        let side = Color::White.index();
+        let mut history = [[[0; 64]; 64]; 2];
+        update_history(
+            &mut history[side][good.from.index() as usize][good.to.index() as usize],
+            2_048,
+        );
+        update_history(
+            &mut history[side][bad.from.index() as usize][bad.to.index() as usize],
+            -2_048,
+        );
+        let mut moves = [bad, good];
+        order_moves(&board, &mut moves, None, [None; 2], &history, Color::White);
+        assert_eq!(moves[0], good);
+        assert_eq!(moves[1], bad);
+    }
 
     #[test]
     fn finds_a_legal_move() {
