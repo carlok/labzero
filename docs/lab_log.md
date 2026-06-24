@@ -439,3 +439,36 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 
 - **Result:** PASS
 - **Command:** `./scripts/podman/ci`
+
+## Gauntlet baseline_sf2500 (2026-06-24)
+
+- **Result:** complete — 18-7-7 (67.2%), perf ≈ **2624**
+- **Opponent:** SF UCI_Elo=2500, TC 3+2, 32 games
+- **Artifact:** `docs/strength/baseline_sf2500.txt`
+
+## Gauntlet gate_sf2500_smoke (2026-06-24)
+
+- **Result:** complete — 6-3-7 (59.4%), perf ≈ **2666**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2500_smoke.txt`
+
+## Gauntlet confirm_sf2600_32g (2026-06-24)
+
+- **Result:** complete — 10-12-10 (46.9%), perf ≈ **2578**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 32 games
+- **Artifact:** `docs/strength/confirm_sf2600_32g.txt`
+
+## Gauntlet gate_sf2500_32g (2026-06-24)
+
+- **Result:** complete — 11-10-11 (51.6%), perf ≈ **2511**
+- **Opponent:** SF UCI_Elo=2500, TC 3+2, 32 games
+- **Artifact:** `docs/strength/gate_sf2500_32g.txt`
+- **SPSA s2 rollback:** worse than baseline_sf2500 (67.2%); do not ship tuned params in v0.6.0
+
+## Release v0.6.0 — superhuman-band sprint S1 (2026-06-24)
+
+- **Branch:** `codex/superhuman-band` merged to `main`
+- **Keep:** magic bitboards, mailbox, movegen speed, gauntlet/SPSA/NNUE tooling (NNUE off by default)
+- **Headline:** **≈2600** — `baseline_sf2500` 32g @ SF@2500 3+2 T=4 → **18–7–7 (67.2%, perf ≈2624)**
+- **Rollback:** SPSA smoke + s2 eval params (failed 32g keep gates vs baseline)
+- **Next:** NNUE sprint on branch or v0.7.0 bet

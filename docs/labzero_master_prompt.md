@@ -35,14 +35,13 @@ Before changing code:
    tuning.
 
 Current baseline (verify in repo before assuming):
-- Package v0.5.4 on main at a35594f (post-release clippy fix after tag v0.5.4).
-- Async UCI stop landed on codex/uci-async-stop (worker-thread go, raw async tester).
-- Headline strength ≈2400 on limited-Stockfish 3+2 blitz benchmarks (T=4).
-- Kept patches: SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
-- SF@2400 32g: 11–9–12 (17/32 W-equiv); SF@2500 32g: 8–12–12 (14/32); SF@2300 32g: 19–5–8 (23/32); 0 illegal/errors.
-- Eval v3 king pressure + hanging threats rolled back (SF@2300 16g **9/16** keep miss).
-- PVS v1 rolled back (SF@2500 32g **14.5/32** headline miss; depth-8 nodes +48%).
-- Next: continuation/countermove history on a new search branch.
+- Package v0.6.0 on main (superhuman-band sprint: magic bitboards, mailbox, sprint tooling).
+- Async UCI stop on main (worker-thread go, raw async tester).
+- Headline strength ≈2600 on limited-Stockfish 3+2 blitz benchmarks (T=4).
+- Kept: magic bitboards + mailbox movegen; eval defaults (no shipped SPSA params); SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
+- SF@2500 32g baseline: 18–7–7 (67.2%, perf ≈2624, `baseline_sf2500`); SPSA s2 rollback 11–10–11 (`gate_sf2500_32g`); 0 illegal/errors.
+- Rolled back: PVS v1; eval v3 king pressure; SPSA smoke + s2 tuned params.
+- Next: NNUE sprint (v0.7 bet) — `host-sprint-nnue.sh` then gate vs SF@2600.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;

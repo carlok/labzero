@@ -23,6 +23,7 @@
 #   GAMES=32  TC_SEC=3  TC_INC=2
 #   ANCHOR=<elo>   Elo anchor for the perf estimate (defaults to SF_ELO if set)
 #   OUT_DIR=docs/strength   RUN_ID=<id>   (RUN_ID makes a run resumable by name)
+#   RECORD=1                append finished row to docs/strength/superhuman-band.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -282,3 +283,7 @@ echo ""
 echo "Saved: ${LOG}"
 echo "PGN:   ${PGN}"
 echo "State: ${STATE}"
+
+if [[ "${RECORD:-0}" == "1" ]] && grep -q 'status:      complete' "${LOG}" 2>/dev/null; then
+  "${ROOT}/scripts/host-record-gauntlet.sh" "${LOG}"
+fi
