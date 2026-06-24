@@ -410,6 +410,18 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Rollback** — below **10/16** SF@2300 keep gate. Full revert on `codex/eval-v3-king-pressure`.
 
+## Direct SF@2500 32g measurement (2026-06-24)
+
+**Change:** none (measurement-only on eval v2 baseline).
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | W-equiv | Artifact |
+|--------|-------|-------|---|---------|----------|
+| 2500 | 32 | **8–12–12** | **43.8%** | **14/32** (baseline) | `benchmark_20260624T035947Z` |
+
+0 illegal, 0 errors. **Decision:** below **16/32** headline gate — keep **≈2400**; row is PVS baseline.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS
