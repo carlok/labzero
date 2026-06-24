@@ -80,51 +80,15 @@ pub const RANKS: [Bitboard; 8] = [
 ];
 
 pub fn pawn_attack_bb(sq: Square, color: Color) -> Bitboard {
-    let mut attacks = 0u64;
-    let f = sq.file() as i8;
-    let r = sq.rank() as i8;
-    let dr = if color == Color::White { 1 } else { -1 };
-    for df in [-1i8, 1] {
-        if (0..8).contains(&(f + df)) && (0..8).contains(&(r + dr)) {
-            attacks |= bb(Square::new((f + df) as u8, (r + dr) as u8));
-        }
-    }
-    attacks
+    crate::magic::pawn_attacks(sq, color)
 }
 
 pub fn knight_attack_bb(sq: Square) -> Bitboard {
-    const OFFSETS: [(i8, i8); 8] = [
-        (1, 2),
-        (2, 1),
-        (2, -1),
-        (1, -2),
-        (-1, -2),
-        (-2, -1),
-        (-2, 1),
-        (-1, 2),
-    ];
-    let mut attacks = 0u64;
-    for (df, dr) in OFFSETS {
-        if let Some(to) = sq.shift(df, dr) {
-            attacks |= bb(to);
-        }
-    }
-    attacks
+    crate::magic::knight_attacks(sq)
 }
 
 pub fn king_attack_bb(sq: Square) -> Bitboard {
-    let mut attacks = 0u64;
-    for df in -1i8..=1 {
-        for dr in -1i8..=1 {
-            if df == 0 && dr == 0 {
-                continue;
-            }
-            if let Some(to) = sq.shift(df, dr) {
-                attacks |= bb(to);
-            }
-        }
-    }
-    attacks
+    crate::magic::king_attacks(sq)
 }
 
 pub fn ray_between(from: Square, to: Square) -> Bitboard {

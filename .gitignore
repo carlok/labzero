@@ -21,3 +21,9 @@ docs/strength/gamma_*.log
 # Secrets / local config
 lichess_bot/config.toml
 config.json
+
+# External opponent engine binaries (not original to this repo)
+engines/
+
+# Generated local compute: self-play data, SPSA tuning state/checkpoints
+data/

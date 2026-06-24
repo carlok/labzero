@@ -1,22 +1,38 @@
 use crate::board::{Board, BLACK_OO, BLACK_OOO, WHITE_OO, WHITE_OOO};
 use crate::color::Color;
+use crate::magic::{bishop_attacks, queen_attacks, rook_attacks};
 use crate::mov::{Move, MoveKind};
 use crate::piece::PieceKind;
-use crate::square::{
-    bb, bit_count, king_attack_bb, knight_attack_bb, pawn_attack_bb, pop_lsb, sliding_attacks,
-    Square, BISHOP_DIRS, ROOK_DIRS,
-};
+use crate::square::{bb, king_attack_bb, knight_attack_bb, pawn_attack_bb, pop_lsb, Square};
+
+#[inline]
+fn push_targets(from: Square, mut attacks: u64, enemy: u64, moves: &mut Vec<Move>) {
+    while let Some(to) = pop_lsb(&mut attacks) {
+        let m = if enemy & bb(to) != 0 {
+            Move::capture(from, to)
+        } else {
+            Move::quiet(from, to)
+        };
+        moves.push(m);
+    }
+}
 
 pub fn generate_legal_moves(board: &Board) -> Vec<Move> {
-    let mut pseudo = generate_pseudo_legal(board);
-    pseudo.retain(|&mv| {
-        let mut b = board.clone();
-        let undo = b.make_move(mv);
-        let legal = !b.in_check(board.stm);
-        b.unmake_move(undo);
-        legal
-    });
-    pseudo
+    let pseudo = generate_pseudo_legal(board);
+    let stm = board.stm;
+    // Clone the board once and reuse it across legality tests via make/unmake,
+    // instead of cloning per candidate move (each clone heap-allocates the
+    // history/rep-key vectors).
+    let mut probe = board.clone();
+    let mut legal = Vec::with_capacity(pseudo.len());
+    for mv in pseudo {
+        let undo = probe.make_move(mv);
+        if !probe.in_check(stm) {
+            legal.push(mv);
+        }
+        probe.unmake_move(undo);
+    }
+    legal
 }
 
 fn generate_pseudo_legal(board: &Board) -> Vec<Move> {
@@ -131,37 +147,19 @@ fn generate_piece_moves(
         }
     }
 
-    for (kind, dirs) in [
-        (PieceKind::Bishop, &BISHOP_DIRS[..]),
-        (PieceKind::Rook, &ROOK_DIRS[..]),
-        (PieceKind::Queen, &BISHOP_DIRS[..]),
-    ] {
-        let mut pbb = board.pieces[crate::square::piece_index(stm, kind)];
-        while let Some(from) = pop_lsb(&mut pbb) {
-            let mut attacks = sliding_attacks(from, occ, dirs) & !own;
-            while let Some(to) = pop_lsb(&mut attacks) {
-                let m = if enemy & bb(to) != 0 {
-                    Move::capture(from, to)
-                } else {
-                    Move::quiet(from, to)
-                };
-                moves.push(m);
-            }
-        }
+    let mut bishops = board.pieces[crate::square::piece_index(stm, PieceKind::Bishop)];
+    while let Some(from) = pop_lsb(&mut bishops) {
+        push_targets(from, bishop_attacks(from, occ) & !own, enemy, moves);
     }
 
-    // queen rook dirs already partially covered; add queen bishop+rook combined
-    let mut qbb = board.pieces[crate::square::piece_index(stm, PieceKind::Queen)];
-    while let Some(from) = pop_lsb(&mut qbb) {
-        let mut attacks = sliding_attacks(from, occ, &ROOK_DIRS) & !own;
-        while let Some(to) = pop_lsb(&mut attacks) {
-            let m = if enemy & bb(to) != 0 {
-                Move::capture(from, to)
-            } else {
-                Move::quiet(from, to)
-            };
-            moves.push(m);
-        }
+    let mut rooks = board.pieces[crate::square::piece_index(stm, PieceKind::Rook)];
+    while let Some(from) = pop_lsb(&mut rooks) {
+        push_targets(from, rook_attacks(from, occ) & !own, enemy, moves);
+    }
+
+    let mut queens = board.pieces[crate::square::piece_index(stm, PieceKind::Queen)];
+    while let Some(from) = pop_lsb(&mut queens) {
+        push_targets(from, queen_attacks(from, occ) & !own, enemy, moves);
     }
 
     let mut kbb = board.pieces[crate::square::piece_index(stm, PieceKind::King)];
@@ -222,9 +220,4 @@ fn generate_castling(board: &Board, stm: Color, moves: &mut Vec<Move>) {
             kind: MoveKind::Castle,
         });
     }
-}
-
-#[allow(dead_code)]
-fn _bit_count(b: u64) -> u32 {
-    bit_count(b)
 }

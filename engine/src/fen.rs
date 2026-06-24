@@ -14,6 +14,7 @@ impl Board {
 
         let mut board = Board {
             pieces: [0; 12],
+            mailbox: [None; 64],
             stm: if parts[1] == "w" {
                 Color::White
             } else if parts[1] == "b" {
@@ -74,6 +75,7 @@ impl Board {
             }
         }
 
+        board.sync_mailbox();
         board.hash = board.compute_hash();
         Ok(board)
     }

@@ -3,11 +3,10 @@ use crate::color::Color;
 use crate::mov::Move;
 use crate::piece::PieceKind;
 use crate::square::{
-    bb, bit_count, knight_attack_bb, pawn_attack_bb, piece_index, pop_lsb, sliding_attacks, Square,
-    BISHOP_DIRS, FILES, RANKS, ROOK_DIRS,
+    bb, bit_count, knight_attack_bb, pawn_attack_bb, piece_index, pop_lsb, Square, FILES, RANKS,
 };
 
-const MATERIAL: [i32; 6] = [100, 320, 330, 500, 900, 0];
+use crate::params::eval_params;
 
 // Original piece-square tables (mg); eg derived with king/endgame adjustments.
 const PST_PAWN_MG: [i32; 64] = [
@@ -207,14 +206,11 @@ fn passed_pawns(board: &Board, phase: i32) -> i32 {
 }
 
 fn mobility(board: &Board, phase: i32) -> i32 {
-    const KNIGHT_MG: i32 = 4;
-    const KNIGHT_EG: i32 = 3;
-    const BISHOP_MG: i32 = 4;
-    const BISHOP_EG: i32 = 4;
-    const ROOK_MG: i32 = 2;
-    const ROOK_EG: i32 = 3;
-    const QUEEN_MG: i32 = 1;
-    const QUEEN_EG: i32 = 1;
+    let p = eval_params();
+    let (knight_mg, knight_eg) = p.mob_knight;
+    let (bishop_mg, bishop_eg) = p.mob_bishop;
+    let (rook_mg, rook_eg) = p.mob_rook;
+    let (queen_mg, queen_eg) = p.mob_queen;
 
     let occ = board.occupied();
     let mut s = 0;
@@ -225,35 +221,42 @@ fn mobility(board: &Board, phase: i32) -> i32 {
         let mut knights = board.pieces[piece_index(color, PieceKind::Knight)];
         while let Some(sq) = pop_lsb(&mut knights) {
             let attacks = bit_count(knight_attack_bb(sq) & !own);
-            let w = taper_mg_eg(KNIGHT_MG, KNIGHT_EG, phase);
+            let w = taper_mg_eg(knight_mg, knight_eg, phase);
             s += sign * attacks as i32 * w;
         }
 
         let mut bishops = board.pieces[piece_index(color, PieceKind::Bishop)];
         while let Some(sq) = pop_lsb(&mut bishops) {
-            let attacks = bit_count(sliding_attacks(sq, occ, &BISHOP_DIRS) & !own);
-            let w = taper_mg_eg(BISHOP_MG, BISHOP_EG, phase);
+            let attacks = bit_count(crate::magic::bishop_attacks(sq, occ) & !own);
+            let w = taper_mg_eg(bishop_mg, bishop_eg, phase);
             s += sign * attacks as i32 * w;
         }
 
         let mut rooks = board.pieces[piece_index(color, PieceKind::Rook)];
         while let Some(sq) = pop_lsb(&mut rooks) {
-            let attacks = bit_count(sliding_attacks(sq, occ, &ROOK_DIRS) & !own);
-            let w = taper_mg_eg(ROOK_MG, ROOK_EG, phase);
+            let attacks = bit_count(crate::magic::rook_attacks(sq, occ) & !own);
+            let w = taper_mg_eg(rook_mg, rook_eg, phase);
             s += sign * attacks as i32 * w;
         }
 
         let mut queens = board.pieces[piece_index(color, PieceKind::Queen)];
         while let Some(sq) = pop_lsb(&mut queens) {
-            let attacks = bit_count(
-                (sliding_attacks(sq, occ, &BISHOP_DIRS) | sliding_attacks(sq, occ, &ROOK_DIRS))
-                    & !own,
-            );
-            let w = taper_mg_eg(QUEEN_MG, QUEEN_EG, phase);
+            let attacks = bit_count(crate::magic::queen_attacks(sq, occ) & !own);
+            let w = taper_mg_eg(queen_mg, queen_eg, phase);
             s += sign * attacks as i32 * w;
         }
     }
     s
+}
+
+/// Search-facing static evaluation: uses the NNUE network when one is loaded,
+/// otherwise the classical hand-crafted eval below. Both return a score in
+/// centipawns from the side-to-move's perspective.
+pub fn search_eval(board: &Board) -> i32 {
+    match crate::nnue::evaluate(board) {
+        Some(v) => v,
+        None => evaluate(board),
+    }
 }
 
 pub fn evaluate(board: &Board) -> i32 {
@@ -269,7 +272,8 @@ pub fn evaluate(board: &Board) -> i32 {
             } else {
                 mirror_sq(s)
             };
-            score += sign * (MATERIAL[p.kind.index()] + piece_pst(p.kind, pst_sq, phase));
+            score +=
+                sign * (eval_params().material[p.kind.index()] + piece_pst(p.kind, pst_sq, phase));
         }
     }
 
@@ -292,7 +296,8 @@ fn bishop_pair(board: &Board) -> i32 {
     for color in [Color::White, Color::Black] {
         let base = color.index() * 6;
         if bit_count(board.pieces[base + PieceKind::Bishop.index()]) >= 2 {
-            s += if color == Color::White { 25 } else { -25 };
+            let v = eval_params().bishop_pair;
+            s += if color == Color::White { v } else { -v };
         }
     }
     s
@@ -311,12 +316,12 @@ fn rook_files(board: &Board) -> i32 {
                 | board.pieces[crate::square::piece_index(color.opposite(), PieceKind::Pawn)])
                 & file_bb;
             if pawns_on_file == 0 {
-                s += sign * 15;
+                s += sign * eval_params().rook_open;
             } else if pawns_on_file
                 & board.pieces[crate::square::piece_index(color, PieceKind::Pawn)]
                 == 0
             {
-                s += sign * 8;
+                s += sign * eval_params().rook_semi;
             }
             r &= r - 1;
         }

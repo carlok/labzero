@@ -2,7 +2,7 @@ use crate::board::Board;
 use crate::color::Color;
 use crate::mov::{Move, MoveKind};
 use crate::piece::PieceKind;
-use crate::square::{bb, knight_attack_bb, sliding_attacks, Square, BISHOP_DIRS, ROOK_DIRS};
+use crate::square::{bb, knight_attack_bb, Square};
 
 const VALUES: [i32; 6] = [100, 320, 330, 500, 900, 0];
 
@@ -61,9 +61,9 @@ fn attackers_to(board: &Board, sq: Square, occupied: u64) -> u64 {
         a |= board.pieces[idx(PieceKind::Pawn)] & pawn_attackers(board, sq, color);
         a |= board.pieces[idx(PieceKind::Knight)] & knight_attack_bb(sq);
         a |= board.pieces[idx(PieceKind::King)] & crate::square::king_attack_bb(sq);
-        let diag = sliding_attacks(sq, occupied, &BISHOP_DIRS);
+        let diag = crate::magic::bishop_attacks(sq, occupied);
         a |= (board.pieces[idx(PieceKind::Bishop)] | board.pieces[idx(PieceKind::Queen)]) & diag;
-        let ortho = sliding_attacks(sq, occupied, &ROOK_DIRS);
+        let ortho = crate::magic::rook_attacks(sq, occupied);
         a |= (board.pieces[idx(PieceKind::Rook)] | board.pieces[idx(PieceKind::Queen)]) & ortho;
     }
     a & occupied
