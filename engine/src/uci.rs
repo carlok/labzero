@@ -109,6 +109,10 @@ pub fn run_uci_loop() {
                 "option name Threads type spin default 1 min 1 max 8",
             );
             write_uci_line(&out_lock, "option name OwnBook type check default false");
+            write_uci_line(
+                &out_lock,
+                "option name NnueFile type string default <empty>",
+            );
             write_uci_line(&out_lock, "uciok");
         } else if trimmed == "isready" {
             write_uci_line(&out_lock, "readyok");
@@ -196,6 +200,11 @@ fn apply_setoption(rest: &str) {
                     "BookFile" => {
                         if let Ok(mut book) = book().lock() {
                             let _ = book.load_file(std::path::Path::new(v));
+                        }
+                    }
+                    "NnueFile" => {
+                        if let Err(e) = crate::nnue::load_from_file(v) {
+                            eprintln!("{e}");
                         }
                     }
                     _ => {}

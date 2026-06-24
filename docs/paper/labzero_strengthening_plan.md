@@ -26,9 +26,9 @@ The current search already includes iterative deepening, alpha-beta, quiescence 
 
 The current evaluation already includes material, tapered piece-square tables, bishop pair, pawn-structure terms, rook file bonuses, king-safety terms, **passed-pawn bonuses**, and **piece mobility**. The current UCI path supports `Hash`, `Threads`, `OwnBook`, `go depth`, `go movetime`, and clock-style `wtime/btime/winc/binc` input.
 
-**Package v0.5.4+** (async UCI stop + eval v2 on `main`). Headline strength **≈2400** on limited-Stockfish 3+2 blitz (T=4). Direct measurement: SF@2400 **11–9–12** (17/32); SF@2300 **19–5–8** (23/32); **0 illegal/errors**. Artifacts through `benchmark_20260623T175115Z`.
+**Package v0.6.0** (magic bitboards + mailbox on `main`). Headline strength **≈2600** on limited-Stockfish 3+2 blitz (T=4). Direct measurement: SF@2500 **18–7–7** (67.2%, perf ≈2624, `baseline_sf2500`); prior SF@2400 **11–9–12** (17/32); **0 illegal/errors**. SPSA s2 params rolled back (SF@2500 32g **11–10–11**).
 
-**Next step:** eval v3 — original king-pressure and hanging-piece threat terms (`codex/eval-v3-king-pressure`). Keep gate SF@2300 16g **≥ 10/16**; headline gate SF@2400 32g vs direct baseline.
+**Next step:** NNUE bet — self-play + `host-nnue-train.py`, gate vs SF@2600 (`host-sprint-nnue.sh` / `host-sprint-gate.sh`).
 
 ## Phase 1: Measurement Before Tuning
 

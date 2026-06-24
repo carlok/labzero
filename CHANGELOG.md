@@ -2,10 +2,15 @@
 
 ## Unreleased
 
-- **UCI:** make `go infinite` and long searches responsive to `stop` by running search in one worker while the main loop continues reading commands
-- **Eval v2:** original passed-pawn and mobility terms (phase-tapered rank bonuses, protected-passer bonus, pseudo-attack mobility for N/B/R/Q)
-- **Measurement:** 3+2 blitz **T=4** vs SF@2200 **12–1–3 (84.4%, 13.5/16 W-equiv keep)**; SF@2300 **16g 8–4–4**, **32g 19–5–8 (71.9%, 23/32 W-equiv)**; 0 illegal/errors
-- **Headline:** README/ladder **≈2300** on limited-Stockfish benchmarks (was ≈2200); direct SF@2400 **32g 11–9–12 (17/32 W-equiv)** raises headline to **≈2400** (`benchmark_20260623T175115Z`)
+## 0.6.0 — 2026-06-24
+
+- **Search:** magic bitboards + precomputed leaper tables; O(1) mailbox `piece_at`; clone-once legality in movegen (~3.6× perft 6, ~1.4× depth-12 search vs pre-sprint)
+- **Eval:** runtime tunable params via `LABZERO_EVAL_PARAMS` (`engine/src/params.rs`); default weights unchanged
+- **NNUE:** original two-perspective net (`engine/src/nnue.rs`), off by default; `LABZERO_NNUE` / `NnueFile`; host train/verify scripts
+- **Tooling:** resumable `host-gauntlet`, `host-spsa`, self-play CLI, sprint wrappers (`host-sprint-*`), `host-kill-sprint`, `host-record-gauntlet`; operator guide `docs/operator/superhuman-band-sprint.md`
+- **Measurement:** 3+2 **T=4** vs SF@2500 **32g → 18–7–7 (67.2%, perf ≈2624)** (`baseline_sf2500`); 0 illegal/errors
+- **Tuning:** SPSA s2 (500 iters) **rollback** — same protocol with `spsa_s2.best.params` **11–10–11 (51.6%)** vs baseline (`gate_sf2500_32g`)
+- **Headline:** README/ladder **≈2600** on limited-Stockfish benchmarks (was ≈2400)
 
 ## 0.5.4 — 2026-06-23
 

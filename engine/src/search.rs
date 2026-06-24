@@ -3,7 +3,7 @@ use std::cmp::max;
 use std::sync::Arc;
 
 use crate::board::Board;
-use crate::eval::evaluate;
+use crate::eval::search_eval as evaluate;
 use crate::mov::{Move, MoveKind};
 use crate::movegen::generate_legal_moves;
 use crate::see::see_capture_value;

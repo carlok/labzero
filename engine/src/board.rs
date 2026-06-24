@@ -3,8 +3,7 @@ use crate::make_unmake::Undo;
 use crate::mov::Move;
 use crate::piece::{Piece, PieceKind};
 use crate::square::{
-    bb, king_attack_bb, knight_attack_bb, pawn_attack_bb, piece_index, sliding_attacks, Bitboard,
-    Square, BISHOP_DIRS, ROOK_DIRS,
+    king_attack_bb, knight_attack_bb, pawn_attack_bb, piece_index, Bitboard, Square,
 };
 use crate::zobrist;
 
@@ -16,6 +15,9 @@ pub struct NullUndo {
 #[derive(Clone, Debug)]
 pub struct Board {
     pub pieces: [Bitboard; 12],
+    /// Square -> piece redundant index, kept in sync with `pieces` for O(1)
+    /// `piece_at`. Maintained incrementally by make/unmake.
+    pub mailbox: [Option<Piece>; 64],
     pub stm: Color,
     pub castling: u8,
     pub ep_square: Option<Square>,
@@ -51,7 +53,14 @@ impl Board {
         self.pieces[base..base + 6].iter().fold(0u64, |a, &b| a | b)
     }
 
+    #[inline(always)]
     pub fn piece_at(&self, sq: Square) -> Option<Piece> {
+        self.mailbox[sq.index() as usize]
+    }
+
+    /// Rebuild the mailbox from the piece bitboards (used at construction).
+    pub fn sync_mailbox(&mut self) {
+        self.mailbox = [None; 64];
         for kind in [
             PieceKind::Pawn,
             PieceKind::Knight,
@@ -62,12 +71,14 @@ impl Board {
         ] {
             for color in [Color::White, Color::Black] {
                 let idx = crate::square::piece_index(color, kind);
-                if self.pieces[idx] & bb(sq) != 0 {
-                    return Some(Piece::new(color, kind));
+                let mut b = self.pieces[idx];
+                while b != 0 {
+                    let s = b.trailing_zeros() as usize;
+                    self.mailbox[s] = Some(Piece::new(color, kind));
+                    b &= b - 1;
                 }
             }
         }
-        None
     }
 
     pub fn king_square(&self, color: Color) -> Square {
@@ -92,12 +103,12 @@ impl Board {
         }
         let their_bishops = self.pieces[crate::square::piece_index(by, PieceKind::Bishop)];
         let their_queens = self.pieces[crate::square::piece_index(by, PieceKind::Queen)];
-        let diag = sliding_attacks(sq, occ, &BISHOP_DIRS);
+        let diag = crate::magic::bishop_attacks(sq, occ);
         if diag & (their_bishops | their_queens) != 0 {
             return true;
         }
         let their_rooks = self.pieces[crate::square::piece_index(by, PieceKind::Rook)];
-        let ortho = sliding_attacks(sq, occ, &ROOK_DIRS);
+        let ortho = crate::magic::rook_attacks(sq, occ);
         if ortho & (their_rooks | their_queens) != 0 {
             return true;
         }

@@ -4,7 +4,7 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-**Headline:** **≈2400** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** direct vs SF@2400 (**53.1%**, **17/32** W-equiv, `benchmark_20260623T175115Z`); prior SF@2300 **71.9%** / **23/32** (`benchmark_20260623T150655Z`); SF@2000 **71.9%** (`benchmark_20260623T090318Z`); 1+0 anchor **≈ 1911**. Not Lichess/CCRL/FIDE Elo.
+**Headline:** **≈2600** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** vs SF@2500 (**67.2%**, **18–7–7**, perf **≈2624**, `baseline_sf2500` / `host-gauntlet`); prior **≈2400** row SF@2400 **53.1%** / **17/32** (`benchmark_20260623T175115Z`). Not Lichess/CCRL/FIDE Elo.
 
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 
@@ -154,6 +154,8 @@ These rows use a **different protocol** than the 1+0 anchor table above. Do not 
 | `3+2 wtime THREADS=4` (eval v2, direct bracket) | **2500** | **8–12–12** | **43.8%** | `benchmark_20260624T035947Z` | **32-game**; **14/32** W-equiv; PVS baseline |
 | `3+2 wtime THREADS=4` (PVS v1, reverted) | **2400** | **7–7–2** | **50.0%** | `benchmark_20260624T052632Z` | 16-game keep; **8/16** W-equiv |
 | `3+2 wtime THREADS=4` (PVS v1, reverted) | **2500** | **11–14–7** | **45.3%** | `benchmark_20260624T055916Z` | 32-game; **14.5/32** W-equiv |
+| `3+2 wtime THREADS=4` (**v0.6.0** superhuman-band: magic BB, mailbox) | **2500** | **18–7–7** | **67.2%** | `baseline_sf2500` | **32-game headline**; perf **≈2624**; `host-gauntlet`; 0 illegal |
+| `3+2 wtime THREADS=4` (+ SPSA s2 params, **rollback**) | **2500** | **11–10–11** | **51.6%** | `gate_sf2500_32g` | 32-game; perf **≈2511**; keep gate miss vs baseline |
 | `3+2 wtime THREADS=8` (Lazy SMP v2) | 2000 | **11–15–6** | **43.8%** | `benchmark_20260622T131945Z` | 32-game diagnostic; perf **≈ 1956**; no gain vs T=4 |
 | `TC_SEC=1 THREADS=8` | 2000 | **2–9–5** | **28.1%** | `benchmark_20260621T095930Z` | pre-shard SMP spot @ 1+0; perf **≈ 1837** |
 

@@ -23,5 +23,39 @@ fn main() {
         return;
     }
 
+    if args.len() >= 2 && args[1] == "selfplay" {
+        // labzero selfplay <out_file> [games] [depth] [seed]
+        let out = args.get(2).cloned().unwrap_or_else(|| {
+            eprintln!("usage: labzero selfplay <out_file> [games] [depth] [seed]");
+            std::process::exit(1);
+        });
+        let games: u64 = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(1000);
+        let depth: u32 = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(4);
+        let seed: u64 = args
+            .get(5)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0x9E37_79B9_7F4A_7C15);
+        if let Err(e) = labzero::selfplay::preflight(&out) {
+            eprintln!("selfplay: cannot open {out}: {e}");
+            std::process::exit(1);
+        }
+        let cfg = labzero::selfplay::SelfPlayConfig::from_args(&out, games, depth, seed);
+        if let Err(e) = labzero::selfplay::run(&cfg) {
+            eprintln!("selfplay error: {e}");
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if args.len() >= 2 && args[1] == "eval" {
+        // labzero eval <fen>   -> prints the static eval (cp, side-to-move
+        // relative) used by search. Honours LABZERO_NNUE / NnueFile, so it
+        // doubles as the Python<->Rust NNUE parity probe.
+        let fen = args.get(2).map(String::as_str).unwrap_or(STARTPOS_FEN);
+        let board = labzero::Board::from_fen(fen).expect("invalid fen");
+        println!("{}", labzero::eval::search_eval(&board));
+        return;
+    }
+
     uci::run_uci_loop();
 }

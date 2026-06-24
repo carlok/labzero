@@ -89,6 +89,7 @@ pub fn make_move(board: &mut Board, mv: Move) -> Undo {
     let to_bb = bb(mv.to);
     let from_idx = piece_index(moving.color, moving.kind);
     board.pieces[from_idx] &= !from_bb;
+    board.mailbox[mv.from.index() as usize] = None;
 
     let capture_sq = if mv.kind == MoveKind::EnPassant {
         let cap_rank = if stm == Color::White {
@@ -104,6 +105,7 @@ pub fn make_move(board: &mut Board, mv: Move) -> Undo {
     if let Some(cap) = board.piece_at(capture_sq) {
         let cap_idx = piece_index(cap.color, cap.kind);
         board.pieces[cap_idx] &= !bb(capture_sq);
+        board.mailbox[capture_sq.index() as usize] = None;
         undo.captured = Some((cap, capture_sq));
         board.halfmove = 0;
     } else if moving.kind == PieceKind::Pawn {
@@ -115,6 +117,7 @@ pub fn make_move(board: &mut Board, mv: Move) -> Undo {
     let placed_kind = mv.promotion.unwrap_or(moving.kind);
     let placed_idx = piece_index(moving.color, placed_kind);
     board.pieces[placed_idx] |= to_bb;
+    board.mailbox[mv.to.index() as usize] = Some(Piece::new(moving.color, placed_kind));
 
     board.ep_square = None;
     match mv.kind {
@@ -131,6 +134,9 @@ pub fn make_move(board: &mut Board, mv: Move) -> Undo {
             let rook_idx = piece_index(moving.color, PieceKind::Rook);
             board.pieces[rook_idx] &= !bb(rook_from);
             board.pieces[rook_idx] |= bb(rook_to);
+            board.mailbox[rook_from.index() as usize] = None;
+            board.mailbox[rook_to.index() as usize] =
+                Some(Piece::new(moving.color, PieceKind::Rook));
         }
         _ => {}
     }
@@ -190,12 +196,15 @@ pub fn unmake_move(board: &mut Board, undo: Undo) {
     let from_bb = bb(undo.mv.from);
     let placed_idx = piece_index(stm, moving.kind);
     board.pieces[placed_idx] &= !to_bb;
+    board.mailbox[undo.mv.to.index() as usize] = None;
     let from_idx = piece_index(stm, kind);
     board.pieces[from_idx] |= from_bb;
+    board.mailbox[undo.mv.from.index() as usize] = Some(Piece::new(stm, kind));
 
     if let Some((cap, sq)) = undo.captured {
         let cap_idx = piece_index(cap.color, cap.kind);
         board.pieces[cap_idx] |= bb(sq);
+        board.mailbox[sq.index() as usize] = Some(cap);
     }
 
     if undo.mv.kind == MoveKind::Castle {
@@ -203,6 +212,8 @@ pub fn unmake_move(board: &mut Board, undo: Undo) {
         let rook_idx = piece_index(stm, PieceKind::Rook);
         board.pieces[rook_idx] &= !bb(rook_to);
         board.pieces[rook_idx] |= bb(rook_from);
+        board.mailbox[rook_to.index() as usize] = None;
+        board.mailbox[rook_from.index() as usize] = Some(Piece::new(stm, PieceKind::Rook));
     }
 
     if stm == Color::Black {
