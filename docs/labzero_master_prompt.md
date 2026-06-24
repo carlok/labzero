@@ -39,9 +39,8 @@ Current baseline (verify in repo before assuming):
 - Async UCI stop landed on codex/uci-async-stop (worker-thread go, raw async tester).
 - Headline strength ≈2400 on limited-Stockfish 3+2 blitz benchmarks (T=4).
 - Kept patches: SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
-- SF@2400 32g: 11–9–12 (17/32 W-equiv); SF@2500 32g: 8–12–12 (14/32); SF@2300 32g: 19–5–8 (23/32); 0 illegal/errors.
-- Eval v3 king pressure + hanging threats rolled back (SF@2300 16g **9/16** keep miss).
-- Next: PVS v1 on `codex/search-pvs-v1`.
+- SF@2400 32g: 11–9–12 (17/32 W-equiv); SF@2300 32g: 19–5–8 (23/32); 0 illegal/errors.
+- Next: eval v3 king pressure + hanging threats on `codex/eval-v3-king-pressure`.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;
@@ -50,7 +49,7 @@ Current engine shape to assume only after verifying it in the repo:
 - quiescence search;
 - transposition table with sharding;
 - deterministic Zobrist hashing with incremental make/unmake;
-- aspiration windows, null move pruning, LMR, PVS, killers/history, SEE ordering;
+- aspiration windows, null move pruning, LMR, killers/history, SEE ordering;
 - Lazy SMP helper threads sharing the TT;
 - tapered evaluation with material, PSTs, pawn structure, rook files, bishop
   pair, and king-safety terms.

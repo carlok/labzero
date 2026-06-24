@@ -406,16 +406,10 @@ fn negamax(
             };
         let search_depth = depth.saturating_sub(1).saturating_sub(reduction);
         let child = frame.child(mv);
-        let is_first = move_idx == 0;
 
         if reduction > 0 {
             score = -negamax(board, search_depth, -alpha - 1, -alpha, ctx, child);
             if score > alpha {
-                score = -negamax(board, depth - 1, -beta, -alpha, ctx, child);
-            }
-        } else if !is_first && depth >= 2 && !in_check && !is_noisy(mv) {
-            score = -negamax(board, depth - 1, -alpha - 1, -alpha, ctx, child);
-            if score > alpha && score < beta {
                 score = -negamax(board, depth - 1, -beta, -alpha, ctx, child);
             }
         } else {
