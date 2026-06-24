@@ -1,0 +1,50 @@
+labzero host benchmark  2026-06-24T05:59:16.786283+00:00
+status:      in progress
+labzero:     target/release/labzero
+stockfish:   stockfish
+games:       32
+time control: 3+2 (wtime)
+labzero Threads: 4
+sf weaken:   Skill=0 LimitStrength=True UCI_Elo=2500
+
+games:
+game  1: win  1-0  (0)  [1-0-0]
+game  2: loss 1-0  (0)  [1-1-0]
+game  3: loss 0-1  (0)  [1-2-0]
+game  4: win  0-1  (0)  [2-2-0]
+game  5: draw 1/2-1/2  (0)  [2-2-1]
+game  6: draw 1/2-1/2  (0)  [2-2-2]
+game  7: win  1-0  (0)  [3-2-2]
+game  8: draw 1/2-1/2  (0)  [3-2-3]
+game  9: loss 0-1  (0)  [3-3-3]
+game 10: loss 1-0  (0)  [3-4-3]
+game 11: loss 0-1  (0)  [3-5-3]
+game 12: draw 1/2-1/2  (0)  [3-5-4]
+game 13: loss 0-1  (0)  [3-6-4]
+game 14: win  0-1  (0)  [4-6-4]
+game 15: win  1-0  (0)  [5-6-4]
+game 16: draw 1/2-1/2  (0)  [5-6-5]
+game 17: draw 1/2-1/2  (0)  [5-6-6]
+game 18: win  0-1  (0)  [6-6-6]
+game 19: loss 0-1  (0)  [6-7-6]
+game 20: loss 1-0  (0)  [6-8-6]
+game 21: loss 0-1  (0)  [6-9-6]
+game 22: loss 1-0  (0)  [6-10-6]
+game 23: win  1-0  (0)  [7-10-6]
+game 24: win  0-1  (0)  [8-10-6]
+game 25: loss 0-1  (0)  [8-11-6]
+game 26: win  0-1  (0)  [9-11-6]
+game 27: win  1-0  (0)  [10-11-6]
+game 28: draw 1/2-1/2  (0)  [10-11-7]
+game 29: loss 0-1  (0)  [10-12-7]
+game 30: loss 1-0  (0)  [10-13-7]
+game 31: loss 0-1  (0)  [10-14-7]
+game 32: win  0-1  (0)  [11-14-7]
+
+---
+status:      complete
+score:       11-14-7  (W-L-D for labzero)
+labzero %:   45.3
+illegal:     0
+errors:      0
+pgn:         docs/strength/benchmark_20260624T055916Z.pgn

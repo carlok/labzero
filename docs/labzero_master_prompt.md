@@ -39,8 +39,10 @@ Current baseline (verify in repo before assuming):
 - Async UCI stop landed on codex/uci-async-stop (worker-thread go, raw async tester).
 - Headline strength ≈2400 on limited-Stockfish 3+2 blitz benchmarks (T=4).
 - Kept patches: SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
-- SF@2400 32g: 11–9–12 (17/32 W-equiv); SF@2300 32g: 19–5–8 (23/32); 0 illegal/errors.
-- Next: eval v3 king pressure + hanging threats on `codex/eval-v3-king-pressure`.
+- SF@2400 32g: 11–9–12 (17/32 W-equiv); SF@2500 32g: 8–12–12 (14/32); SF@2300 32g: 19–5–8 (23/32); 0 illegal/errors.
+- Eval v3 king pressure + hanging threats rolled back (SF@2300 16g **9/16** keep miss).
+- PVS v1 rolled back (SF@2500 32g **14.5/32** headline miss; depth-8 nodes +48%).
+- Next: continuation/countermove history on a new search branch.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;

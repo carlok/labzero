@@ -422,6 +422,19 @@ Prior 16-game probes (same protocol): SF@1900 **46.9%**, SF@2100 **28.1%** — s
 
 0 illegal, 0 errors. **Decision:** below **16/32** headline gate — keep **≈2400**; row is PVS baseline.
 
+## PVS v1: null-window search (2026-06-24)
+
+**Change:** `search.rs` — PVS for non-first quiet moves at `depth >= 2`, skip in check (reverted).
+
+`TC_MODE=wtime TC_SEC=3 TC_INC=2 THREADS=4`:
+
+| SF_ELO | Games | Score | % | W-equiv | Artifact |
+|--------|-------|-------|---|---------|----------|
+| 2400 | 16 | **7–7–2** | **50.0%** | **8/16** (keep) | `benchmark_20260624T052632Z` |
+| 2500 | 32 | **11–14–7** | **45.3%** | **14.5/32** (headline) | `benchmark_20260624T055916Z` |
+
+Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 illegal, 0 errors. **Rollback** — headline gate miss (**14.5/32** < 16/32) and node regression; SF@2500 vs baseline within noise only.
+
 ## CI run 2026-06-21T17:51:27Z
 
 - **Result:** PASS
