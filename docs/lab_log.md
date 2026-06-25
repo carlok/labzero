@@ -472,3 +472,33 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Headline:** **≈2600** — `baseline_sf2500` 32g @ SF@2500 3+2 T=4 → **18–7–7 (67.2%, perf ≈2624)**
 - **Rollback:** SPSA smoke + s2 eval params (failed 32g keep gates vs baseline)
 - **Next:** NNUE sprint on branch or v0.7.0 bet
+
+## Gauntlet gate_sf2500_v060_16g (2026-06-25)
+
+- **Result:** complete — 6-3-7 (59.4%), perf ≈ **2566**
+- **Opponent:** SF UCI_Elo=2500, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2500_v060_16g.txt`
+
+## Gauntlet gate_sf2500_v060_32g (2026-06-25)
+
+- **Result:** complete — 15-8-9 (60.9%), perf ≈ **2577**
+- **Opponent:** SF UCI_Elo=2500, TC 3+2, 32 games
+- **Artifact:** `docs/strength/gate_sf2500_v060_32g.txt`
+
+## Sprint S3 — ID time-depth fix (2026-06-25)
+
+**Change:** `search.rs` — `last_iter_ms` is now per-iteration wall time for `TimeBudget::should_start_depth` (was cumulative elapsed). Branch `codex/id-time-depth` from `731af6d`.
+
+**Gate SF@2600:** 16g **7–5–4** (56.2%, 9/16 W-equiv); 32g **13–9–10** (56.2%, **18/32 W-equiv — KEEP**), perf ≈ **2644**, 0 illegal/errors. Direct ≈2600 claim validated (`gate_sf2600_idtime_32g`).
+
+## Gauntlet gate_sf2600_idtime_16g (2026-06-25)
+
+- **Result:** complete — 7-5-4 (56.2%), perf ≈ **2644**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_idtime_16g.txt`
+
+## Gauntlet gate_sf2600_idtime_32g (2026-06-25)
+
+- **Result:** complete — 13-9-10 (56.2%), perf ≈ **2644**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 32 games
+- **Artifact:** `docs/strength/gate_sf2600_idtime_32g.txt`

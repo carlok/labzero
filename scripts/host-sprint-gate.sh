@@ -2,7 +2,7 @@
 # Sprint loop 3 — gauntlet gate + ladder record (run when YOU want a measurement).
 #
 # Uses current build + optional LABZERO_EVAL_PARAMS / LABZERO_NNUE from env.
-# Appends row to docs/strength/superhuman-band.md when complete.
+# Appends superhuman-band.md + elo_series.csv + timeline charts when complete.
 #
 #   ./scripts/host-sprint-gate.sh 2600          # 16-game probe @ SF 2600
 #   ./scripts/host-sprint-gate.sh 2700 32       # 32-game anchor @ SF 2700
@@ -51,6 +51,7 @@ LOG="${ROOT}/docs/strength/${RUN_ID}.txt"
 echo ""
 echo "Gate done. Log: ${LOG}"
 echo "Ladder: ${ROOT}/docs/strength/superhuman-band.md"
+echo "Timeline: ${ROOT}/docs/strength/elo_timeline.md"
 echo ""
-echo "Next rung (if score % was good):"
-echo "  ./scripts/host-sprint-gate.sh $((SF_ELO + 200)) ${GAMES}"
+echo "Next rung (if score % was good — 16g probe before 32g confirm):"
+echo "  ./scripts/host-sprint-gate.sh $((SF_ELO + 100)) 16"

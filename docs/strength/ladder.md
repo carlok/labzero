@@ -4,7 +4,7 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-**Headline:** **≈2600** on limited-Stockfish benchmarks — **32-game** 3+2 wtime **T=4** vs SF@2500 (**67.2%**, **18–7–7**, perf **≈2624**, `baseline_sf2500` / `host-gauntlet`); prior **≈2400** row SF@2400 **53.1%** / **17/32** (`benchmark_20260623T175115Z`). Not Lichess/CCRL/FIDE Elo.
+**Headline:** **≈2600** direct — **32-game** 3+2 wtime **T=4** vs SF@2600 (**56.2%**, **13–9–10**, **18/32** W-equiv, perf **≈2644**, `gate_sf2600_idtime_32g`, ID time fix on `codex/id-time-depth`). Prior SF@2500 headline: **67.2%** / **18–7–7** (`baseline_sf2500`). Not Lichess/CCRL/FIDE Elo.
 
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 
