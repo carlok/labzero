@@ -167,6 +167,8 @@ pub fn search_with_info_from_depth(
             (i32::MIN + 1, i32::MAX - 1)
         };
 
+        let iter_start_ms = budget.elapsed_ms();
+
         let mut result = search_root(
             &mut board, depth, alpha, beta, budget, state, &mut nodes, pv_move,
         );
@@ -196,7 +198,7 @@ pub fn search_with_info_from_depth(
             });
         }
 
-        last_iter_ms = budget.elapsed_ms();
+        last_iter_ms = budget.elapsed_ms().saturating_sub(iter_start_ms).max(1);
         if budget.should_stop() && depth > start {
             break;
         }
