@@ -567,19 +567,20 @@ fn order_moves(
     } else {
         None
     };
-    let policy_bonus = policy_logits
-        .as_ref()
-        .map(|logits| rank_normalize_policy_bonuses(moves, logits, tt_move, killers));
+    let policy_bonus = policy_logits.as_ref().map(|logits| {
+        rank_normalize_policy_adjustments(moves, logits, tt_move, killers, policy::mode())
+    });
 
+    let mode = policy::mode();
     let mut decorated: Vec<(i64, Move)> = moves
         .iter()
         .enumerate()
         .map(|(i, &mv)| {
-            let bonus = policy_bonus
+            let adj = policy_bonus
                 .as_ref()
                 .and_then(|bonuses| bonuses[i])
                 .filter(|_| is_policy_eligible(mv, tt_move, killers));
-            let key = move_order_key(board, mv, tt_move, killers, history, side, bonus);
+            let key = move_order_key(board, mv, tt_move, killers, history, side, adj, mode);
             (key, mv)
         })
         .collect();
@@ -589,11 +590,12 @@ fn order_moves(
     }
 }
 
-fn rank_normalize_policy_bonuses(
+fn rank_normalize_policy_adjustments(
     moves: &[Move],
     logits: &[i32],
     tt_move: Option<Move>,
     killers: [Option<Move>; 2],
+    mode: policy::PolicyMode,
 ) -> Vec<Option<i64>> {
     let mut quiet: Vec<(usize, i32)> = moves
         .iter()
@@ -609,16 +611,23 @@ fn rank_normalize_policy_bonuses(
         return out;
     }
     if n == 1 {
-        out[quiet[0].0] = Some(99_999);
+        out[quiet[0].0] = Some(match mode {
+            policy::PolicyMode::Hard => 99_999,
+            policy::PolicyMode::Soft => 0,
+        });
         return out;
     }
     for (rank, (idx, _)) in quiet.iter().enumerate() {
-        let bonus = ((n - 1 - rank) as i64 * 99_999) / (n - 1) as i64;
-        out[*idx] = Some(bonus);
+        let adj = match mode {
+            policy::PolicyMode::Hard => ((n - 1 - rank) as i64 * 99_999) / (n - 1) as i64,
+            policy::PolicyMode::Soft => 512 - (rank as i64 * 1024) / (n - 1) as i64,
+        };
+        out[*idx] = Some(adj);
     }
     out
 }
 
+#[allow(clippy::too_many_arguments)]
 fn move_order_key(
     board: &Board,
     mv: Move,
@@ -626,11 +635,15 @@ fn move_order_key(
     killers: [Option<Move>; 2],
     history: &[[[i32; 64]; 64]; 2],
     side: usize,
-    policy_bonus: Option<i64>,
+    policy_adj: Option<i64>,
+    mode: policy::PolicyMode,
 ) -> i64 {
     let key = base_move_order_key(board, mv, tt_move, killers, history, side);
-    if let Some(bonus) = policy_bonus.filter(|_| is_policy_eligible(mv, tt_move, killers)) {
-        700_000 + bonus
+    if let Some(adj) = policy_adj.filter(|_| is_policy_eligible(mv, tt_move, killers)) {
+        match mode {
+            policy::PolicyMode::Hard => 700_000 + adj,
+            policy::PolicyMode::Soft => key + adj.clamp(-512, 512),
+        }
     } else {
         key
     }
@@ -738,7 +751,13 @@ mod tests {
 
         let moves = [tt_mv, killer0, policy_mv];
         let logits = [-10_000, -10_000, 10_000];
-        let bonuses = rank_normalize_policy_bonuses(&moves, &logits, Some(tt_mv), killers);
+        let bonuses = rank_normalize_policy_adjustments(
+            &moves,
+            &logits,
+            Some(tt_mv),
+            killers,
+            policy::PolicyMode::Hard,
+        );
 
         assert_eq!(bonuses[0], None, "TT quiet must not get policy bonus");
         assert_eq!(bonuses[1], None, "killer quiet must not get policy bonus");
@@ -752,6 +771,7 @@ mod tests {
             &history,
             side,
             bonuses[0],
+            policy::PolicyMode::Hard,
         );
         let killer_key = move_order_key(
             &board,
@@ -761,6 +781,7 @@ mod tests {
             &history,
             side,
             bonuses[1],
+            policy::PolicyMode::Hard,
         );
         let policy_key = move_order_key(
             &board,
@@ -770,6 +791,7 @@ mod tests {
             &history,
             side,
             bonuses[2],
+            policy::PolicyMode::Hard,
         );
 
         assert_eq!(tt_key, i64::MAX);
@@ -782,7 +804,16 @@ mod tests {
             .enumerate()
             .map(|(i, &mv)| {
                 (
-                    move_order_key(&board, mv, Some(tt_mv), killers, &history, side, bonuses[i]),
+                    move_order_key(
+                        &board,
+                        mv,
+                        Some(tt_mv),
+                        killers,
+                        &history,
+                        side,
+                        bonuses[i],
+                        policy::PolicyMode::Hard,
+                    ),
                     mv,
                 )
             })
@@ -794,6 +825,123 @@ mod tests {
         assert_eq!(ordered[0], tt_mv);
         assert_eq!(ordered[1], killer0);
         assert_eq!(ordered[2], policy_mv);
+    }
+
+    #[test]
+    fn soft_mode_delta_within_history_band() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let good = Move::quiet(Square::new(6, 0), Square::new(5, 2));
+        let bad = Move::quiet(Square::new(5, 0), Square::new(2, 3));
+        let killer0 = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let killers = [Some(killer0), None];
+        let history = [[[0; 64]; 64]; 2];
+        let side = Color::White.index();
+
+        let moves = [good, bad];
+        let logits = [10_000, -10_000];
+        let deltas = rank_normalize_policy_adjustments(
+            &moves,
+            &logits,
+            None,
+            [None; 2],
+            policy::PolicyMode::Soft,
+        );
+        assert_eq!(deltas[0], Some(512));
+        assert_eq!(deltas[1], Some(-512));
+
+        let good_key = move_order_key(
+            &board,
+            good,
+            None,
+            [None; 2],
+            &history,
+            side,
+            deltas[0],
+            policy::PolicyMode::Soft,
+        );
+        let bad_key = move_order_key(
+            &board,
+            bad,
+            None,
+            [None; 2],
+            &history,
+            side,
+            deltas[1],
+            policy::PolicyMode::Soft,
+        );
+        assert_eq!(good_key, 512);
+        assert_eq!(bad_key, -512);
+
+        let mut ordered = moves;
+        let mut decorated: Vec<(i64, Move)> = moves
+            .iter()
+            .enumerate()
+            .map(|(i, &mv)| {
+                (
+                    move_order_key(
+                        &board,
+                        mv,
+                        None,
+                        [None; 2],
+                        &history,
+                        side,
+                        deltas[i],
+                        policy::PolicyMode::Soft,
+                    ),
+                    mv,
+                )
+            })
+            .collect();
+        decorated.sort_by_key(|item| std::cmp::Reverse(item.0));
+        for (i, (_, mv)) in decorated.into_iter().enumerate() {
+            ordered[i] = mv;
+        }
+        assert_eq!(ordered[0], good);
+        assert_eq!(ordered[1], bad);
+
+        let killer_key = move_order_key(
+            &board,
+            killer0,
+            None,
+            killers,
+            &history,
+            side,
+            Some(512),
+            policy::PolicyMode::Soft,
+        );
+        let ordinary_key = move_order_key(
+            &board,
+            good,
+            None,
+            killers,
+            &history,
+            side,
+            Some(512),
+            policy::PolicyMode::Soft,
+        );
+        assert_eq!(killer_key, 900_000);
+        assert_eq!(ordinary_key, 512);
+        assert!(killer_key > ordinary_key);
+    }
+
+    #[test]
+    fn soft_mode_centers_deltas() {
+        let moves = [
+            Move::quiet(Square::new(6, 0), Square::new(5, 2)),
+            Move::quiet(Square::new(5, 0), Square::new(2, 3)),
+            Move::quiet(Square::new(4, 1), Square::new(4, 3)),
+        ];
+        let logits = [100, 0, -100];
+        let deltas = rank_normalize_policy_adjustments(
+            &moves,
+            &logits,
+            None,
+            [None; 2],
+            policy::PolicyMode::Soft,
+        );
+        assert_eq!(deltas[0], Some(512));
+        assert_eq!(deltas[2], Some(-512));
+        assert_eq!(deltas[1], Some(0));
     }
 
     #[test]

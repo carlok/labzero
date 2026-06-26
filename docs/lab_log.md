@@ -551,3 +551,16 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Result:** complete — 2-11-3 (21.9%), perf ≈ **2479**
 - **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
 - **Artifact:** `docs/strength/gate_sf2700_policy_fix_16g.txt`
+
+## Gauntlet gate_sf2600_policy_soft_16g (2026-06-26)
+
+- **Result:** complete — 9-4-3 (65.6%), perf ≈ **2712**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_policy_soft_16g.txt`
+
+## Gauntlet gate_sf2700_policy_soft_16g (2026-06-26)
+
+- **Result:** complete — 2-7-7 (34.4%), perf ≈ **2588**
+- **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2700_policy_soft_16g.txt`
+- **Note:** below 8/16 bar; policy sprint paused, keep policy off by default

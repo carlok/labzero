@@ -17,6 +17,30 @@ const NUM_FEATURES: usize = 768;
 const NUM_MOVES: usize = 4096;
 const QA: i32 = 127;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolicyMode {
+    Hard,
+    Soft,
+}
+
+fn parse_policy_mode() -> PolicyMode {
+    match env::var("LABZERO_POLICY_MODE")
+        .ok()
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        None | Some("hard") => PolicyMode::Hard,
+        Some("soft") => PolicyMode::Soft,
+        Some(other) => {
+            eprintln!("policy: unknown LABZERO_POLICY_MODE={other:?}; using hard");
+            PolicyMode::Hard
+        }
+    }
+}
+
+static POLICY_MODE: LazyLock<PolicyMode> = LazyLock::new(parse_policy_mode);
+
 #[derive(Clone)]
 pub struct Network {
     hidden: usize,
@@ -173,6 +197,10 @@ pub fn load_from_file(path: &str) -> Result<(), String> {
 
 pub fn is_enabled() -> bool {
     NET.read().unwrap().is_some()
+}
+
+pub fn mode() -> PolicyMode {
+    *POLICY_MODE
 }
 
 /// Raw logits aligned with `moves`; `None` when policy is off.

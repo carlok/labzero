@@ -4,11 +4,13 @@
 # Output: data/policy/policy.lzp
 #
 #   ./scripts/host-sprint-policy.sh
+#   POLICY_GAMES=10000 LABEL_DEPTH=7 EPOCHS=20 ./scripts/host-sprint-policy.sh  # v2 soft retrain
 #   POLICY_GAMES=5000 EPOCHS=20 ./scripts/host-sprint-policy.sh
 #   SKIP_POLICYDATA=1 ./scripts/host-sprint-policy.sh
 #   nohup ./scripts/host-sprint-policy.sh > data/policy/run.log 2>&1 &
 #
 # After:  export LABZERO_POLICY=data/policy/policy.lzp
+#         export LABZERO_POLICY_MODE=soft
 #         ./scripts/host-sprint-gate.sh 2600
 set -euo pipefail
 
