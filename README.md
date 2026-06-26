@@ -4,7 +4,7 @@
 
 # labzero
 
-≈2600 on limited-Stockfish benchmarks — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md).
+≈2600 direct vs SF@2600 (32g gauntlet 13–9–10, `gate_sf2600_idtime_32g`) — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md) and the [perf timeline](docs/strength/elo_timeline.md) (CSV + [interactive chart](docs/strength/chart/index.html)).
 
 **[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
 
@@ -68,6 +68,19 @@ See **[User manual](docs/user_manual.md)** for full GUI setup.
 | `./scripts/podman/gauntlet` | 100-game tournament gauntlet |
 | `./scripts/podman/bot --dry-run` | Lichess bridge dry-run (dev stub) |
 
+## Host strength measurement (native)
+
+Build first: `./scripts/build-host-engine.sh`, then set `STOCKFISH`.
+
+| Command | Purpose |
+|---------|---------|
+| `./scripts/host-gauntlet.sh` | Resumable 3+2 engine-vs-engine gauntlet (primary gate) |
+| `./scripts/host-benchmark.sh` | Legacy labzero vs weakened Stockfish (1+0 anchor, probes) |
+| `./scripts/host-record-gauntlet.sh` | Append a finished gauntlet to ladder + CSV + charts |
+| `./scripts/host-elo-timeline.sh --import-all` | Batch-import all `docs/strength/*.txt` into timeline |
+
+Use `RECORD=1` on gauntlet runs to auto-update `docs/strength/superhuman-band.md`, `elo_series.csv`, and `elo_timeline.png`. See [operator guide](docs/operator/superhuman-band-sprint.md).
+
 ## Layout
 
 | Path | Purpose |
@@ -90,6 +103,7 @@ See **[User manual](docs/user_manual.md)** for full GUI setup.
 - [Reproducibility / Podman](docs/reproducibility.md)
 - [UCI commands](docs/uci_supported.md)
 - [Lab log](docs/lab_log.md)
+- [Strength timeline](docs/strength/elo_timeline.md) — CSV, PNG, interactive chart
 - [Alpha paper draft](docs/paper_alpha.md)
 
 ## License

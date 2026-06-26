@@ -1,0 +1,51 @@
+labzero gauntlet  2026-06-25T19:26:56.888164+00:00
+status:      complete
+engine A:    labzero (labzero) Threads=4
+engine B:    stockfish (stockfish) Threads=1
+games:       32
+time control: 3+2 (wtime)
+B strength:  SF UCI_Elo=2600
+anchor Elo:  2600
+
+games:
+game   1: draw 1/2-1/2  [0-0-1]
+game   2: loss 1-0  [0-1-1]
+game   3: draw 1/2-1/2  [0-1-2]
+game   4: draw 1/2-1/2  [0-1-3]
+game   5: draw 1/2-1/2  [0-1-4]
+game   6: win  0-1  [1-1-4]
+game   7: win  1-0  [2-1-4]
+game   8: win  0-1  [3-1-4]
+game   9: win  1-0  [4-1-4]
+game  10: loss 1-0  [4-2-4]
+game  11: loss 0-1  [4-3-4]
+game  12: win  0-1  [5-3-4]
+game  13: loss 0-1  [5-4-4]
+game  14: draw 1/2-1/2  [5-4-5]
+game  15: loss 0-1  [5-5-5]
+game  16: win  0-1  [6-5-5]
+game  17: draw 1/2-1/2  [6-5-6]
+game  18: draw 1/2-1/2  [6-5-7]
+game  19: win  1-0  [7-5-7]
+game  20: loss 1-0  [7-6-7]
+game  21: draw 1/2-1/2  [7-6-8]
+game  22: loss 1-0  [7-7-8]
+game  23: win  1-0  [8-7-8]
+game  24: loss 1-0  [8-8-8]
+game  25: win  1-0  [9-8-8]
+game  26: loss 1-0  [9-9-8]
+game  27: win  1-0  [10-9-8]
+game  28: draw 1/2-1/2  [10-9-9]
+game  29: draw 1/2-1/2  [10-9-10]
+game  30: win  0-1  [11-9-10]
+game  31: win  1-0  [12-9-10]
+game  32: win  0-1  [13-9-10]
+
+---
+status:      complete
+score:       13-9-10  (W-L-D for labzero)
+labzero %:   56.2
+perf est:    2644  (anchor 2600; perf = anchor + 400*log10(p/(1-p)))
+illegal:     0
+errors:      0
+pgn:         gate_sf2600_idtime_32g.pgn
