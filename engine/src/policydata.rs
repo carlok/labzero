@@ -129,7 +129,11 @@ pub fn run(cfg: &PolicyDataConfig) -> std::io::Result<()> {
     Ok(())
 }
 
-fn play_game(cfg: &PolicyDataConfig, state: &mut SearchState, rng: &mut SplitMix64) -> Vec<Recorded> {
+fn play_game(
+    cfg: &PolicyDataConfig,
+    state: &mut SearchState,
+    rng: &mut SplitMix64,
+) -> Vec<Recorded> {
     let mut board = Board::from_fen(STARTPOS_FEN).expect("startpos");
     let mut records = Vec::new();
 

@@ -33,7 +33,6 @@ fn read_u32(buf: &[u8], off: &mut usize) -> Option<u32> {
     Some(u32::from_le_bytes(bytes.try_into().ok()?))
 }
 
-
 fn read_i16_vec(buf: &[u8], off: &mut usize, n: usize) -> Option<Vec<i16>> {
     let bytes_len = n.checked_mul(2)?;
     let end = off.checked_add(bytes_len)?;
@@ -82,7 +81,8 @@ impl Network {
         let w_in =
             read_i16_vec(buf, &mut off, num_features * hidden).ok_or("policy: truncated w_in")?;
         let b_in = read_i32_vec(buf, &mut off, hidden).ok_or("policy: truncated b_in")?;
-        let w_out = read_i16_vec(buf, &mut off, hidden * NUM_MOVES).ok_or("policy: truncated w_out")?;
+        let w_out =
+            read_i16_vec(buf, &mut off, hidden * NUM_MOVES).ok_or("policy: truncated w_out")?;
         let b_out = read_i32_vec(buf, &mut off, NUM_MOVES).ok_or("policy: truncated b_out")?;
         Ok(Network {
             hidden,
@@ -125,14 +125,26 @@ impl Network {
         acc.into_iter().map(|v| v.clamp(0, QA)).collect()
     }
 
-    pub fn move_logit(&self, board: &Board, mv: Move) -> i32 {
-        let hidden = self.hidden_layer(board);
+    pub fn move_logit_from_hidden(&self, hidden: &[i32], mv: Move) -> i32 {
         let idx = mv.from.index() as usize * 64 + mv.to.index() as usize;
         let mut out: i64 = self.b_out[idx] as i64;
         for (h, &a) in hidden.iter().enumerate() {
             out += a as i64 * self.w_out[h * NUM_MOVES + idx] as i64;
         }
         out.clamp(i32::MIN as i64, i32::MAX as i64) as i32
+    }
+
+    pub fn move_logit(&self, board: &Board, mv: Move) -> i32 {
+        let hidden = self.hidden_layer(board);
+        self.move_logit_from_hidden(&hidden, mv)
+    }
+
+    fn quiet_logits(&self, board: &Board, moves: &[Move]) -> Vec<i32> {
+        let hidden = self.hidden_layer(board);
+        moves
+            .iter()
+            .map(|&mv| self.move_logit_from_hidden(&hidden, mv))
+            .collect()
     }
 }
 
@@ -163,8 +175,16 @@ pub fn is_enabled() -> bool {
     NET.read().unwrap().is_some()
 }
 
-/// Ordering bonus for a quiet move; `None` when policy is off.
-pub fn quiet_bonus(board: &Board, mv: Move) -> Option<i32> {
+/// Raw logits aligned with `moves`; `None` when policy is off.
+pub fn quiet_scores(board: &Board, moves: &[Move]) -> Option<Vec<i32>> {
+    NET.read()
+        .unwrap()
+        .as_ref()
+        .map(|n| n.quiet_logits(board, moves))
+}
+
+/// Single-move logit for CLI parity probes.
+pub fn move_logit(board: &Board, mv: Move) -> Option<i32> {
     NET.read()
         .unwrap()
         .as_ref()

@@ -532,3 +532,22 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Result:** complete — 4-5-7 (46.9%), perf ≈ **2578**
 - **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
 - **Artifact:** `docs/strength/gate_sf2600_tt2_16g.txt`
+
+## Gauntlet gate_sf2600_policy_16g (2026-06-26)
+
+- **Result:** complete — 1-11-4 (18.8%), perf ≈ **2345**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_policy_16g.txt`
+- **Note:** policy v1 with move-ordering bug (TT/killer quiets demoted into policy band); **invalid for strength claims**
+
+## Gauntlet gate_sf2600_policy_fix_16g (2026-06-26)
+
+- **Result:** complete — 7-3-6 (62.5%), perf ≈ **2689**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_policy_fix_16g.txt`
+
+## Gauntlet gate_sf2700_policy_fix_16g (2026-06-26)
+
+- **Result:** complete — 2-11-3 (21.9%), perf ≈ **2479**
+- **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2700_policy_fix_16g.txt`

@@ -548,6 +548,10 @@ fn is_noisy(mv: Move) -> bool {
     )
 }
 
+fn is_policy_eligible(mv: Move, tt_move: Option<Move>, killers: [Option<Move>; 2]) -> bool {
+    !is_noisy(mv) && tt_move != Some(mv) && killers[0] != Some(mv) && killers[1] != Some(mv)
+}
+
 fn order_moves(
     board: &Board,
     moves: &mut [Move],
@@ -558,13 +562,61 @@ fn order_moves(
     depth: u32,
 ) {
     let side = stm.index();
-    moves.sort_by(|a, b| {
-        move_order_key(board, *a, tt_move, killers, history, side, depth)
-            .cmp(&move_order_key(
-                board, *b, tt_move, killers, history, side, depth,
-            ))
-            .reverse()
-    });
+    let policy_logits = if depth >= 4 {
+        policy::quiet_scores(board, moves)
+    } else {
+        None
+    };
+    let policy_bonus = policy_logits
+        .as_ref()
+        .map(|logits| rank_normalize_policy_bonuses(moves, logits, tt_move, killers));
+
+    let mut decorated: Vec<(i64, Move)> = moves
+        .iter()
+        .enumerate()
+        .map(|(i, &mv)| {
+            let bonus = policy_bonus
+                .as_ref()
+                .and_then(|bonuses| bonuses[i])
+                .filter(|_| is_policy_eligible(mv, tt_move, killers));
+            let key = move_order_key(board, mv, tt_move, killers, history, side, bonus);
+            (key, mv)
+        })
+        .collect();
+    decorated.sort_by_key(|item| std::cmp::Reverse(item.0));
+    for (i, (_, mv)) in decorated.into_iter().enumerate() {
+        moves[i] = mv;
+    }
+}
+
+fn rank_normalize_policy_bonuses(
+    moves: &[Move],
+    logits: &[i32],
+    tt_move: Option<Move>,
+    killers: [Option<Move>; 2],
+) -> Vec<Option<i64>> {
+    let mut quiet: Vec<(usize, i32)> = moves
+        .iter()
+        .enumerate()
+        .filter(|(_, mv)| is_policy_eligible(**mv, tt_move, killers))
+        .map(|(i, _)| (i, logits[i]))
+        .collect();
+    quiet.sort_by_key(|item| std::cmp::Reverse(item.1));
+
+    let mut out = vec![None; moves.len()];
+    let n = quiet.len();
+    if n == 0 {
+        return out;
+    }
+    if n == 1 {
+        out[quiet[0].0] = Some(99_999);
+        return out;
+    }
+    for (rank, (idx, _)) in quiet.iter().enumerate() {
+        let bonus = ((n - 1 - rank) as i64 * 99_999) / (n - 1) as i64;
+        out[*idx] = Some(bonus);
+    }
+    out
 }
 
 fn move_order_key(
@@ -574,7 +626,23 @@ fn move_order_key(
     killers: [Option<Move>; 2],
     history: &[[[i32; 64]; 64]; 2],
     side: usize,
-    depth: u32,
+    policy_bonus: Option<i64>,
+) -> i64 {
+    let key = base_move_order_key(board, mv, tt_move, killers, history, side);
+    if let Some(bonus) = policy_bonus.filter(|_| is_policy_eligible(mv, tt_move, killers)) {
+        700_000 + bonus
+    } else {
+        key
+    }
+}
+
+fn base_move_order_key(
+    board: &Board,
+    mv: Move,
+    tt_move: Option<Move>,
+    killers: [Option<Move>; 2],
+    history: &[[[i32; 64]; 64]; 2],
+    side: usize,
 ) -> i64 {
     if tt_move == Some(mv) {
         return i64::MAX;
@@ -591,11 +659,6 @@ fn move_order_key(
     }
     if killers[1] == Some(mv) {
         return 800_000;
-    }
-    if depth >= 4 {
-        if let Some(bonus) = policy::quiet_bonus(board, mv) {
-            return 700_000 + bonus as i64;
-        }
     }
     history[side][mv.from.index() as usize][mv.to.index() as usize] as i64
 }
@@ -650,9 +713,87 @@ mod tests {
             -2_048,
         );
         let mut moves = [bad, good];
-        order_moves(&board, &mut moves, None, [None; 2], &history, Color::White, 0);
+        order_moves(
+            &board,
+            &mut moves,
+            None,
+            [None; 2],
+            &history,
+            Color::White,
+            0,
+        );
         assert_eq!(moves[0], good);
         assert_eq!(moves[1], bad);
+    }
+
+    #[test]
+    fn policy_bonus_skips_tt_and_killer_quiets() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let tt_mv = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let killer0 = Move::quiet(Square::new(3, 1), Square::new(3, 3));
+        let policy_mv = Move::quiet(Square::new(6, 0), Square::new(5, 2));
+        let killers = [Some(killer0), None];
+        let history = [[[0; 64]; 64]; 2];
+        let side = Color::White.index();
+
+        let moves = [tt_mv, killer0, policy_mv];
+        let logits = [-10_000, -10_000, 10_000];
+        let bonuses = rank_normalize_policy_bonuses(&moves, &logits, Some(tt_mv), killers);
+
+        assert_eq!(bonuses[0], None, "TT quiet must not get policy bonus");
+        assert_eq!(bonuses[1], None, "killer quiet must not get policy bonus");
+        assert_eq!(bonuses[2], Some(99_999));
+
+        let tt_key = move_order_key(
+            &board,
+            tt_mv,
+            Some(tt_mv),
+            killers,
+            &history,
+            side,
+            bonuses[0],
+        );
+        let killer_key = move_order_key(
+            &board,
+            killer0,
+            Some(tt_mv),
+            killers,
+            &history,
+            side,
+            bonuses[1],
+        );
+        let policy_key = move_order_key(
+            &board,
+            policy_mv,
+            Some(tt_mv),
+            killers,
+            &history,
+            side,
+            bonuses[2],
+        );
+
+        assert_eq!(tt_key, i64::MAX);
+        assert_eq!(killer_key, 900_000);
+        assert_eq!(policy_key, 700_000 + 99_999);
+
+        let mut ordered = moves;
+        let mut decorated: Vec<(i64, Move)> = ordered
+            .iter()
+            .enumerate()
+            .map(|(i, &mv)| {
+                (
+                    move_order_key(&board, mv, Some(tt_mv), killers, &history, side, bonuses[i]),
+                    mv,
+                )
+            })
+            .collect();
+        decorated.sort_by_key(|item| std::cmp::Reverse(item.0));
+        for (i, (_, mv)) in decorated.into_iter().enumerate() {
+            ordered[i] = mv;
+        }
+        assert_eq!(ordered[0], tt_mv);
+        assert_eq!(ordered[1], killer0);
+        assert_eq!(ordered[2], policy_mv);
     }
 
     #[test]

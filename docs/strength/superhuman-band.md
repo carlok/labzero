@@ -21,3 +21,6 @@ Manual rows OK — keep handicap + threads in Notes.
 | 2026-06-26 | SF UCI_Elo=2700 | 3+2 | 16 | 2-5-9 | 40.6% | 2634 | `gate_sf2700_lmrhist_16g.txt` | — |
 | 2026-06-26 | SF UCI_Elo=2600 | 3+2 | 16 | 4-6-6 | 43.8% | 2556 | `gate_sf2600_cm_16g.txt` | — |
 | 2026-06-26 | SF UCI_Elo=2600 | 3+2 | 16 | 4-5-7 | 46.9% | 2578 | `gate_sf2600_tt2_16g.txt` | — |
+| 2026-06-26 | SF UCI_Elo=2600 | 3+2 | 16 | 1-11-4 | 18.8% | 2345 | `gate_sf2600_policy_16g.txt` | policy v1 ordering bug; invalid |
+| 2026-06-26 | SF UCI_Elo=2600 | 3+2 | 16 | 7-3-6 | 62.5% | 2689 | `gate_sf2600_policy_fix_16g.txt` | — |
+| 2026-06-26 | SF UCI_Elo=2700 | 3+2 | 16 | 2-11-3 | 21.9% | 2479 | `gate_sf2700_policy_fix_16g.txt` | — |

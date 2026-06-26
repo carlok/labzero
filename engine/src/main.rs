@@ -54,7 +54,10 @@ fn main() {
         });
         let games: u64 = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(100);
         let depth: u32 = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(6);
-        let label_depth: u32 = args.get(5).and_then(|s| s.parse().ok()).unwrap_or(depth + 2);
+        let label_depth: u32 = args
+            .get(5)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(depth + 2);
         let seed: u64 = args
             .get(6)
             .and_then(|s| s.parse().ok())
@@ -63,12 +66,48 @@ fn main() {
             eprintln!("policydata: cannot open {out}: {e}");
             std::process::exit(1);
         }
-        let cfg = labzero::policydata::PolicyDataConfig::from_args(
-            &out, games, depth, label_depth, seed,
-        );
+        let cfg =
+            labzero::policydata::PolicyDataConfig::from_args(&out, games, depth, label_depth, seed);
         if let Err(e) = labzero::policydata::run(&cfg) {
             eprintln!("policydata error: {e}");
             std::process::exit(1);
+        }
+        return;
+    }
+
+    if args.len() >= 2 && args[1] == "policyeval" {
+        if !labzero::policy::is_enabled() {
+            eprintln!("policyeval: LABZERO_POLICY not set or failed to load");
+            std::process::exit(1);
+        }
+        let fen = args.get(2).map(String::as_str).unwrap_or_else(|| {
+            eprintln!("usage: labzero policyeval <fen> <uci>");
+            std::process::exit(1);
+        });
+        let uci = args.get(3).map(String::as_str).unwrap_or_else(|| {
+            eprintln!("usage: labzero policyeval <fen> <uci>");
+            std::process::exit(1);
+        });
+        let board = match labzero::Board::from_fen(fen) {
+            Ok(b) => b,
+            Err(e) => {
+                eprintln!("policyeval: invalid fen: {e}");
+                std::process::exit(1);
+            }
+        };
+        let mv = match labzero::mov::Move::resolve_uci(&board, uci) {
+            Some(m) => m,
+            None => {
+                eprintln!("policyeval: illegal move {uci} for position");
+                std::process::exit(1);
+            }
+        };
+        match labzero::policy::move_logit(&board, mv) {
+            Some(logit) => println!("{logit}"),
+            None => {
+                eprintln!("policyeval: policy network not loaded");
+                std::process::exit(1);
+            }
         }
         return;
     }
