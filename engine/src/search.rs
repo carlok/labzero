@@ -6,6 +6,7 @@ use crate::board::Board;
 use crate::eval::search_eval as evaluate;
 use crate::mov::{Move, MoveKind};
 use crate::movegen::generate_legal_moves;
+use crate::policy;
 use crate::see::see_capture_value;
 use crate::time::TimeBudget;
 use crate::tt::{TranspositionTable, TtFlag};
@@ -248,6 +249,7 @@ fn search_root(
         state.killers[1],
         &state.history,
         board.stm,
+        depth,
     );
 
     let mut best = None;
@@ -383,6 +385,7 @@ fn negamax(
         ctx.state.killers[ply],
         &ctx.state.history,
         board.stm,
+        depth,
     );
 
     let mut best = i32::MIN + 1;
@@ -518,6 +521,7 @@ fn qsearch(
         ctx.state.killers[ply],
         &ctx.state.history,
         board.stm,
+        0,
     );
 
     for mv in sorted {
@@ -551,11 +555,14 @@ fn order_moves(
     killers: [Option<Move>; 2],
     history: &[[[i32; 64]; 64]; 2],
     stm: crate::color::Color,
+    depth: u32,
 ) {
     let side = stm.index();
     moves.sort_by(|a, b| {
-        move_order_key(board, *a, tt_move, killers, history, side)
-            .cmp(&move_order_key(board, *b, tt_move, killers, history, side))
+        move_order_key(board, *a, tt_move, killers, history, side, depth)
+            .cmp(&move_order_key(
+                board, *b, tt_move, killers, history, side, depth,
+            ))
             .reverse()
     });
 }
@@ -567,6 +574,7 @@ fn move_order_key(
     killers: [Option<Move>; 2],
     history: &[[[i32; 64]; 64]; 2],
     side: usize,
+    depth: u32,
 ) -> i64 {
     if tt_move == Some(mv) {
         return i64::MAX;
@@ -583,6 +591,11 @@ fn move_order_key(
     }
     if killers[1] == Some(mv) {
         return 800_000;
+    }
+    if depth >= 4 {
+        if let Some(bonus) = policy::quiet_bonus(board, mv) {
+            return 700_000 + bonus as i64;
+        }
     }
     history[side][mv.from.index() as usize][mv.to.index() as usize] as i64
 }
@@ -637,7 +650,7 @@ mod tests {
             -2_048,
         );
         let mut moves = [bad, good];
-        order_moves(&board, &mut moves, None, [None; 2], &history, Color::White);
+        order_moves(&board, &mut moves, None, [None; 2], &history, Color::White, 0);
         assert_eq!(moves[0], good);
         assert_eq!(moves[1], bad);
     }
