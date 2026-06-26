@@ -502,3 +502,33 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Result:** complete — 13-9-10 (56.2%), perf ≈ **2644**
 - **Opponent:** SF UCI_Elo=2600, TC 3+2, 32 games
 - **Artifact:** `docs/strength/gate_sf2600_idtime_32g.txt`
+
+## Gauntlet gate_sf2700_baseline_16g (2026-06-26)
+
+- **Result:** complete — 2-4-10 (43.8%), perf ≈ **2656**
+- **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2700_baseline_16g.txt`
+
+## Gauntlet gate_sf2600_lmrhist_16g (2026-06-26)
+
+- **Result:** complete — 7-6-3 (53.1%), perf ≈ **2622**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_lmrhist_16g.txt`
+
+## Gauntlet gate_sf2700_lmrhist_16g (2026-06-26)
+
+- **Result:** complete — 2-5-9 (40.6%), perf ≈ **2634**
+- **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2700_lmrhist_16g.txt`
+
+## Gauntlet gate_sf2600_cm_16g (2026-06-26)
+
+- **Result:** complete — 4-6-6 (43.8%), perf ≈ **2556**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_cm_16g.txt`
+
+## Gauntlet gate_sf2600_tt2_16g (2026-06-26)
+
+- **Result:** complete — 4-5-7 (46.9%), perf ≈ **2578**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_tt2_16g.txt`

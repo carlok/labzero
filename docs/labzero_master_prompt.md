@@ -35,13 +35,14 @@ Before changing code:
    tuning.
 
 Current baseline (verify in repo before assuming):
-- Package v0.6.0 on main (superhuman-band sprint: magic bitboards, mailbox, sprint tooling).
+- Package v0.6.1 on main (superhuman-band sprint plus ID time-depth fix).
 - Async UCI stop on main (worker-thread go, raw async tester).
-- Headline strength ≈2600 on limited-Stockfish 3+2 blitz benchmarks (T=4).
-- Kept: magic bitboards + mailbox movegen; eval defaults (no shipped SPSA params); SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
+- Headline strength ≈2600 direct on limited-Stockfish 3+2 blitz benchmarks (T=4).
+- Kept: magic bitboards + mailbox movegen; ID iterative-deepening time accounting fix; eval defaults (no shipped SPSA params); SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
+- SF@2600 32g direct row: 13–9–10 (56.2%, 18/32 W-equiv, perf ≈2644, `gate_sf2600_idtime_32g`); 0 illegal/errors.
 - SF@2500 32g baseline: 18–7–7 (67.2%, perf ≈2624, `baseline_sf2500`); SPSA s2 rollback 11–10–11 (`gate_sf2500_32g`); 0 illegal/errors.
 - Rolled back: PVS v1; eval v3 king pressure; SPSA smoke + s2 tuned params.
-- Next: NNUE sprint (v0.7 bet) — `host-sprint-nnue.sh` then gate vs SF@2600.
+- Next: SF2700 baseline probe, then one narrow traditional search branch or disabled policy-guided alpha-beta infrastructure.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;

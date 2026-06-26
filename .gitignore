@@ -27,3 +27,5 @@ engines/
 
 # Generated local compute: self-play data, SPSA tuning state/checkpoints
 data/
+
+.matplotlib-cache/

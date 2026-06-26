@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.6.1 — 2026-06-26
+
+- **Search:** fixed iterative-deepening time accounting so `should_start_depth` receives the previous iteration duration instead of cumulative elapsed time
+- **Measurement:** direct 3+2 **T=4** vs SF@2600 **32g → 13–9–10 (56.2%, 18/32 W-equiv, perf ≈2644)** (`gate_sf2600_idtime_32g`); 0 illegal/errors
+- **Release:** package/tag **v0.6.1**; README/ladder headline now uses the direct SF2600 row
+
 ## 0.6.0 — 2026-06-24
 
 - **Search:** magic bitboards + precomputed leaper tables; O(1) mailbox `piece_at`; clone-once legality in movegen (~3.6× perft 6, ~1.4× depth-12 search vs pre-sprint)
