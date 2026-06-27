@@ -90,16 +90,6 @@ impl Move {
             },
         })
     }
-
-    /// Match UCI against legal moves (handles double-push, castle, etc.).
-    pub fn resolve_uci(board: &crate::board::Board, uci: &str) -> Option<Self> {
-        let partial = Self::from_uci(uci)?;
-        crate::movegen::generate_legal_moves(board)
-            .into_iter()
-            .find(|m| {
-                m.from == partial.from && m.to == partial.to && m.promotion == partial.promotion
-            })
-    }
 }
 
 fn square_name(sq: Square) -> String {
@@ -127,14 +117,5 @@ mod tests {
     fn uci_roundtrip() {
         let m = Move::promotion(Square::new(0, 6), Square::new(0, 7), PieceKind::Queen);
         assert_eq!(m.to_uci(), "a7a8q");
-    }
-
-    #[test]
-    fn resolve_uci_finds_double_push() {
-        use crate::board::Board;
-        use crate::fen::STARTPOS_FEN;
-        let board = Board::from_fen(STARTPOS_FEN).unwrap();
-        let mv = Move::resolve_uci(&board, "e2e4").expect("e2e4 legal");
-        assert_eq!(mv.kind, MoveKind::DoublePush);
     }
 }

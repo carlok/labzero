@@ -11,8 +11,6 @@ pub mod nnue;
 pub mod params;
 pub mod perft;
 pub mod piece;
-pub mod policy;
-pub mod policydata;
 pub mod search;
 pub mod see;
 pub mod selfplay;

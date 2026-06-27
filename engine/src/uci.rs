@@ -113,10 +113,6 @@ pub fn run_uci_loop() {
                 &out_lock,
                 "option name NnueFile type string default <empty>",
             );
-            write_uci_line(
-                &out_lock,
-                "option name PolicyFile type string default <empty>",
-            );
             write_uci_line(&out_lock, "uciok");
         } else if trimmed == "isready" {
             write_uci_line(&out_lock, "readyok");
@@ -211,11 +207,6 @@ fn apply_setoption(rest: &str) {
                             eprintln!("{e}");
                         }
                     }
-                    "PolicyFile" => {
-                        if let Err(e) = crate::policy::load_from_file(v) {
-                            eprintln!("{e}");
-                        }
-                    }
                     _ => {}
                 }
                 i += 1;
@@ -299,6 +290,8 @@ fn run_go_and_reply(board: &Board, tc: &TimeControl, out: &mut impl Write) {
             return;
         }
     }
+
+    stop_flag().store(false, Ordering::Relaxed);
 
     let stm_white = board.stm == crate::color::Color::White;
     let opts = engine_opts().lock().expect("engine opts").clone();

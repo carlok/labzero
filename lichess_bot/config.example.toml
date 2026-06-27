@@ -1,7 +1,64 @@
-# Copy to config.toml and set LICHESS_TOKEN in environment.
-engine = "/workspace/.cargo-target/release/labzero"
-search_depth = 4
-movetime_ms = 2000
-max_concurrent = 1
-accept_challenges = true
-dry_run = false
+# Copy to config.toml for local overrides. Put the token in lichess_bot/.env.
+engine = "lichess_bot/bin/labzero-macos-aarch64-0.6.1"
+
+# Live challenges are 3+2 blitz only for now.
+clock_limit = 180
+clock_increment = 2
+max_parallel_games = 1
+rated = false
+challenge_color = "random" # random, white, or black
+
+# Incoming challenge policy. Use "any" to accept humans and bots, "human" for
+# human challengers only, or "bot" for bot challengers only.
+accept_from = "any"
+# min_rating = 1200
+# max_rating = 2600
+
+# Leave unset for clock-managed UCI play. Set one of these only for local tests.
+# search_depth = 4
+# movetime_ms = 2000
+move_overhead_ms = 500
+# max_movetime_ms = 5000
+
+# Optional tablebase/book helpers. Empty lists keep all moves engine-only.
+polyglot_books = []
+polyglot_max_depth = 20
+syzygy_paths = []
+syzygy_max_pieces = 7
+
+# Optional sportsmanship features. Keep disabled until tested in casual games.
+resign_enabled = false
+resign_score = -1000
+resign_moves = 3
+offer_draw_enabled = false
+offer_draw_score = 20
+offer_draw_moves = 10
+offer_draw_pieces = 10
+accept_draw_enabled = true
+accept_draw_losing_score = -100
+accept_draw_equal_score = 25
+accept_draw_equal_pieces = 8
+accept_draw_min_ply = 40
+accept_draw_low_time_sec = 10
+accept_draw_low_time_score = 100
+
+# Local game records and player chat.
+pgn_directory = "lichess_bot/local/pgn"
+hello = "Hi! I'm {me}. Good luck!"
+goodbye = "Good game!"
+
+# Online bot selection for --challenge-loop.
+min_blitz_games = 20
+allow_provisional = false
+target_rating_min_delta = 0
+target_rating_max_delta = 150
+fallback_blitz_rating = 1500
+use_fallback_rating_when_provisional = true
+max_challenge_attempts_per_cycle = 8
+max_bot_challenges_per_day = 100
+bot_challenge_quota_margin = 10
+challenge_quota_file = "lichess_bot/local/challenge-quota.json"
+challenge_control_file = "lichess_bot/local/challenge-control.json"
+avoid_bots_file = "lichess_bot/local/avoid-bots.json"
+challenge_interval_sec = 90
+heartbeat_sec = 25

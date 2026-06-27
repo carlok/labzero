@@ -6,7 +6,7 @@ use crate::board::Board;
 use crate::eval::search_eval as evaluate;
 use crate::mov::{Move, MoveKind};
 use crate::movegen::generate_legal_moves;
-use crate::policy;
+use crate::piece::PieceKind;
 use crate::see::see_capture_value;
 use crate::time::TimeBudget;
 use crate::tt::{TranspositionTable, TtFlag};
@@ -20,6 +20,11 @@ const LMR_FULL: usize = 4;
 const ASPIRATION_DELTA: i32 = 50;
 const ASPIRATION_MIN_DEPTH: u32 = 5;
 const HISTORY_MAX: i32 = 16_384;
+const ROOT_AHEAD_THRESHOLD: i32 = 150;
+const ROOT_DRAW_PENALTY: i32 = 320;
+const ROOT_REPEAT_PENALTY: i32 = 80;
+const ROOT_TACTICAL_MARGIN: i32 = 200;
+const ROOT_PROGRESS_BONUS: i32 = 8;
 
 fn history_bonus(depth: u32) -> i32 {
     ((depth * depth) as i32 * 16).min(2_048)
@@ -230,6 +235,89 @@ pub fn search_with_info_from_depth(
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct RootCandidate {
+    score: i32,
+    rep_count: usize,
+    is_immediate_draw: bool,
+    is_progress: bool,
+}
+
+#[allow(dead_code)]
+fn is_progress_move(board: &Board, mv: Move) -> bool {
+    matches!(
+        mv.kind,
+        MoveKind::Capture | MoveKind::EnPassant | MoveKind::Promotion | MoveKind::DoublePush
+    ) || board
+        .piece_at(mv.from)
+        .is_some_and(|p| p.kind == PieceKind::Pawn)
+}
+
+#[allow(dead_code)]
+fn is_repeat_candidate(c: &RootCandidate) -> bool {
+    c.is_immediate_draw || c.rep_count >= 1
+}
+
+#[allow(dead_code)]
+fn root_rank_score(
+    c: &RootCandidate,
+    root_static: i32,
+    best_non_repeat_score: i32,
+    has_non_repeat: bool,
+) -> i32 {
+    if root_static < ROOT_AHEAD_THRESHOLD {
+        return c.score;
+    }
+    let mut rank = c.score;
+    if has_non_repeat && is_repeat_candidate(c) {
+        let mateish = c.score.abs() >= MATE_SCORE - 1000;
+        let tactical = c.score >= best_non_repeat_score + ROOT_TACTICAL_MARGIN;
+        if !mateish && !tactical {
+            if c.is_immediate_draw {
+                rank -= ROOT_DRAW_PENALTY;
+            } else if c.rep_count >= 1 {
+                rank -= ROOT_REPEAT_PENALTY;
+            }
+        }
+    }
+    if !is_repeat_candidate(c) && c.is_progress {
+        rank += ROOT_PROGRESS_BONUS;
+    }
+    rank
+}
+
+#[allow(dead_code)]
+fn pick_root_move(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Option<Move>, i32) {
+    if candidates.is_empty() {
+        return (None, 0);
+    }
+    let raw_best = candidates
+        .iter()
+        .max_by_key(|(_, c)| c.score)
+        .map(|(mv, c)| (*mv, c.score));
+    if root_static < ROOT_AHEAD_THRESHOLD {
+        return raw_best.map(|(mv, s)| (Some(mv), s)).unwrap_or((None, 0));
+    }
+    let best_non_repeat_score = candidates
+        .iter()
+        .filter(|(_, c)| !is_repeat_candidate(c))
+        .map(|(_, c)| c.score)
+        .max()
+        .unwrap_or(i32::MIN + 1);
+    let has_non_repeat = candidates.iter().any(|(_, c)| !is_repeat_candidate(c));
+    let picked = candidates
+        .iter()
+        .max_by(|(_, a), (_, b)| {
+            let ra = root_rank_score(a, root_static, best_non_repeat_score, has_non_repeat);
+            let rb = root_rank_score(b, root_static, best_non_repeat_score, has_non_repeat);
+            ra.cmp(&rb).then(a.score.cmp(&b.score))
+        })
+        .map(|(mv, c)| (*mv, c.score));
+    picked
+        .map(|(mv, s)| (Some(mv), s))
+        .unwrap_or_else(|| raw_best.map(|(mv, s)| (Some(mv), s)).unwrap_or((None, 0)))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn search_root(
     board: &mut Board,
@@ -249,7 +337,6 @@ fn search_root(
         state.killers[1],
         &state.history,
         board.stm,
-        depth,
     );
 
     let mut best = None;
@@ -332,11 +419,13 @@ fn negamax(
         depth += 1;
     }
 
+    if board.is_draw() {
+        return 0;
+    }
+
     let key = board.hash;
     let mut tt_move = None;
     if let Some((tt_score, tt_depth, flag, bm, complete)) = ctx.state.tt.probe(key, frame.ply) {
-        // Re-enabled for timed search post-Zobrist (prior 1+0 regression was pre-real-hash).
-        // Safeguards: complete node, sufficient depth, mate exclusion; partial nodes skip store.
         if let Some(score) = tt_cutoff(tt_score, tt_depth, flag, depth, alpha, beta, complete) {
             return score;
         }
@@ -385,7 +474,6 @@ fn negamax(
         ctx.state.killers[ply],
         &ctx.state.history,
         board.stm,
-        depth,
     );
 
     let mut best = i32::MIN + 1;
@@ -485,6 +573,10 @@ fn qsearch(
 
     let in_check = board.in_check(board.stm);
 
+    if board.is_draw() {
+        return 0;
+    }
+
     if !in_check {
         let stand_pat = evaluate(board);
         if stand_pat >= beta {
@@ -521,7 +613,6 @@ fn qsearch(
         ctx.state.killers[ply],
         &ctx.state.history,
         board.stm,
-        0,
     );
 
     for mv in sorted {
@@ -548,10 +639,6 @@ fn is_noisy(mv: Move) -> bool {
     )
 }
 
-fn is_policy_eligible(mv: Move, tt_move: Option<Move>, killers: [Option<Move>; 2]) -> bool {
-    !is_noisy(mv) && tt_move != Some(mv) && killers[0] != Some(mv) && killers[1] != Some(mv)
-}
-
 fn order_moves(
     board: &Board,
     moves: &mut [Move],
@@ -559,97 +646,16 @@ fn order_moves(
     killers: [Option<Move>; 2],
     history: &[[[i32; 64]; 64]; 2],
     stm: crate::color::Color,
-    depth: u32,
 ) {
     let side = stm.index();
-    let policy_logits = if depth >= 4 {
-        policy::quiet_scores(board, moves)
-    } else {
-        None
-    };
-    let policy_bonus = policy_logits.as_ref().map(|logits| {
-        rank_normalize_policy_adjustments(moves, logits, tt_move, killers, policy::mode())
+    moves.sort_by(|a, b| {
+        move_order_key(board, *a, tt_move, killers, history, side)
+            .cmp(&move_order_key(board, *b, tt_move, killers, history, side))
+            .reverse()
     });
-
-    let mode = policy::mode();
-    let mut decorated: Vec<(i64, Move)> = moves
-        .iter()
-        .enumerate()
-        .map(|(i, &mv)| {
-            let adj = policy_bonus
-                .as_ref()
-                .and_then(|bonuses| bonuses[i])
-                .filter(|_| is_policy_eligible(mv, tt_move, killers));
-            let key = move_order_key(board, mv, tt_move, killers, history, side, adj, mode);
-            (key, mv)
-        })
-        .collect();
-    decorated.sort_by_key(|item| std::cmp::Reverse(item.0));
-    for (i, (_, mv)) in decorated.into_iter().enumerate() {
-        moves[i] = mv;
-    }
 }
 
-fn rank_normalize_policy_adjustments(
-    moves: &[Move],
-    logits: &[i32],
-    tt_move: Option<Move>,
-    killers: [Option<Move>; 2],
-    mode: policy::PolicyMode,
-) -> Vec<Option<i64>> {
-    let mut quiet: Vec<(usize, i32)> = moves
-        .iter()
-        .enumerate()
-        .filter(|(_, mv)| is_policy_eligible(**mv, tt_move, killers))
-        .map(|(i, _)| (i, logits[i]))
-        .collect();
-    quiet.sort_by_key(|item| std::cmp::Reverse(item.1));
-
-    let mut out = vec![None; moves.len()];
-    let n = quiet.len();
-    if n == 0 {
-        return out;
-    }
-    if n == 1 {
-        out[quiet[0].0] = Some(match mode {
-            policy::PolicyMode::Hard => 99_999,
-            policy::PolicyMode::Soft => 0,
-        });
-        return out;
-    }
-    for (rank, (idx, _)) in quiet.iter().enumerate() {
-        let adj = match mode {
-            policy::PolicyMode::Hard => ((n - 1 - rank) as i64 * 99_999) / (n - 1) as i64,
-            policy::PolicyMode::Soft => 512 - (rank as i64 * 1024) / (n - 1) as i64,
-        };
-        out[*idx] = Some(adj);
-    }
-    out
-}
-
-#[allow(clippy::too_many_arguments)]
 fn move_order_key(
-    board: &Board,
-    mv: Move,
-    tt_move: Option<Move>,
-    killers: [Option<Move>; 2],
-    history: &[[[i32; 64]; 64]; 2],
-    side: usize,
-    policy_adj: Option<i64>,
-    mode: policy::PolicyMode,
-) -> i64 {
-    let key = base_move_order_key(board, mv, tt_move, killers, history, side);
-    if let Some(adj) = policy_adj.filter(|_| is_policy_eligible(mv, tt_move, killers)) {
-        match mode {
-            policy::PolicyMode::Hard => 700_000 + adj,
-            policy::PolicyMode::Soft => key + adj.clamp(-512, 512),
-        }
-    } else {
-        key
-    }
-}
-
-fn base_move_order_key(
     board: &Board,
     mv: Move,
     tt_move: Option<Move>,
@@ -726,222 +732,9 @@ mod tests {
             -2_048,
         );
         let mut moves = [bad, good];
-        order_moves(
-            &board,
-            &mut moves,
-            None,
-            [None; 2],
-            &history,
-            Color::White,
-            0,
-        );
+        order_moves(&board, &mut moves, None, [None; 2], &history, Color::White);
         assert_eq!(moves[0], good);
         assert_eq!(moves[1], bad);
-    }
-
-    #[test]
-    fn policy_bonus_skips_tt_and_killer_quiets() {
-        let board = Board::from_fen(STARTPOS_FEN).unwrap();
-        let tt_mv = Move::quiet(Square::new(4, 1), Square::new(4, 3));
-        let killer0 = Move::quiet(Square::new(3, 1), Square::new(3, 3));
-        let policy_mv = Move::quiet(Square::new(6, 0), Square::new(5, 2));
-        let killers = [Some(killer0), None];
-        let history = [[[0; 64]; 64]; 2];
-        let side = Color::White.index();
-
-        let moves = [tt_mv, killer0, policy_mv];
-        let logits = [-10_000, -10_000, 10_000];
-        let bonuses = rank_normalize_policy_adjustments(
-            &moves,
-            &logits,
-            Some(tt_mv),
-            killers,
-            policy::PolicyMode::Hard,
-        );
-
-        assert_eq!(bonuses[0], None, "TT quiet must not get policy bonus");
-        assert_eq!(bonuses[1], None, "killer quiet must not get policy bonus");
-        assert_eq!(bonuses[2], Some(99_999));
-
-        let tt_key = move_order_key(
-            &board,
-            tt_mv,
-            Some(tt_mv),
-            killers,
-            &history,
-            side,
-            bonuses[0],
-            policy::PolicyMode::Hard,
-        );
-        let killer_key = move_order_key(
-            &board,
-            killer0,
-            Some(tt_mv),
-            killers,
-            &history,
-            side,
-            bonuses[1],
-            policy::PolicyMode::Hard,
-        );
-        let policy_key = move_order_key(
-            &board,
-            policy_mv,
-            Some(tt_mv),
-            killers,
-            &history,
-            side,
-            bonuses[2],
-            policy::PolicyMode::Hard,
-        );
-
-        assert_eq!(tt_key, i64::MAX);
-        assert_eq!(killer_key, 900_000);
-        assert_eq!(policy_key, 700_000 + 99_999);
-
-        let mut ordered = moves;
-        let mut decorated: Vec<(i64, Move)> = ordered
-            .iter()
-            .enumerate()
-            .map(|(i, &mv)| {
-                (
-                    move_order_key(
-                        &board,
-                        mv,
-                        Some(tt_mv),
-                        killers,
-                        &history,
-                        side,
-                        bonuses[i],
-                        policy::PolicyMode::Hard,
-                    ),
-                    mv,
-                )
-            })
-            .collect();
-        decorated.sort_by_key(|item| std::cmp::Reverse(item.0));
-        for (i, (_, mv)) in decorated.into_iter().enumerate() {
-            ordered[i] = mv;
-        }
-        assert_eq!(ordered[0], tt_mv);
-        assert_eq!(ordered[1], killer0);
-        assert_eq!(ordered[2], policy_mv);
-    }
-
-    #[test]
-    fn soft_mode_delta_within_history_band() {
-        let board = Board::from_fen(STARTPOS_FEN).unwrap();
-        let good = Move::quiet(Square::new(6, 0), Square::new(5, 2));
-        let bad = Move::quiet(Square::new(5, 0), Square::new(2, 3));
-        let killer0 = Move::quiet(Square::new(4, 1), Square::new(4, 3));
-        let killers = [Some(killer0), None];
-        let history = [[[0; 64]; 64]; 2];
-        let side = Color::White.index();
-
-        let moves = [good, bad];
-        let logits = [10_000, -10_000];
-        let deltas = rank_normalize_policy_adjustments(
-            &moves,
-            &logits,
-            None,
-            [None; 2],
-            policy::PolicyMode::Soft,
-        );
-        assert_eq!(deltas[0], Some(512));
-        assert_eq!(deltas[1], Some(-512));
-
-        let good_key = move_order_key(
-            &board,
-            good,
-            None,
-            [None; 2],
-            &history,
-            side,
-            deltas[0],
-            policy::PolicyMode::Soft,
-        );
-        let bad_key = move_order_key(
-            &board,
-            bad,
-            None,
-            [None; 2],
-            &history,
-            side,
-            deltas[1],
-            policy::PolicyMode::Soft,
-        );
-        assert_eq!(good_key, 512);
-        assert_eq!(bad_key, -512);
-
-        let mut ordered = moves;
-        let mut decorated: Vec<(i64, Move)> = moves
-            .iter()
-            .enumerate()
-            .map(|(i, &mv)| {
-                (
-                    move_order_key(
-                        &board,
-                        mv,
-                        None,
-                        [None; 2],
-                        &history,
-                        side,
-                        deltas[i],
-                        policy::PolicyMode::Soft,
-                    ),
-                    mv,
-                )
-            })
-            .collect();
-        decorated.sort_by_key(|item| std::cmp::Reverse(item.0));
-        for (i, (_, mv)) in decorated.into_iter().enumerate() {
-            ordered[i] = mv;
-        }
-        assert_eq!(ordered[0], good);
-        assert_eq!(ordered[1], bad);
-
-        let killer_key = move_order_key(
-            &board,
-            killer0,
-            None,
-            killers,
-            &history,
-            side,
-            Some(512),
-            policy::PolicyMode::Soft,
-        );
-        let ordinary_key = move_order_key(
-            &board,
-            good,
-            None,
-            killers,
-            &history,
-            side,
-            Some(512),
-            policy::PolicyMode::Soft,
-        );
-        assert_eq!(killer_key, 900_000);
-        assert_eq!(ordinary_key, 512);
-        assert!(killer_key > ordinary_key);
-    }
-
-    #[test]
-    fn soft_mode_centers_deltas() {
-        let moves = [
-            Move::quiet(Square::new(6, 0), Square::new(5, 2)),
-            Move::quiet(Square::new(5, 0), Square::new(2, 3)),
-            Move::quiet(Square::new(4, 1), Square::new(4, 3)),
-        ];
-        let logits = [100, 0, -100];
-        let deltas = rank_normalize_policy_adjustments(
-            &moves,
-            &logits,
-            None,
-            [None; 2],
-            policy::PolicyMode::Soft,
-        );
-        assert_eq!(deltas[0], Some(512));
-        assert_eq!(deltas[2], Some(-512));
-        assert_eq!(deltas[1], Some(0));
     }
 
     #[test]
@@ -1148,5 +941,169 @@ mod tests {
         assert_eq!(via_wrapper.best_move, via_from_depth.best_move);
         assert_eq!(via_wrapper.score, via_from_depth.score);
         assert_eq!(via_wrapper.depth, via_from_depth.depth);
+    }
+
+    fn negamax_draw_score(fen: &str) -> i32 {
+        let mut board = Board::from_fen(fen).unwrap();
+        let h = board.hash;
+        board.rep_keys.push(h);
+        board.rep_keys.push(h);
+        assert!(board.is_repetition());
+        let mut budget = TimeBudget::new(&TimeControl::default(), true);
+        let mut state = SearchState::new();
+        let mut nodes = 0u64;
+        let mut ctx = SearchCtx {
+            budget: &mut budget,
+            state: &mut state,
+            nodes: &mut nodes,
+        };
+        let frame = Frame {
+            ply: 1,
+            prev_move: Move::quiet(Square::new(0, 0), Square::new(0, 0)),
+        };
+        negamax(&mut board, 4, i32::MIN + 1, i32::MAX - 1, &mut ctx, frame)
+    }
+
+    #[test]
+    fn repetition_winning_returns_draw() {
+        let score = negamax_draw_score("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1");
+        assert_eq!(score, 0, "winning repetition must score as draw");
+    }
+
+    #[test]
+    fn repetition_losing_returns_draw() {
+        let score = negamax_draw_score("7k/5q2/6k1/8/8/8/8/8 b - - 0 1");
+        assert_eq!(score, 0, "losing repetition must score as draw");
+    }
+
+    #[test]
+    fn tt_stale_score_overridden_by_repetition() {
+        use crate::tt::TtFlag;
+        let mut board = Board::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1").unwrap();
+        let h = board.hash;
+        board.rep_keys.push(h);
+        board.rep_keys.push(h);
+        let mut budget = TimeBudget::new(&TimeControl::default(), true);
+        let mut state = SearchState::new();
+        state.tt.store(h, 10, TtFlag::Exact, 500, None, 0, true);
+        let mut nodes = 0u64;
+        let mut ctx = SearchCtx {
+            budget: &mut budget,
+            state: &mut state,
+            nodes: &mut nodes,
+        };
+        let frame = Frame {
+            ply: 1,
+            prev_move: Move::quiet(Square::new(0, 0), Square::new(0, 0)),
+        };
+        let score = negamax(&mut board, 4, i32::MIN + 1, i32::MAX - 1, &mut ctx, frame);
+        assert_eq!(score, 0, "draw cutoff must beat stale TT score");
+    }
+
+    #[test]
+    fn root_rank_prefers_non_repeat_when_ahead() {
+        let repeat = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let progress = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                progress,
+                RootCandidate {
+                    score: 95,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, _) = pick_root_move(&candidates, 200);
+        assert_eq!(picked, Some(progress));
+    }
+
+    #[test]
+    fn root_rank_keeps_repeat_when_behind() {
+        let repeat = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 95,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_move(&candidates, 50);
+        assert_eq!(picked, Some(repeat));
+        assert_eq!(score, 100);
+    }
+
+    #[test]
+    fn root_rank_keeps_tactical_repeat() {
+        let repeat = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 300,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 90,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_move(&candidates, 200);
+        assert_eq!(picked, Some(repeat));
+        assert_eq!(score, 300);
+    }
+
+    #[test]
+    fn startpos_depth_twelve_searches_deep() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(12),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search(&board, 12, &mut budget, &mut state);
+        assert!(res.depth >= 8, "depth was {}", res.depth);
+        assert!(res.nodes > 10_000, "nodes were {}", res.nodes);
+        let uci = res.best_move.expect("move").to_uci();
+        assert!(
+            ["e2e4", "d2d4", "g1f3", "c2c4"].contains(&uci.as_str()),
+            "unexpected opening move {uci}"
+        );
     }
 }
