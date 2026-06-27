@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.6.2 — 2026-06-27
+
+- **Search:** score 3-fold repetition and 50-move draws as `0` in `negamax`/`qsearch` (before TT cutoff); root rank helpers tested (not wired in `search_root` yet — caused UCI regression when enabled)
+- **UCI:** clear `stop` flag at each `go`
+- **Gate:** classical sprint gate unsets/warns on `LABZERO_NNUE` / `LABZERO_POLICY`
+- **lichess_bot:** local run scripts, ladder stats, tests (see `lichess_bot/README.md`)
+
 ## 0.6.1 — 2026-06-26
 
 - **Search:** fixed iterative-deepening time accounting so `should_start_depth` receives the previous iteration duration instead of cumulative elapsed time

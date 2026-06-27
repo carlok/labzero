@@ -76,7 +76,8 @@ class PolicyNet(nn.Module):
         acc = self.b_in.unsqueeze(0).expand(batch, h).clone()
         for b, indices in enumerate(feat_idx):
             if indices:
-                acc[b] += self.w_in(torch.tensor(indices, dtype=torch.long)).sum(dim=0)
+                idx_t = torch.tensor(indices, dtype=torch.long, device=acc.device)
+                acc[b] += self.w_in(idx_t).sum(dim=0)
         act = torch.clamp(acc, 0.0, 1.0)
         return self.w_out(act)
 
@@ -88,7 +89,8 @@ def quantize(model: PolicyNet) -> dict:
     w_out = (model.w_out.weight.detach().cpu() * 64).round().clamp(-32768, 32767).to(torch.int16)
     b_out = (model.w_out.bias.detach().cpu() * 64).round().clamp(-2**31, 2**31 - 1).to(torch.int32)
     flat_w_in = [int(w_in[i, j]) for i in range(fmt.NUM_FEATURES) for j in range(h)]
-    flat_w_out = [int(w_out[j, k]) for j in range(h) for k in range(fmt.NUM_MOVES)]
+    # nn.Linear stores weight as (out_features, in_features) = (NUM_MOVES, hidden).
+    flat_w_out = [int(w_out[k, j]) for j in range(h) for k in range(fmt.NUM_MOVES)]
     return {
         "hidden": h,
         "w_in": flat_w_in,
@@ -107,20 +109,37 @@ def main() -> int:
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--ckpt", default="data/policy/train.ckpt")
     args = ap.parse_args()
+
+    device = pick_device(args.device)
+    print(f"device: {device}")
 
     feats, targets = load_dataset(args.data)
     if not feats:
         print("no training data", file=sys.stderr)
         return 1
+    print(f"loaded {len(feats)} positions")
 
-    device = pick_device(args.device)
     model = PolicyNet(args.hidden).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    start_epoch = 0
+
+    ckpt_path = Path(args.ckpt)
+    if ckpt_path.exists():
+        state = torch.load(ckpt_path, map_location=device)
+        if state.get("hidden") == args.hidden:
+            model.load_state_dict(state["model"])
+            opt.load_state_dict(state["opt"])
+            start_epoch = state["epoch"]
+            print(f"resumed from {ckpt_path} at epoch {start_epoch}")
+        else:
+            print("checkpoint hidden size differs; starting fresh", file=sys.stderr)
 
     n = len(feats)
-    for epoch in range(args.epochs):
-        perm = torch.randperm(n)
+    for epoch in range(start_epoch, args.epochs):
+        model.train()
+        perm = torch.randperm(n, device=device)
         loss_sum = 0.0
         steps = 0
         for start in range(0, n, args.batch):
@@ -135,6 +154,15 @@ def main() -> int:
             loss_sum += float(loss.item())
             steps += 1
         print(f"epoch {epoch + 1}/{args.epochs}  loss={loss_sum / max(steps, 1):.4f}")
+        torch.save(
+            {
+                "model": model.state_dict(),
+                "opt": opt.state_dict(),
+                "epoch": epoch + 1,
+                "hidden": args.hidden,
+            },
+            ckpt_path,
+        )
 
     net = quantize(model)
     out_path = Path(args.out)

@@ -8,8 +8,6 @@ pub mod make_unmake;
 pub mod mov;
 pub mod movegen;
 pub mod nnue;
-pub mod policy;
-pub mod policydata;
 pub mod params;
 pub mod perft;
 pub mod piece;

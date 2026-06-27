@@ -129,8 +129,12 @@ impl Board {
     }
 
     pub fn is_repetition(&self) -> bool {
+        self.repetition_count_current() >= 2
+    }
+
+    pub fn repetition_count_current(&self) -> usize {
         let key = self.hash;
-        self.rep_keys.iter().filter(|&&k| k == key).count() >= 2
+        self.rep_keys.iter().filter(|&&k| k == key).count()
     }
 
     pub fn is_draw(&self) -> bool {

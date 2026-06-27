@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sprint loop 3 — gauntlet gate + ladder record (run when YOU want a measurement).
 #
-# Uses current build + optional LABZERO_EVAL_PARAMS / LABZERO_NNUE from env.
+# Uses current build. Classical gates: leave LABZERO_EVAL_PARAMS / NNUE / POLICY unset.
 # Appends superhuman-band.md + elo_series.csv + timeline charts when complete.
 #
 #   ./scripts/host-sprint-gate.sh 2600          # 16-game probe @ SF 2600
@@ -24,6 +24,14 @@ TC_INC="${TC_INC:-2}"
 A_THREADS="${A_THREADS:-4}"
 STOCKFISH="${STOCKFISH:?set STOCKFISH=/path/to/stockfish}"
 
+# Classical ladder: warn and strip experimental runtime overrides.
+for var in LABZERO_NNUE LABZERO_NNUE_MODE LABZERO_NNUE_SCALE LABZERO_POLICY LABZERO_POLICY_MODE; do
+  if [[ -n "${!var:-}" ]]; then
+    echo "WARNING: unsetting ${var} for classical gate (was: ${!var})" >&2
+    unset "${var}"
+  fi
+done
+
 RUN_ID="${RUN_ID:-gate_sf${SF_ELO}_${GAMES}g}"
 ENGINE_A="${ENGINE_A:-${ROOT}/target/release/labzero}"
 
@@ -39,6 +47,7 @@ fi
 echo "==> sprint 3/3: gate  SF_ELO=${SF_ELO}  GAMES=${GAMES}  RUN_ID=${RUN_ID}"
 [[ -n "${LABZERO_EVAL_PARAMS:-}" ]] && echo "    params: ${LABZERO_EVAL_PARAMS}"
 [[ -n "${LABZERO_NNUE:-}" ]] && echo "    nnue:   ${LABZERO_NNUE}"
+[[ -n "${LABZERO_POLICY:-}" ]] && echo "    policy: ${LABZERO_POLICY}"
 
 "${ROOT}/scripts/host-kill-sprint.sh"
 

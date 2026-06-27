@@ -532,3 +532,75 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Result:** complete — 4-5-7 (46.9%), perf ≈ **2578**
 - **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
 - **Artifact:** `docs/strength/gate_sf2600_tt2_16g.txt`
+
+## Gauntlet gate_sf2600_policy_16g (2026-06-26)
+
+- **Result:** complete — 1-11-4 (18.8%), perf ≈ **2345**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_policy_16g.txt`
+- **Note:** policy v1 with move-ordering bug (TT/killer quiets demoted into policy band); **invalid for strength claims**
+
+## Gauntlet gate_sf2600_policy_fix_16g (2026-06-26)
+
+- **Result:** complete — 7-3-6 (62.5%), perf ≈ **2689**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_policy_fix_16g.txt`
+
+## Gauntlet gate_sf2700_policy_fix_16g (2026-06-26)
+
+- **Result:** complete — 2-11-3 (21.9%), perf ≈ **2479**
+- **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2700_policy_fix_16g.txt`
+
+## Gauntlet gate_sf2600_policy_soft_16g (2026-06-26)
+
+- **Result:** complete — 9-4-3 (65.6%), perf ≈ **2712**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_policy_soft_16g.txt`
+
+## Gauntlet gate_sf2700_policy_soft_16g (2026-06-26)
+
+- **Result:** complete — 2-7-7 (34.4%), perf ≈ **2588**
+- **Opponent:** SF UCI_Elo=2700, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2700_policy_soft_16g.txt`
+- **Note:** below 8/16 bar; policy sprint paused, keep policy off by default
+
+## Policy sprint status (2026-06-26)
+
+- Policy ordering infrastructure kept on `codex/policy-train-v1`; **off by default**.
+- Soft gates are diagnostic only (SF2600 9-4-3, SF2700 2-7-7); no further policy retrains.
+- `data/policy/policy.lzp` is experimental — not recommended for play.
+- **Next bet:** residual NNUE on `codex/residual-nnue-v1` (classical + scaled correction).
+
+## Residual NNUE v1 infra (2026-06-26)
+
+- Branch `codex/residual-nnue-v1`: `NnueMode` replace/residual via `LABZERO_NNUE_MODE`, scale via `LABZERO_NNUE_SCALE` (default 50).
+- `search_eval`: classical-only TLS for data gen; residual blend `classical + clamp(net,±300)*scale/100`.
+- CLI: `clasieval`, `nnueforward`, `residualdata` (10k games play d4 label d8, resumable).
+- Scripts: `host-nnue-residual-train.py`, `host-sprint-residual-nnue.sh`, residual parity in `host-nnue-verify.sh`.
+- Verify: cargo test 59 pass, podman smokes pass, replace + residual parity OK.
+- NPS (movetime 3s): off ~1.69M; replace ~771k; residual ~724k (~6% slower than replace; any loaded NNUE ~2× slower vs classical).
+- Data gen in tmux `resnnue` → `data/nnue/residual.txt`; train + gates pending completion.
+
+## Gauntlet gate_sf2600_resnnue_s50_16g (2026-06-27)
+
+- **Result:** complete — 4-8-4 (37.5%), perf ≈ **2511**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_resnnue_s50_16g.txt`
+
+## Repetition And Progress Patch v1 (2026-06-27)
+
+- **v0.6.2 draw fix** (on `codex/v0.6.2-draw-fix`): search returns draw `0` on `is_draw()` **before** TT cutoff in `negamax`/`qsearch`; `board.repetition_count_current()`; UCI clears `stop` at each `go`.
+- Root rank helpers land in `search.rs` (tested) but are **not wired** in `search_root` — enabling them caused UCI opening blunders; follow-up branch.
+- **Gate passed:** `gate_sf2600_v062_draw_16g` — **8-6-2 (56.2%, 9 W-equiv, perf ≈2644)**, illegal=0.
+- **INVALID gates (do not record in superhuman-band):**
+  - `gate_sf2600_rep_patch_16g` — interrupted 0-11-2 @ 13/16; move-1 blunders (h3/g5); polluted by policy branch + broken rep patch.
+  - `benchmark_rep_patch_16g.log` — 0-15-0 (first run had `LABZERO_NNUE` leak; restart also failed).
+  - `smoke_v061_pure_4g` — 0-4-0 diagnostic; removed from ladder (missing SF_ELO on one run).
+
+## Gauntlet gate_sf2600_v062_draw_16g (2026-06-27)
+
+- **Result:** complete — 8-6-2 (56.2%), perf ≈ **2644**
+- **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
+- **Artifact:** `docs/strength/gate_sf2600_v062_draw_16g.txt`
+- **Release:** tagged **v0.6.2** on main after merge.
