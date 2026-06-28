@@ -30,35 +30,91 @@ def resolve_prefix(prefix: str) -> tuple[Path, Path, Path | None]:
     return txt, pgn, tsv
 
 
+def parse_game_lines(text: str) -> list[dict]:
+    games: list[dict] = []
+    for line in re.findall(r"^game\s+\d+:.+$", text, re.M):
+        m = re.match(r"^game\s+(\d+):\s+(\S+)", line)
+        if not m:
+            continue
+        tag = m.group(2).lower()
+        bracket = re.search(r"\[(\d+)-(\d+)-(\d+)\]\s*$", line)
+        cumulative = tuple(map(int, bracket.groups())) if bracket else None
+        games.append({"number": int(m.group(1)), "tag": tag, "cumulative": cumulative})
+    return games
+
+
 def parse_txt(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
-    footer = text.split("---")[-1] if "---" in text else text
+    has_footer = "---" in text
+    footer = text.split("---")[-1] if has_footer else ""
     out: dict = {
         "status": "unknown",
         "wins": 0,
         "losses": 0,
         "draws": 0,
         "truncated": 0,
+        "games_completed": 0,
+        "games_planned": 0,
+        "partial": False,
         "illegal": 0,
         "errors": 0,
         "timeouts": 0,
         "time_control": "",
+        "has_footer": has_footer,
     }
-    m = re.search(r"status:\s+(\S+)", footer)
+    header_status = re.search(r"^status:\s+(.+)$", text, re.M)
+    footer_status = re.search(r"^status:\s+(.+)$", footer, re.M) if has_footer else None
+    if footer_status:
+        out["status"] = footer_status.group(1).strip()
+    elif header_status and header_status.group(1).strip() == "in progress":
+        out["status"] = "in-progress/no-footer"
+    elif header_status:
+        out["status"] = header_status.group(1).strip()
+
+    game_lines = parse_game_lines(text)
+    game_wins = game_losses = game_draws = game_truncated = 0
+    game_illegal = game_errors = 0
+    for g in game_lines:
+        tag = g["tag"]
+        if tag == "win":
+            game_wins += 1
+        elif tag == "loss":
+            game_losses += 1
+        elif tag == "draw":
+            game_draws += 1
+        elif tag == "truncated":
+            game_truncated += 1
+
+    for line in re.findall(r"^game\s+\d+:.+$", text, re.M):
+        if "FAIL illegal" in line:
+            game_illegal += 1
+        elif ": FAIL" in line:
+            game_errors += 1
+
+    m = re.search(r"^games:\s+(\d+)", text, re.M)
     if m:
-        out["status"] = m.group(1)
+        out["games_planned"] = int(m.group(1))
+
     m = re.search(r"score:\s+(\d+)-(\d+)-(\d+)", footer)
     if m:
         out["wins"], out["losses"], out["draws"] = map(int, m.groups())
+    elif game_lines and game_lines[-1]["cumulative"] is not None:
+        out["wins"], out["losses"], out["draws"] = game_lines[-1]["cumulative"]
+    else:
+        out["wins"], out["losses"], out["draws"] = game_wins, game_losses, game_draws
+
+    out["partial"] = not has_footer or out["status"] in {"in-progress/no-footer", "interrupted"}
+
     m = re.search(r"truncated:\s+(\d+)", footer)
-    if m:
-        out["truncated"] = int(m.group(1))
+    out["truncated"] = int(m.group(1)) if m else game_truncated
+
     m = re.search(r"illegal:\s+(\d+)", footer)
-    if m:
-        out["illegal"] = int(m.group(1))
+    out["illegal"] = int(m.group(1)) if m else game_illegal
+
     m = re.search(r"errors:\s+(\d+)", footer)
-    if m:
-        out["errors"] = int(m.group(1))
+    out["errors"] = int(m.group(1)) if m else game_errors
+
+    out["games_completed"] = out["wins"] + out["losses"] + out["draws"]
     m = re.search(r"time control:\s+(.+)", text)
     if m:
         out["time_control"] = m.group(1).strip()
@@ -87,7 +143,12 @@ def analyze_pgn(path: Path) -> list[dict]:
         import chess.pgn
         import chess.polyglot
     except ImportError:
-        print("python-chess required for PGN analysis", file=sys.stderr)
+        print(
+            "python-chess is required for PGN analysis; run with "
+            ".venv-host-test/bin/python or install python-chess. "
+            "Continuing with TXT/TSV summary only.",
+            file=sys.stderr,
+        )
         return []
 
     def position_key(board: chess.Board) -> int:
@@ -187,10 +248,13 @@ def main() -> int:
     meta = parse_txt(txt)
     print(f"=== {txt.name} ===")
     print(f"status:       {meta['status']}")
+    if meta["partial"]:
+        planned = meta["games_planned"] or "?"
+        print(f"partial:      true  games={meta['games_completed']}/{planned}")
     print(f"time control: {meta['time_control']}")
     print(
         f"score:        {meta['wins']}-{meta['losses']}-{meta['draws']} "
-        f"(truncated={meta['truncated']})"
+        f"(completed={meta['games_completed']} truncated={meta['truncated']})"
     )
     print(
         f"illegal:      {meta['illegal']}  errors: {meta['errors']}  "
