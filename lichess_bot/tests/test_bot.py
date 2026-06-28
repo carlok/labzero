@@ -53,17 +53,25 @@ def test_config_defaults_and_validation(tmp_path):
 
 
 def test_notify_message_formatting(tmp_path):
-    cfg = make_config(tmp_path, notify_provider="telegram")
+    cfg = make_config(tmp_path, notify_provider="telegram", pgn_directory=str(tmp_path / "pgn"))
     game_full = {
         "white": {"id": "labzerobot0", "name": "LabZeroBot0", "title": "BOT", "rating": 1500},
         "black": {"id": "maia5", "name": "maia5", "title": "BOT", "rating": 1510},
     }
 
     start = bot.notify_message_start("abc123", cfg, chess.WHITE, game_full)
+    assert "▶️ START abc123" in start
     assert "unrated 3+2" in start
-    assert "white vs maia5" in start
+    assert "bot=white" in start
+    assert "White: BOT LabZeroBot0 · 1500" in start
+    assert "Black: BOT maia5 · 1510" in start
     assert "https://lichess.org/abc123" in start
 
+    export_path = tmp_path / "pgn" / "20260628-120000_abc123_export.pgn"
+    export_path.parent.mkdir(parents=True)
+    export_path.write_text(
+        '[WhiteElo "1500"]\n[BlackElo "1510"]\n[WhiteRatingDiff "+7"]\n[BlackRatingDiff "-2"]\n1. e4 e5 *\n'
+    )
     end = bot.notify_message_end(
         "abc123",
         cfg,
@@ -71,11 +79,26 @@ def test_notify_message_formatting(tmp_path):
         "1-0",
         game_full,
         {"status": "mate"},
-        "/tmp/game.pgn",
+        str(tmp_path / "pgn" / "game.pgn"),
     )
-    assert "WIN" in end
+    assert "✅ WIN abc123" in end
     assert "status=mate" in end
-    assert "PGN: /tmp/game.pgn" in end
+    assert "White: BOT LabZeroBot0 · 1500 (+7) → 1507" in end
+    assert "Black: BOT maia5 · 1510 (-2) → 1508" in end
+    assert "📄 game.pgn" in end
+    assert "/tmp/" not in end
+    assert str(tmp_path) not in end
+
+
+def test_format_elo_line():
+    assert bot.format_elo_line(1949, 7) == "1949 (+7) → 1956"
+    assert bot.format_elo_line(1949, -2) == "1949 (-2) → 1947"
+    assert bot.format_elo_line(1949, None) == "1949"
+
+
+def test_notify_basename():
+    assert bot.notify_basename("/Users/me/pgn/game.pgn") == "game.pgn"
+    assert bot.notify_basename(None) is None
 
 
 def test_notify_telegram_best_effort(monkeypatch, tmp_path):
@@ -700,8 +723,8 @@ def test_play_game_sends_hello_after_first_ply(monkeypatch, tmp_path):
     assert chats[2][2:] == ("player", bot.format_chat(cfg.goodbye, me="labzerobot0", opponent="maia5"))
     assert chats[3][2:] == ("spectator", bot.format_chat(cfg.goodbye, me="labzerobot0", opponent="maia5"))
     assert len(notifications) == 2
-    assert "game started" in notifications[0]
-    assert "game ended" in notifications[1]
+    assert "▶️ START game1" in notifications[0]
+    assert "🤝 DRAW game1" in notifications[1]
 
 
 def test_play_game_counts_quota_only_when_pending_bot_game_starts(monkeypatch, tmp_path):

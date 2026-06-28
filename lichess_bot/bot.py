@@ -410,14 +410,76 @@ def game_url(game_id: str) -> str:
     return f"https://lichess.org/{game_id}"
 
 
+def notify_basename(path: str | None) -> str | None:
+    if not path:
+        return None
+    return Path(path).name
+
+
+def parse_pgn_rating_diffs(pgn_text: str) -> dict[str, int | None]:
+    game = chess.pgn.read_game(io.StringIO(pgn_text))
+    if game is None:
+        return {"white": None, "black": None}
+
+    def parse_diff(key: str) -> int | None:
+        value = game.headers.get(key)
+        if value is None or value == "":
+            return None
+        try:
+            return int(str(value))
+        except ValueError:
+            return None
+
+    return {
+        "white": parse_diff("WhiteRatingDiff"),
+        "black": parse_diff("BlackRatingDiff"),
+    }
+
+
+def rating_diffs_for_game(cfg: BotConfig, game_id: str, pgn_path: str | None) -> dict[str, int | None]:
+    if cfg.pgn_directory:
+        exports = sorted(Path(cfg.pgn_directory).glob(f"*_{game_id}_export.pgn"))
+        if exports:
+            return parse_pgn_rating_diffs(exports[-1].read_text(encoding="utf-8"))
+    if pgn_path:
+        path = Path(pgn_path)
+        if path.is_file():
+            return parse_pgn_rating_diffs(path.read_text(encoding="utf-8"))
+    return {"white": None, "black": None}
+
+
+def format_elo_line(start: int | None, diff: int | None) -> str:
+    if start is None:
+        return "?"
+    if diff is None:
+        return str(start)
+    end = start + diff
+    diff_text = f"+{diff}" if diff > 0 else str(diff)
+    return f"{start} ({diff_text}) → {end}"
+
+
+def notify_player_elo_line(game_full: dict[str, Any], color: str, diffs: dict[str, int | None]) -> str:
+    player = player_obj(game_full, color)
+    side = "White" if color == "white" else "Black"
+    title = str(player.get("title") or "").strip()
+    title_part = f"{title} " if title else ""
+    name = user_name(player)
+    elo = format_elo_line(player_rating(player), diffs.get(color))
+    return f"{side}: {title_part}{name} · {elo}"
+
+
 def notify_message_start(game_id: str, cfg: BotConfig, color: chess.Color, game_full: dict[str, Any]) -> str:
     side = "white" if color == chess.WHITE else "black"
-    opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
-    return (
-        f"LabZero game started: {'rated' if cfg.rated else 'unrated'} "
-        f"{cfg.clock_limit // 60}+{cfg.clock_increment}, {side} vs {opponent}\n"
-        f"{game_url(game_id)}"
-    )
+    tc = f"{cfg.clock_limit // 60}+{cfg.clock_increment}"
+    rated = "rated" if cfg.rated else "unrated"
+    lines = [
+        f"▶️ START {game_id}",
+        f"{rated} {tc} · bot={side}",
+        notify_player_elo_line(game_full, "white", {}),
+        notify_player_elo_line(game_full, "black", {}),
+        game_url(game_id),
+    ]
+    return "\n".join(lines)
 
 
 def notify_message_end(
@@ -429,17 +491,26 @@ def notify_message_end(
     game_state: dict[str, Any],
     pgn_path: str | None,
 ) -> str:
-    result_text, _ = result_for_bot(result, color)
-    opponent = "unknown"
-    if game_full and color is not None:
-        opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
-    pgn_suffix = f"\nPGN: {pgn_path}" if pgn_path else ""
-    return (
-        f"LabZero game ended: {result_text} result={result} "
-        f"status={terminal_status(game_state) or 'unknown'} "
-        f"{'rated' if cfg.rated else 'unrated'} vs {opponent}\n"
-        f"{game_url(game_id)}{pgn_suffix}"
-    )
+    result_text, result_symbol = result_for_bot(result, color)
+    status = terminal_status(game_state) or "unknown"
+    rated = "rated" if cfg.rated else "unrated"
+    diffs = rating_diffs_for_game(cfg, game_id, pgn_path) if game_full else {"white": None, "black": None}
+    lines = [
+        f"{result_symbol} {result_text} {game_id}",
+        f"result={result} · status={status} · {rated}",
+    ]
+    if game_full:
+        lines.extend(
+            [
+                notify_player_elo_line(game_full, "white", diffs),
+                notify_player_elo_line(game_full, "black", diffs),
+            ]
+        )
+    lines.append(game_url(game_id))
+    pgn_name = notify_basename(pgn_path)
+    if pgn_name:
+        lines.append(f"📄 {pgn_name}")
+    return "\n".join(lines)
 
 
 def send_telegram_notification(text: str) -> None:
@@ -1271,14 +1342,15 @@ def is_compatible_challenge(challenge: dict[str, Any], cfg: BotConfig) -> tuple[
 def busy_human_challenge_message(challenge: dict[str, Any], cfg: BotConfig, reason: str) -> str:
     challenger = challenge.get("challenger", {}) or {}
     rating = challenge_rating(challenge)
-    rating_text = f" ({rating})" if rating is not None else ""
+    rating_text = f" · {rating}" if rating is not None else ""
     tc = challenge.get("timeControl", {}) or {}
     limit = int(tc.get("limit", cfg.clock_limit) or cfg.clock_limit)
     inc = int(tc.get("increment", cfg.clock_increment) or cfg.clock_increment)
     rated = "rated" if bool(challenge.get("rated", False)) else "unrated"
     return (
-        f"LabZero declined a human challenge: {user_name(challenger)}{rating_text}, "
-        f"{rated} {limit // 60}+{inc}, reason={reason}"
+        f"⏸️ Human challenge declined\n"
+        f"{user_name(challenger)}{rating_text}\n"
+        f"{rated} {limit // 60}+{inc} · reason={reason}"
     )
 
 
