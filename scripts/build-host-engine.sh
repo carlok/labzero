@@ -34,7 +34,12 @@ echo "==> cargo clippy"
 cargo clippy --manifest-path engine/Cargo.toml -- -D warnings
 
 echo "==> cargo build --release (host native)"
-cargo build --release --manifest-path engine/Cargo.toml
+if [[ "${LABZERO_NATIVE:-0}" == "1" ]]; then
+  echo "==> LABZERO_NATIVE=1: using RUSTFLAGS=-C target-cpu=native"
+  RUSTFLAGS="${RUSTFLAGS:-} -C target-cpu=native" cargo build --release --manifest-path engine/Cargo.toml
+else
+  cargo build --release --manifest-path engine/Cargo.toml
+fi
 
 ENGINE="${ROOT}/target/release/labzero"
 if [[ ! -x "${ENGINE}" ]]; then

@@ -36,6 +36,11 @@ Before changing code:
 
 Current baseline (verify in repo before assuming):
 - Package **v0.6.2** on main — **no public strength headline**.
+- Default release profile is optimized at the workspace root (`thin` LTO, one
+  codegen unit, panic abort). Use `scripts/host-nps-bench.sh` before changing
+  build/profile/performance settings.
+- `LABZERO_ROOT_POLICY=raw` is the production root policy. Root-rank v3 remains
+  historical/diagnostic, not the default production behavior.
 - Real-clock gold standard: `host-benchmark.sh` with `TC_MODE=wtime` (decreasing clocks).
 - Legacy gauntlet rows (`gate_sf2600_idtime_32g`, etc.) are **freshclock synthetic** only — full clock reset each move via `host-gauntlet.sh`; do not compare to wtime or cite as current strength.
 - Real-clock gates (2026-06-28, INVALID): SF@2500 1–5–3/9; SF@2400 0–4–1/5. Smoke SF@2400 4g 1–0–3 pass.
@@ -92,6 +97,7 @@ High-ROI areas:
 - time-control reliability under wtime/btime/inc;
 - cheap original eval tuning from recurring PGN weaknesses;
 - benchmark automation and reporting clarity.
+- release/NPS measurement hygiene before low-level Rust rewrites.
 
 Be suspicious of:
 - qsearch pruning that removes tactically important captures;

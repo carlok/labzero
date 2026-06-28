@@ -48,6 +48,15 @@ accept_draw_low_time_score = 100
 pgn_directory = "lichess_bot/local/pgn"
 hello = "Hi! I'm {me}. Good luck!"
 goodbye = "Good game!"
+# "player" is visible to players only. Add "spectator" if you want to see bot
+# chat while watching the game as audience.
+chat_rooms = ["player"]
+
+# Optional game-start/game-end notifications. Secrets stay in lichess_bot/.env:
+# LABZERO_NOTIFY_TELEGRAM_TOKEN=123456:abc
+# LABZERO_NOTIFY_TELEGRAM_CHAT_ID=123456789
+notify_provider = "none" # none or telegram
+notify_busy_human_challenge = true
 
 # Online bot selection for --challenge-loop.
 # Window is own blitz rating + deltas (e.g. 1944 with -100..+250 → 1844–2194).

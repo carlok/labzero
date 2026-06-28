@@ -11,6 +11,7 @@ import argparse
 import datetime as dt
 import io
 import json
+import mimetypes
 import os
 import random
 import re
@@ -136,6 +137,7 @@ class BotConfig:
     pgn_directory: str | None
     hello: str
     goodbye: str
+    chat_rooms: list[str]
     polyglot_books: list[str]
     polyglot_max_depth: int
     syzygy_paths: list[str]
@@ -156,6 +158,8 @@ class BotConfig:
     accept_draw_low_time_score: int
     uci_threads: int
     uci_hash_mb: int
+    notify_provider: str
+    notify_busy_human_challenge: bool
 
     @classmethod
     def from_dict(cls, cfg: dict[str, Any], rated_override: bool | None) -> "BotConfig":
@@ -172,6 +176,10 @@ class BotConfig:
             raise ValueError("threads must be between 1 and 8")
         if not 1 <= uci_hash_mb <= 1024:
             raise ValueError("hash_mb must be between 1 and 1024")
+        notify_provider = str(cfg.get("notify_provider", "none")).lower()
+        if notify_provider not in {"none", "telegram"}:
+            raise ValueError("notify_provider must be one of: none, telegram")
+        chat_rooms = normalized_chat_rooms(cfg.get("chat_rooms", ["player"]))
         return cls(
             engine=resolve_path(str(cfg.get("engine", "lichess_bot/bin/labzero-macos-aarch64-0.6.2"))),
             rated=rated,
@@ -203,6 +211,7 @@ class BotConfig:
             pgn_directory=optional_resolved_path(cfg.get("pgn_directory", "lichess_bot/local/pgn")),
             hello=str(cfg.get("hello", "Hi! I'm {me}. Good luck!")),
             goodbye=str(cfg.get("goodbye", "Good game!")),
+            chat_rooms=chat_rooms,
             polyglot_books=resolved_path_list(cfg.get("polyglot_books", [])),
             polyglot_max_depth=int(cfg.get("polyglot_max_depth", 20)),
             syzygy_paths=resolved_path_list(cfg.get("syzygy_paths", [])),
@@ -223,6 +232,8 @@ class BotConfig:
             accept_draw_low_time_score=int(cfg.get("accept_draw_low_time_score", 100)),
             uci_threads=uci_threads,
             uci_hash_mb=uci_hash_mb,
+            notify_provider=notify_provider,
+            notify_busy_human_challenge=bool(cfg.get("notify_busy_human_challenge", True)),
         )
 
 
@@ -246,6 +257,23 @@ def resolved_path_list(value: Any) -> list[str]:
     else:
         items = list(value)
     return [resolve_path(str(item)) for item in items if str(item).strip()]
+
+
+def normalized_chat_rooms(value: Any) -> list[str]:
+    if value is None or value == "":
+        return ["player"]
+    if isinstance(value, str):
+        items = [value]
+    else:
+        items = list(value)
+    rooms = [str(item).strip().lower() for item in items if str(item).strip()]
+    if not rooms:
+        return ["player"]
+    allowed = {"player", "spectator"}
+    invalid = [room for room in rooms if room not in allowed]
+    if invalid:
+        raise ValueError("chat_rooms must contain only: player, spectator")
+    return list(dict.fromkeys(rooms))
 
 
 @dataclass
@@ -376,6 +404,131 @@ def heartbeat(state: RuntimeState, interval: int) -> None:
 def configure_uci_engine(engine: chess.engine.SimpleEngine, cfg: BotConfig) -> None:
     engine.configure({"Threads": cfg.uci_threads, "Hash": cfg.uci_hash_mb})
     log("CONFIG", f"uci Threads={cfg.uci_threads} Hash={cfg.uci_hash_mb}", Color.GRAY)
+
+
+def game_url(game_id: str) -> str:
+    return f"https://lichess.org/{game_id}"
+
+
+def notify_message_start(game_id: str, cfg: BotConfig, color: chess.Color, game_full: dict[str, Any]) -> str:
+    side = "white" if color == chess.WHITE else "black"
+    opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
+    return (
+        f"LabZero game started: {'rated' if cfg.rated else 'unrated'} "
+        f"{cfg.clock_limit // 60}+{cfg.clock_increment}, {side} vs {opponent}\n"
+        f"{game_url(game_id)}"
+    )
+
+
+def notify_message_end(
+    game_id: str,
+    cfg: BotConfig,
+    color: chess.Color | None,
+    result: str,
+    game_full: dict[str, Any] | None,
+    game_state: dict[str, Any],
+    pgn_path: str | None,
+) -> str:
+    result_text, _ = result_for_bot(result, color)
+    opponent = "unknown"
+    if game_full and color is not None:
+        opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
+    pgn_suffix = f"\nPGN: {pgn_path}" if pgn_path else ""
+    return (
+        f"LabZero game ended: {result_text} result={result} "
+        f"status={terminal_status(game_state) or 'unknown'} "
+        f"{'rated' if cfg.rated else 'unrated'} vs {opponent}\n"
+        f"{game_url(game_id)}{pgn_suffix}"
+    )
+
+
+def send_telegram_notification(text: str) -> None:
+    token = os.environ.get("LABZERO_NOTIFY_TELEGRAM_TOKEN", "").strip()
+    chat_id = os.environ.get("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", "").strip()
+    if not token or not chat_id:
+        raise RuntimeError("LABZERO_NOTIFY_TELEGRAM_TOKEN and LABZERO_NOTIFY_TELEGRAM_CHAT_ID are required")
+    data = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "disable_web_page_preview": "true"}).encode()
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{urllib.parse.quote(token)}/sendMessage",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        resp.read()
+
+
+def telegram_document_request(path: Path, caption: str) -> urllib.request.Request:
+    token = os.environ.get("LABZERO_NOTIFY_TELEGRAM_TOKEN", "").strip()
+    chat_id = os.environ.get("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", "").strip()
+    if not token or not chat_id:
+        raise RuntimeError("LABZERO_NOTIFY_TELEGRAM_TOKEN and LABZERO_NOTIFY_TELEGRAM_CHAT_ID are required")
+    if not path.is_file():
+        raise RuntimeError(f"notification file not found: {path}")
+
+    boundary = f"labzero-{int(time.time() * 1000)}-{random.randint(1000, 9999)}"
+    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    chunks: list[bytes] = []
+
+    def add_field(name: str, value: str) -> None:
+        chunks.extend(
+            [
+                f"--{boundary}\r\n".encode(),
+                f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(),
+                value.encode(),
+                b"\r\n",
+            ]
+        )
+
+    add_field("chat_id", chat_id)
+    if caption:
+        add_field("caption", caption)
+    chunks.extend(
+        [
+            f"--{boundary}\r\n".encode(),
+            f'Content-Disposition: form-data; name="document"; filename="{path.name}"\r\n'.encode(),
+            f"Content-Type: {mime}\r\n\r\n".encode(),
+            path.read_bytes(),
+            b"\r\n",
+            f"--{boundary}--\r\n".encode(),
+        ]
+    )
+
+    return urllib.request.Request(
+        f"https://api.telegram.org/bot{urllib.parse.quote(token)}/sendDocument",
+        data=b"".join(chunks),
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        method="POST",
+    )
+
+
+def send_telegram_document(path: str, caption: str) -> None:
+    req = telegram_document_request(Path(path), caption)
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        resp.read()
+
+
+def notify(cfg: BotConfig, text: str) -> None:
+    if cfg.notify_provider == "none":
+        return
+    try:
+        if cfg.notify_provider == "telegram":
+            send_telegram_notification(text)
+        else:
+            return
+        log("API", "notification sent", Color.GRAY)
+    except Exception as exc:
+        log("API", f"notification ignored: {describe_error(exc)}", Color.GRAY)
+
+
+def notify_test(cfg: BotConfig, text: str, file_path: str | None) -> None:
+    if cfg.notify_provider != "telegram":
+        raise RuntimeError('notify_provider must be "telegram" for --notify-test')
+    if file_path:
+        send_telegram_document(file_path, text)
+    else:
+        send_telegram_notification(text)
+    log("API", "notification test sent", Color.GRAY)
 
 
 def dry_run_test(engine_path: str, cfg: BotConfig) -> None:
@@ -613,6 +766,11 @@ def maybe_chat(token: str, game_id: str, room: str, text: str) -> None:
         log("API", f"chat ignored for {game_id}: {describe_error(exc)}", Color.GRAY)
 
 
+def maybe_chat_rooms(token: str, game_id: str, rooms: list[str], text: str) -> None:
+    for room in rooms:
+        maybe_chat(token, game_id, room, text)
+
+
 def can_claim_lichess_draw(board: chess.Board) -> bool:
     return board.can_claim_threefold_repetition() or board.can_claim_fifty_moves()
 
@@ -804,9 +962,9 @@ def save_pgn(
     board: chess.Board,
     game_full: dict[str, Any] | None,
     game_state: dict[str, Any],
-) -> None:
+) -> str | None:
     if not cfg.pgn_directory:
-        return
+        return None
     pgn_dir = Path(cfg.pgn_directory)
     pgn_dir.mkdir(parents=True, exist_ok=True)
     game = chess.pgn.Game.from_board(board)
@@ -840,6 +998,7 @@ def save_pgn(
     with path.open("w", encoding="utf-8") as f:
         print(game, file=f, end="\n\n")
     log("PGN", f"saved {path}", Color.GREEN)
+    return str(path)
 
 
 def save_exported_pgn(cfg: BotConfig, game_id: str, pgn_text: str) -> None:
@@ -936,8 +1095,9 @@ def finish_played_game(
     )
     if game_full and color is not None:
         opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
-        maybe_chat(token, game_id, "player", format_chat(cfg.goodbye, me=account_id, opponent=opponent))
-    save_pgn(cfg, game_id, board, game_full, game_state)
+        maybe_chat_rooms(token, game_id, cfg.chat_rooms, format_chat(cfg.goodbye, me=account_id, opponent=opponent))
+    pgn_path = save_pgn(cfg, game_id, board, game_full, game_state)
+    notify(cfg, notify_message_end(game_id, cfg, color, result, game_full, game_state, pgn_path))
 
 
 def play_game(
@@ -970,6 +1130,7 @@ def play_game(
                 side = "white" if color == chess.WHITE else "black"
                 state.update_game(game_id, f"color={side}")
                 log("START", f"▶️ {game_id} bot={side} {matchup_label(event)}", Color.RED)
+                notify(cfg, notify_message_start(game_id, cfg, color, event))
                 opponent_player = player_obj(event, "black" if color == chess.WHITE else "white")
                 if quota is not None and is_bot_user(opponent_player) and state.consume_outgoing_bot_game(opponent_player):
                     quota.record_attempt()
@@ -991,7 +1152,7 @@ def play_game(
             # Lichess UI drops player chat posted before the first ply (API still returns 200).
             if not hello_sent and moves.strip() and game_full is not None and color is not None:
                 opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
-                maybe_chat(token, game_id, "player", format_chat(cfg.hello, me=account_id, opponent=opponent))
+                maybe_chat_rooms(token, game_id, cfg.chat_rooms, format_chat(cfg.hello, me=account_id, opponent=opponent))
                 hello_sent = True
 
             if is_game_terminal(board, game_state):
@@ -1107,6 +1268,43 @@ def is_compatible_challenge(challenge: dict[str, Any], cfg: BotConfig) -> tuple[
     return True, "ok"
 
 
+def busy_human_challenge_message(challenge: dict[str, Any], cfg: BotConfig, reason: str) -> str:
+    challenger = challenge.get("challenger", {}) or {}
+    rating = challenge_rating(challenge)
+    rating_text = f" ({rating})" if rating is not None else ""
+    tc = challenge.get("timeControl", {}) or {}
+    limit = int(tc.get("limit", cfg.clock_limit) or cfg.clock_limit)
+    inc = int(tc.get("increment", cfg.clock_increment) or cfg.clock_increment)
+    rated = "rated" if bool(challenge.get("rated", False)) else "unrated"
+    return (
+        f"LabZero declined a human challenge: {user_name(challenger)}{rating_text}, "
+        f"{rated} {limit // 60}+{inc}, reason={reason}"
+    )
+
+
+def notify_busy_human_challenge(challenge: dict[str, Any], cfg: BotConfig, reason: str) -> None:
+    if not cfg.notify_busy_human_challenge:
+        return
+    challenger = challenge.get("challenger", {}) or {}
+    if is_bot_user(challenger):
+        return
+    notify(cfg, busy_human_challenge_message(challenge, cfg, reason))
+
+
+def decline_busy_challenge(
+    token: str,
+    challenge: dict[str, Any],
+    cfg: BotConfig,
+    challenger: str,
+    reason: str = "busy",
+) -> None:
+    challenge_id = challenge.get("id")
+    if not challenge_id:
+        return
+    challenge_action(token, "decline", challenge_id, challenger, reason)
+    notify_busy_human_challenge(challenge, cfg, reason)
+
+
 def accept_or_decline_challenge(token: str, challenge: dict[str, Any], cfg: BotConfig, state: RuntimeState, account_id: str) -> None:
     challenge_id = challenge.get("id")
     challenger_obj = challenge.get("challenger", {}) or {}
@@ -1118,13 +1316,13 @@ def accept_or_decline_challenge(token: str, challenge: dict[str, Any], cfg: BotC
         log("CHALLENGE", f"ignored own outgoing challenge {challenge_id}", Color.YELLOW)
         return
     if state.active_count() >= cfg.max_parallel_games:
-        challenge_action(token, "decline", challenge_id, challenger, "busy")
+        decline_busy_challenge(token, challenge, cfg, challenger)
         return
     ok, reason = is_compatible_challenge(challenge, cfg)
     if ok:
         reservation_key = f"in:{challenge_id}"
         if not state.try_reserve_slot(reservation_key, cfg.max_parallel_games):
-            challenge_action(token, "decline", challenge_id, challenger, "busy")
+            decline_busy_challenge(token, challenge, cfg, challenger)
             return
         kind = "bot" if is_bot_user(challenger_obj) else "human"
         rating = challenge_rating(challenge)
@@ -1141,7 +1339,8 @@ def challenge_action(token: str, action: str, challenge_id: str, challenger: str
             api_request(token, "POST", f"/api/challenge/{urllib.parse.quote(challenge_id)}/accept")
             log("CHALLENGE", f"accepted {challenger} {reason}", Color.YELLOW)
         else:
-            api_request(token, "POST", f"/api/challenge/{urllib.parse.quote(challenge_id)}/decline")
+            payload = {"reason": reason} if reason == "busy" else None
+            api_request(token, "POST", f"/api/challenge/{urllib.parse.quote(challenge_id)}/decline", payload)
             log("CHALLENGE", f"declined {challenger}: {reason}", Color.YELLOW)
         return True
     except Exception as exc:
@@ -1568,6 +1767,9 @@ def main() -> int:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--env-file", default=str(DEFAULT_ENV))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--notify-test", action="store_true")
+    parser.add_argument("--notify-test-text", default="LabZero notification test")
+    parser.add_argument("--notify-test-file", help="optional file to send via Telegram sendDocument")
     parser.add_argument("--listen", action="store_true")
     parser.add_argument("--challenge-loop", action="store_true")
     parser.add_argument("--challenge", nargs="+", metavar="USERNAME", help="challenge one or more Lichess users, then listen for the game")
@@ -1579,15 +1781,23 @@ def main() -> int:
 
     if args.games is not None and args.games < 1:
         parser.error("--games must be at least 1")
-    if args.games is not None and args.dry_run:
-        parser.error("--games cannot be used with --dry-run")
+    if args.games is not None and (args.dry_run or args.notify_test):
+        parser.error("--games cannot be used with --dry-run or --notify-test")
 
-    selected_modes = [args.dry_run, args.listen, args.challenge_loop, bool(args.challenge)]
+    selected_modes = [args.dry_run, args.notify_test, args.listen, args.challenge_loop, bool(args.challenge)]
     if sum(bool(m) for m in selected_modes) != 1:
-        parser.error("choose exactly one of --dry-run, --listen, --challenge-loop, or --challenge")
+        parser.error("choose exactly one of --dry-run, --notify-test, --listen, --challenge-loop, or --challenge")
 
     load_env(Path(args.env_file))
     cfg = BotConfig.from_dict(load_toml(Path(args.config)), rated_override_from_args(args))
+
+    if args.notify_test:
+        try:
+            notify_test(cfg, args.notify_test_text, args.notify_test_file)
+            return 0
+        except Exception as exc:
+            log("API", f"notification test failed: {describe_error(exc)}", Color.GRAY)
+            return 1
 
     if args.dry_run:
         try:

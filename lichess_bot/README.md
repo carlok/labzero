@@ -64,6 +64,15 @@ xattr -d com.apple.quarantine lichess_bot/bin/labzero-macos-aarch64-0.6.2
 chmod +x lichess_bot/bin/labzero-macos-aarch64-0.6.2
 ```
 
+To rebuild the host engine and refresh the gitignored bot copies in one step:
+
+```bash
+./scripts/build-host-and-bot-engine.sh
+```
+
+This updates both `lichess_bot/bin/labzero` and the versioned platform binary
+used by `config.toml`.
+
 UCI options (set in `config.toml`, applied at engine start):
 
 ```toml
@@ -309,6 +318,46 @@ polyglot_books = []
 polyglot_max_depth = 20
 syzygy_paths = []
 syzygy_max_pieces = 7
+```
+
+## Notifications
+
+Game-start and game-end notifications are optional and disabled by default. To
+send Telegram messages, set this in `lichess_bot/config.toml`:
+
+```toml
+notify_provider = "telegram"
+```
+
+Then put the secrets in `lichess_bot/.env`:
+
+```bash
+LABZERO_NOTIFY_TELEGRAM_TOKEN=123456:abc
+LABZERO_NOTIFY_TELEGRAM_CHAT_ID=123456789
+```
+
+Notifications are best-effort: failures are logged and never stop a game.
+
+You can test Telegram without starting a Lichess game:
+
+```bash
+lichess_bot/run-local.sh --notify-test --notify-test-text "LabZero test"
+lichess_bot/run-local.sh --notify-test --notify-test-text "LabZero file test" \
+  --notify-test-file docs/perf/README.md
+```
+
+If a human challenges the bot while it is already busy, the runner declines with
+the Lichess `busy` reason and sends the operator a Telegram notification. Bot
+challenges are not notified by default to avoid spam.
+
+## Game Chat Visibility
+
+By default, greetings and good-game messages are sent to the Lichess `player`
+chat room. Spectators/audience do not see that room. To make bot chat visible
+while watching the game, configure:
+
+```toml
+chat_rooms = ["player", "spectator"]
 ```
 
 Live games use the Bot API endpoints:

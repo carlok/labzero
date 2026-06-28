@@ -627,3 +627,13 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Smoke PASS:** `benchmark_20260628T080455Z` — SF2400 4g → **1-0-3** (2.5/4 W-equiv); 0 illegal/errors; 0 threefold; openings OK.
 - **Candidate INVALID:** `gate_candidate_sf2500_wtime_16g` — stopped @ **1-5-3/9** (3.5/9 W-equiv); cannot reach ≥8/16 bar; do not run SF2600 gold.
 - **SF2400 16g INVALID:** `gate_sf2400_wtime_16g` — stopped @ **0-4-1/5** (0.5/5 W-equiv); real-clock collapse at same elo smoke was 1-0-3/4.
+
+## Build/NPS Sprint (2026-06-28)
+
+- **Default release profile:** workspace `Cargo.toml` now uses thin LTO, one codegen unit, and panic abort. Package-local release profiles are avoided because Cargo ignores them inside this workspace.
+- **Native opt-in:** `LABZERO_NATIVE=1 ./scripts/build-host-engine.sh` adds `-C target-cpu=native` for local host binaries only.
+- **NPS tool:** `scripts/host-nps-bench.sh` runs a fixed FEN suite with NNUE/policy env cleared and `LABZERO_ROOT_POLICY=raw`, recording TSV artifacts under `docs/perf/`.
+- **A/B evidence:** generic vs optimized release at same commit:
+  - `nps_20260628T174048Z` vs `nps_20260628T174058Z`: **Threads=1 depth=8** optimized median NPS ≈ **+30%**.
+  - `nps_20260628T174330Z` vs `nps_20260628T174338Z`: **Threads=4 depth=9** optimized median NPS ≈ **+3.4%** with stable bestmoves.
+- **Decision:** keep optimized profile as default production polish. Do not present it as a strength claim; use host benchmarks for strength and NPS probes for speed only.

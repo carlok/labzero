@@ -33,6 +33,9 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.avoid_bots_file.endswith("lichess_bot/local/avoid-bots.json")
     assert cfg.accept_draw_enabled is True
     assert cfg.accept_draw_losing_score == -100
+    assert cfg.notify_provider == "none"
+    assert cfg.notify_busy_human_challenge is True
+    assert cfg.chat_rooms == ["player"]
 
     with pytest.raises(ValueError, match="accept_from"):
         make_config(tmp_path, accept_from="everyone")
@@ -40,6 +43,165 @@ def test_config_defaults_and_validation(tmp_path):
         make_config(tmp_path, challenge_color="blue")
     with pytest.raises(ValueError, match="threads"):
         make_config(tmp_path, threads=0)
+    with pytest.raises(ValueError, match="notify_provider"):
+        make_config(tmp_path, notify_provider="email")
+    with pytest.raises(ValueError, match="chat_rooms"):
+        make_config(tmp_path, chat_rooms=["player", "team"])
+
+    both_rooms = make_config(tmp_path, chat_rooms=["player", "spectator", "player"])
+    assert both_rooms.chat_rooms == ["player", "spectator"]
+
+
+def test_notify_message_formatting(tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram")
+    game_full = {
+        "white": {"id": "labzerobot0", "name": "LabZeroBot0", "title": "BOT", "rating": 1500},
+        "black": {"id": "maia5", "name": "maia5", "title": "BOT", "rating": 1510},
+    }
+
+    start = bot.notify_message_start("abc123", cfg, chess.WHITE, game_full)
+    assert "unrated 3+2" in start
+    assert "white vs maia5" in start
+    assert "https://lichess.org/abc123" in start
+
+    end = bot.notify_message_end(
+        "abc123",
+        cfg,
+        chess.WHITE,
+        "1-0",
+        game_full,
+        {"status": "mate"},
+        "/tmp/game.pgn",
+    )
+    assert "WIN" in end
+    assert "status=mate" in end
+    assert "PGN: /tmp/game.pgn" in end
+
+
+def test_notify_telegram_best_effort(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram")
+    calls = []
+
+    monkeypatch.setenv("LABZERO_NOTIFY_TELEGRAM_TOKEN", "token")
+    monkeypatch.setenv("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", "chat")
+    monkeypatch.setattr(
+        bot.urllib.request,
+        "urlopen",
+        lambda req, timeout=0: calls.append((req, timeout))
+        or (_ for _ in ()).throw(RuntimeError("offline")),
+    )
+
+    bot.notify(cfg, "hello")
+
+    assert len(calls) == 1
+
+
+def test_telegram_document_request_shape(monkeypatch, tmp_path):
+    file_path = tmp_path / "probe.txt"
+    file_path.write_text("hello file")
+    monkeypatch.setenv("LABZERO_NOTIFY_TELEGRAM_TOKEN", "token")
+    monkeypatch.setenv("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", "chat")
+
+    req = bot.telegram_document_request(file_path, "caption")
+
+    assert req.full_url == "https://api.telegram.org/bottoken/sendDocument"
+    assert req.get_method() == "POST"
+    assert "multipart/form-data" in req.get_header("Content-type")
+    assert b'name="chat_id"' in req.data
+    assert b"chat" in req.data
+    assert b'name="caption"' in req.data
+    assert b"caption" in req.data
+    assert b'filename="probe.txt"' in req.data
+    assert b"hello file" in req.data
+
+
+def test_telegram_document_request_requires_env(monkeypatch, tmp_path):
+    monkeypatch.delenv("LABZERO_NOTIFY_TELEGRAM_TOKEN", raising=False)
+    monkeypatch.delenv("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", raising=False)
+
+    with pytest.raises(RuntimeError, match="LABZERO_NOTIFY_TELEGRAM_TOKEN"):
+        bot.telegram_document_request(tmp_path / "probe.txt", "caption")
+
+
+def test_notify_test_text_and_file(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram")
+    calls = []
+    file_path = tmp_path / "probe.txt"
+    file_path.write_text("hello")
+    monkeypatch.setattr(bot, "send_telegram_notification", lambda text: calls.append(("text", text)))
+    monkeypatch.setattr(bot, "send_telegram_document", lambda path, caption: calls.append(("file", path, caption)))
+
+    bot.notify_test(cfg, "hello text", None)
+    bot.notify_test(cfg, "hello file", str(file_path))
+
+    assert calls == [("text", "hello text"), ("file", str(file_path), "hello file")]
+
+
+def test_notify_test_requires_telegram_provider(tmp_path):
+    cfg = make_config(tmp_path)
+
+    with pytest.raises(RuntimeError, match="notify_provider"):
+        bot.notify_test(cfg, "hello", None)
+
+
+def test_main_notify_test_text_does_not_need_lichess_token(monkeypatch, tmp_path):
+    config = tmp_path / "config.toml"
+    config.write_text('notify_provider = "telegram"\n')
+    calls = []
+    monkeypatch.delenv("LICHESS_TOKEN", raising=False)
+    monkeypatch.setenv("LABZERO_NOTIFY_TELEGRAM_TOKEN", "token")
+    monkeypatch.setenv("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", "chat")
+    monkeypatch.setattr(bot, "send_telegram_notification", lambda text: calls.append(text))
+    monkeypatch.setattr(
+        bot.sys,
+        "argv",
+        [
+            "bot.py",
+            "--config",
+            str(config),
+            "--env-file",
+            str(tmp_path / "missing.env"),
+            "--notify-test",
+            "--notify-test-text",
+            "hello from test",
+        ],
+    )
+
+    assert bot.main() == 0
+    assert calls == ["hello from test"]
+
+
+def test_main_notify_test_missing_env_fails_without_lichess_token(monkeypatch, tmp_path):
+    config = tmp_path / "config.toml"
+    config.write_text('notify_provider = "telegram"\n')
+    monkeypatch.delenv("LICHESS_TOKEN", raising=False)
+    monkeypatch.delenv("LABZERO_NOTIFY_TELEGRAM_TOKEN", raising=False)
+    monkeypatch.delenv("LABZERO_NOTIFY_TELEGRAM_CHAT_ID", raising=False)
+    monkeypatch.setattr(
+        bot.sys,
+        "argv",
+        [
+            "bot.py",
+            "--config",
+            str(config),
+            "--env-file",
+            str(tmp_path / "missing.env"),
+            "--notify-test",
+        ],
+    )
+
+    assert bot.main() == 1
+
+
+def test_notify_disabled_does_not_call_telegram(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path)
+    monkeypatch.setattr(
+        bot,
+        "send_telegram_notification",
+        lambda text: (_ for _ in ()).throw(AssertionError("called")),
+    )
+
+    bot.notify(cfg, "hello")
 
 
 def test_runtime_state_game_limit():
@@ -198,6 +360,15 @@ def test_maybe_chat_ignores_empty_and_api_errors(monkeypatch):
     assert calls == [("token", "game", "player", "hello")]
 
 
+def test_maybe_chat_rooms_posts_to_each_room(monkeypatch):
+    calls = []
+    monkeypatch.setattr(bot, "maybe_chat", lambda token, game_id, room, text: calls.append((room, text)))
+
+    bot.maybe_chat_rooms("token", "game", ["player", "spectator"], "hello")
+
+    assert calls == [("player", "hello"), ("spectator", "hello")]
+
+
 def test_draw_offer_policy_accepts_only_reasonable_cases(tmp_path):
     cfg = make_config(tmp_path)
     board = chess.Board()
@@ -236,9 +407,10 @@ def test_save_pgn_writes_players_elos_titles_and_result(tmp_path):
     }
     game_state = {"moves": "e2e4 e7e5 g1f3 b8c6", "status": "outoftime", "winner": "white"}
 
-    bot.save_pgn(cfg, "abc123", board, game_full, game_state)
+    saved = bot.save_pgn(cfg, "abc123", board, game_full, game_state)
 
     pgn_path = next(Path(cfg.pgn_directory).glob("*LabZeroBot0_vs_maia5_abc123.pgn"))
+    assert saved == str(pgn_path)
     pgn = pgn_path.read_text()
     assert '[White "LabZeroBot0"]' in pgn
     assert '[Black "maia5"]' in pgn
@@ -374,6 +546,52 @@ def test_accept_or_decline_challenge_actions(monkeypatch, tmp_path):
     assert actions[-1] == ("decline", "chal2", "HumanOne", "busy")
 
 
+def test_busy_human_challenge_notifies_operator(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram")
+    state = bot.RuntimeState()
+    state.begin_game("active", "playing")
+    actions = []
+    notifications = []
+    monkeypatch.setattr(bot, "challenge_action", lambda *args: actions.append(args) or True)
+    monkeypatch.setattr(bot, "notify", lambda cfg, text: notifications.append(text))
+
+    challenge = {
+        "id": "chal1",
+        "rated": False,
+        "challenger": {"id": "human1", "name": "HumanOne", "rating": 1500},
+        "variant": {"key": "standard"},
+        "timeControl": {"limit": 180, "increment": 2},
+    }
+    bot.accept_or_decline_challenge("token", challenge, cfg, state, "labzerobot0")
+
+    assert actions[-1] == ("token", "decline", "chal1", "HumanOne", "busy")
+    assert len(notifications) == 1
+    assert "HumanOne" in notifications[0]
+    assert "reason=busy" in notifications[0]
+
+
+def test_busy_bot_challenge_does_not_notify_operator(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram")
+    state = bot.RuntimeState()
+    state.begin_game("active", "playing")
+    actions = []
+    notifications = []
+    monkeypatch.setattr(bot, "challenge_action", lambda *args: actions.append(args) or True)
+    monkeypatch.setattr(bot, "notify", lambda cfg, text: notifications.append(text))
+
+    challenge = {
+        "id": "chal1",
+        "rated": False,
+        "challenger": {"id": "maia5", "name": "maia5", "title": "BOT", "rating": 1510},
+        "variant": {"key": "standard"},
+        "timeControl": {"limit": 180, "increment": 2},
+    }
+    bot.accept_or_decline_challenge("token", challenge, cfg, state, "labzerobot0")
+
+    assert actions[-1] == ("token", "decline", "chal1", "maia5", "busy")
+    assert notifications == []
+
+
 def test_failed_accept_releases_reserved_capacity(monkeypatch, tmp_path):
     cfg = make_config(tmp_path)
     state = bot.RuntimeState()
@@ -448,11 +666,13 @@ def test_quota_and_control_file(tmp_path):
 
 
 def test_play_game_sends_hello_after_first_ply(monkeypatch, tmp_path):
-    cfg = make_config(tmp_path)
+    cfg = make_config(tmp_path, chat_rooms=["player", "spectator"])
     state = bot.RuntimeState()
     state.begin_game("game1", "starting")
     chats: list[tuple] = []
+    notifications: list[str] = []
     monkeypatch.setattr(bot, "maybe_chat", lambda *args, **kwargs: chats.append(args))
+    monkeypatch.setattr(bot, "notify", lambda cfg, text: notifications.append(text))
     monkeypatch.setattr(bot, "choose_move", lambda *args, **kwargs: bot.MoveDecision(chess.Move.from_uci("e7e5"), score_cp=0))
     monkeypatch.setattr(bot, "bot_make_move", lambda *args, **kwargs: None)
     monkeypatch.setattr(
@@ -474,9 +694,14 @@ def test_play_game_sends_hello_after_first_ply(monkeypatch, tmp_path):
 
     bot.play_game("token", object(), "game1", "labzerobot0", cfg, state)
 
-    assert len(chats) == 2
-    assert chats[0][3] == bot.format_chat(cfg.hello, me="labzerobot0", opponent="maia5")
-    assert chats[1][3] == bot.format_chat(cfg.goodbye, me="labzerobot0", opponent="maia5")
+    assert len(chats) == 4
+    assert chats[0][2:] == ("player", bot.format_chat(cfg.hello, me="labzerobot0", opponent="maia5"))
+    assert chats[1][2:] == ("spectator", bot.format_chat(cfg.hello, me="labzerobot0", opponent="maia5"))
+    assert chats[2][2:] == ("player", bot.format_chat(cfg.goodbye, me="labzerobot0", opponent="maia5"))
+    assert chats[3][2:] == ("spectator", bot.format_chat(cfg.goodbye, me="labzerobot0", opponent="maia5"))
+    assert len(notifications) == 2
+    assert "game started" in notifications[0]
+    assert "game ended" in notifications[1]
 
 
 def test_play_game_counts_quota_only_when_pending_bot_game_starts(monkeypatch, tmp_path):
@@ -630,6 +855,15 @@ def test_api_wrapper_endpoints_and_online_bot_shapes(monkeypatch):
     responses.extend([{"id": "lab"}, []])
     assert bot.api_account("token") == {"id": "lab"}
     assert bot.api_account("token") == {}
+
+
+def test_challenge_decline_busy_sends_reason(monkeypatch):
+    calls = []
+    monkeypatch.setattr(bot, "api_request", lambda *args: calls.append(args))
+
+    assert bot.challenge_action("token", "decline", "chal1", "HumanOne", "busy")
+
+    assert calls == [("token", "POST", "/api/challenge/chal1/decline", {"reason": "busy"})]
 
 
 def test_own_blitz_rating_uses_fallbacks(monkeypatch, tmp_path):

@@ -1,0 +1,9 @@
+stamp	commit	engine	threads	hash_mb	depth	fen_id	bestmove	nodes	nps	time_ms
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	1	64	8	1	b1c3	198127	1076777	184
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	1	64	8	2	g8f6	1093724	1365448	801
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	1	64	8	3	e4d5	561946	1394406	403
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	1	64	8	4	c5c6	33073	2362357	14
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	4	64	8	1	e2e4	119270	1157961	103
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	4	64	8	2	g8f6	470923	1499754	314
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	4	64	8	3	e4d5	284229	1442786	197
+20260628T174048Z	0f0bb79	/tmp/labzero-generic/release/labzero	4	64	8	4	c5c6	21854	2428222	9

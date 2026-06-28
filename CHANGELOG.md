@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-(nothing)
+- **Build:** default release profile now uses thin LTO, one codegen unit, and panic abort at the workspace root.
+- **Tooling:** added `scripts/host-nps-bench.sh` for repeatable host NPS probes across thread counts and fixed FENs.
+- **Tooling:** added `scripts/build-host-and-bot-engine.sh` to refresh `target/release/labzero` and gitignored bot binary copies.
+- **lichess_bot:** optional best-effort Telegram start/end notifications, `--notify-test` text/file mode, busy-human challenge notifications; coverage gate raised to 50%.
 
 ## 0.6.2 — 2026-06-28
 
