@@ -90,6 +90,19 @@ SF_ELO=2200 GAMES=4 TC_MODE=wtime      TC_SEC=3 TC_INC=2 THREADS=4 DEBUG_MOVES=1
 
 Pass condition before stronger tests: no illegal/errors/timeouts, at least 2/4 W-equiv in real-clock at SF2200, and no repeated Lichess-like practical failure.
 
+## Diagnostic A/B Results (2026-06-28)
+
+Protocol A/B at SF2400, 4 games, `TC_SEC=3` (+2s inc), `THREADS=4`, `DEBUG_MOVES=1`, `MAX_PLIES=160`. Classical eval, NNUE/policy cleared. SF2200 floor probe **not run** — wtime did not collapse vs freshclock on this sample.
+
+| Artifact | TC_MODE | Result (W-L-D) | W-equiv (3 completed) | Truncated | Status |
+|---|---|---:|---:|---:|---|
+| `benchmark_20260628T113901Z` | freshclock | 1-2-0 | 1/3 (33%) | 1 | complete |
+| `benchmark_20260628T114956Z` | wtime | 0-1-2 | 1/3 (33%) | 1 | complete |
+
+Both runs: 0 illegal, 0 errors, 0 timeouts. Harness-reported `labzero %` = 33.3 for each (draws count 0.5). Wtime scored **better** than the prior SF2400 confirm gate (`085820Z`: 0-4-1 over 5 games) but still below the 2/4 W-equiv pass bar. Freshclock and wtime split differently (wins vs draws) with similar aggregate score — inconclusive on clock-protocol alone; does not yet justify SF2600 real-clock or rated Lichess.
+
+Move traces: `benchmark_20260628T113901Z.moves.tsv`, `benchmark_20260628T114956Z.moves.tsv`.
+
 ## What To Stop Doing
 
 - Stop running rated Lichess until a small real-clock diagnostic looks sane.
