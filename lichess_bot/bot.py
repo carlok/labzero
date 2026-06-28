@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import io
 import json
 import os
 import random
@@ -567,8 +568,9 @@ def pgn_result(board: chess.Board, game_state: dict[str, Any]) -> str:
     status = str(game_state.get("status") or "")
     if status in {"draw", "stalemate"}:
         return "1/2-1/2"
-    if board.is_game_over(claim_draw=True):
-        return board.result(claim_draw=True)
+    # Claimable draws (threefold, fifty-move) are not terminal on Lichess until claimed.
+    if board.is_game_over(claim_draw=False):
+        return board.result(claim_draw=False)
     return "*"
 
 
@@ -609,6 +611,45 @@ def maybe_chat(token: str, game_id: str, room: str, text: str) -> None:
         bot_chat(token, game_id, room, text)
     except Exception as exc:
         log("API", f"chat ignored for {game_id}: {describe_error(exc)}", Color.GRAY)
+
+
+def can_claim_lichess_draw(board: chess.Board) -> bool:
+    return board.can_claim_threefold_repetition() or board.can_claim_fifty_moves()
+
+
+def should_claim_available_draw(
+    cfg: BotConfig,
+    board: chess.Board,
+    color: chess.Color,
+    game_state: dict[str, Any],
+) -> bool:
+    if board.turn != color or not can_claim_lichess_draw(board):
+        return False
+    return own_clock_seconds(game_state, color, cfg) <= cfg.accept_draw_low_time_sec
+
+
+def is_game_already_over_error(exc: Exception) -> bool:
+    if not isinstance(exc, ApiError):
+        return False
+    detail = describe_error(exc).lower()
+    return (
+        "already over" in detail
+        or "not your turn" in detail
+        or "not the time to claim draw" in detail
+    )
+
+
+def maybe_claim_draw(token: str, game_id: str, reason: str) -> bool | None:
+    """Return True if claimed, False if retry later, None if the game is already over."""
+    try:
+        bot_claim_draw(token, game_id)
+        log("MOVE", f"{game_id} claimed draw ({reason})", Color.BLUE)
+        return True
+    except Exception as exc:
+        log("API", f"claim-draw ignored for {game_id}: {describe_error(exc)}", Color.GRAY)
+        if is_game_already_over_error(exc):
+            return None
+        return False
 
 
 def piece_count(board: chess.Board) -> int:
@@ -674,7 +715,8 @@ def is_game_terminal(board: chess.Board, game_state: dict[str, Any]) -> bool:
     status = terminal_status(game_state)
     if status in TERMINAL_GAME_STATUSES:
         return True
-    return board.is_game_over(claim_draw=True)
+    # Claimable draws (threefold, fifty-move) are not terminal on Lichess until claimed.
+    return board.is_game_over(claim_draw=False)
 
 
 def is_stale_move_error(exc: Exception) -> bool:
@@ -817,7 +859,7 @@ def fetch_game_export_pgn(token: str, game_id: str) -> str | None:
         "Accept": "application/x-chess-pgn",
     }
     req = urllib.request.Request(
-        f"{LICHESS_API}/api/games/export/{urllib.parse.quote(game_id)}?moves=1&tags=1&clocks=1",
+        f"{LICHESS_API}/game/export/{urllib.parse.quote(game_id)}?moves=1&tags=1&clocks=1",
         headers=headers,
         method="GET",
     )
@@ -828,6 +870,47 @@ def fetch_game_export_pgn(token: str, game_id: str) -> str | None:
         log("API", f"export ignored for {game_id}: {describe_error(exc)}", Color.GRAY)
         return None
     return text or None
+
+
+def enrich_state_from_export(
+    pgn_text: str,
+    board: chess.Board,
+    game_state: dict[str, Any],
+) -> tuple[chess.Board, dict[str, Any]]:
+    game = chess.pgn.read_game(io.StringIO(pgn_text))
+    if game is None:
+        return board, game_state
+    end_board = game.end().board()
+    result = game.headers.get("Result", "*")
+    enriched = dict(game_state)
+    if result == "1/2-1/2":
+        enriched["status"] = "draw"
+    elif result == "1-0":
+        enriched["winner"] = "white"
+        enriched.setdefault("status", "mate")
+    elif result == "0-1":
+        enriched["winner"] = "black"
+        enriched.setdefault("status", "mate")
+    return end_board, enriched
+
+
+def finish_game_after_api_over(
+    token: str,
+    game_id: str,
+    account_id: str,
+    cfg: BotConfig,
+    board: chess.Board,
+    game_full: dict[str, Any] | None,
+    game_state: dict[str, Any],
+    color: chess.Color | None,
+    *,
+    note: str = "",
+) -> None:
+    export = fetch_game_export_pgn(token, game_id)
+    if export:
+        save_exported_pgn(cfg, game_id, export)
+        board, game_state = enrich_state_from_export(export, board, game_state)
+    finish_played_game(token, game_id, account_id, cfg, board, game_full, game_state, color, note=note)
 
 
 def finish_played_game(
@@ -918,6 +1001,25 @@ def play_game(
             if color is None or board.turn != color or moves == last_handled_moves:
                 continue
 
+            if should_claim_available_draw(cfg, board, color, game_state):
+                claim = maybe_claim_draw(token, game_id, "low time")
+                if claim is True:
+                    continue
+                if claim is None:
+                    finish_game_after_api_over(
+                        token,
+                        game_id,
+                        account_id,
+                        cfg,
+                        board,
+                        game_full,
+                        game_state,
+                        color,
+                        note="(claim-draw: game already over)",
+                    )
+                    finished = True
+                    return
+
             decision = choose_move(engine, board, color, cfg, game_state)
             if decision.move not in board.legal_moves:
                 log("API", f"illegal {decision.source} move {decision.move} in {game_id}", Color.GRAY)
@@ -960,16 +1062,17 @@ def play_game(
                 bot_make_move(token, game_id, decision.move.uci(), decision.offer_draw)
             except ApiError as exc:
                 if is_stale_move_error(exc):
-                    log(
-                        "GAME END",
-                        f"⏹ stale move {game_id} ({describe_error(exc)}); fetching export",
-                        Color.MAGENTA,
+                    finish_game_after_api_over(
+                        token,
+                        game_id,
+                        account_id,
+                        cfg,
+                        board,
+                        game_full,
+                        game_state,
+                        color,
+                        note="(stale move)",
                     )
-                    export = fetch_game_export_pgn(token, game_id)
-                    if export:
-                        save_exported_pgn(cfg, game_id, export)
-                    elif game_full is not None:
-                        save_pgn(cfg, game_id, board, game_full, game_state)
                     finished = True
                     return
                 raise
@@ -1180,6 +1283,10 @@ def bot_resign(token: str, game_id: str) -> None:
 
 def bot_abort(token: str, game_id: str) -> None:
     api_request(token, "POST", f"/api/bot/game/{urllib.parse.quote(game_id)}/abort")
+
+
+def bot_claim_draw(token: str, game_id: str) -> None:
+    api_request(token, "POST", f"/api/bot/game/{urllib.parse.quote(game_id)}/claim-draw")
 
 
 def bot_chat(token: str, game_id: str, room: str, text: str) -> None:

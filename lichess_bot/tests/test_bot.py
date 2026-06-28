@@ -264,6 +264,66 @@ def test_pgn_result_from_lichess_terminal_state(state, expected):
     assert bot.pgn_result(chess.Board(), state) == expected
 
 
+def test_claimable_repetition_is_not_terminal_without_lichess_status():
+    board = chess.Board()
+    for _ in range(3):
+        board.push_san("Nf3")
+        board.push_san("Nf6")
+        board.push_san("Ng1")
+        board.push_san("Ng8")
+    assert board.can_claim_threefold_repetition()
+    assert board.is_game_over(claim_draw=True)
+    assert not board.is_game_over(claim_draw=False)
+    assert not bot.is_game_terminal(board, {})
+    assert bot.pgn_result(board, {}) == "*"
+
+
+def test_is_game_terminal_honors_lichess_timeout():
+    board = chess.Board()
+    assert bot.is_game_terminal(board, {"status": "outoftime", "winner": "white"})
+
+
+def test_should_claim_available_draw_on_low_time(tmp_path):
+    cfg = make_config(tmp_path)
+    board = chess.Board()
+    for _ in range(3):
+        board.push_san("Nf3")
+        board.push_san("Nf6")
+        board.push_san("Ng1")
+        board.push_san("Ng8")
+    game_state = {"wtime": 8000, "btime": 60000}
+    assert bot.should_claim_available_draw(cfg, board, chess.WHITE, game_state)
+    assert not bot.should_claim_available_draw(cfg, board, chess.BLACK, game_state)
+
+
+def test_should_not_claim_draw_on_equal_score_without_low_time(tmp_path):
+    cfg = make_config(tmp_path)
+    board = chess.Board()
+    for _ in range(3):
+        board.push_san("Nf3")
+        board.push_san("Nf6")
+        board.push_san("Ng1")
+        board.push_san("Ng8")
+    game_state = {"wtime": 60000, "btime": 60000}
+    assert not bot.should_claim_available_draw(cfg, board, chess.WHITE, game_state)
+
+
+def test_is_game_already_over_error():
+    assert bot.is_game_already_over_error(
+        bot.ApiError('HTTP 400: {"error":"Not your turn, or game already over"}')
+    )
+    assert bot.is_game_already_over_error(
+        bot.ApiError('HTTP 400: {"error":"This is not the time to claim draw"}')
+    )
+    assert not bot.is_game_already_over_error(bot.ApiError("HTTP 500"))
+
+
+def test_enrich_state_from_export():
+    pgn = '[Result "1/2-1/2"]\n1. e4 e5 *'
+    board, state = bot.enrich_state_from_export(pgn, chess.Board(), {})
+    assert state["status"] == "draw"
+
+
 def test_challenge_compatibility_filters_policy(tmp_path):
     cfg = make_config(tmp_path, accept_from="any", min_rating=1400, max_rating=1800)
     challenge = {
