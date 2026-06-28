@@ -10,11 +10,11 @@ max_parallel_games = 1
 rated = false
 challenge_color = "random" # random, white, or black
 
-# Incoming challenge policy. Use "any" to accept humans and bots, "human" for
-# human challengers only, or "bot" for bot challengers only.
-accept_from = "any"
-# min_rating = 1200
-# max_rating = 2600
+# Incoming challenges (--listen / accepted challenges).
+accept_from = "any" # any, bot, or human
+# Optional hard caps on challenger blitz rating; unset = no cap.
+# min_rating = 1800
+# max_rating = 2300
 
 # Leave unset for clock-managed UCI play. Set one of these only for local tests.
 # search_depth = 4
@@ -50,11 +50,12 @@ hello = "Hi! I'm {me}. Good luck!"
 goodbye = "Good game!"
 
 # Online bot selection for --challenge-loop.
+# Window is own blitz rating + deltas (e.g. 1944 with -100..+250 → 1844–2194).
 min_blitz_games = 20
 allow_provisional = false
-target_rating_min_delta = 0
-target_rating_max_delta = 150
-fallback_blitz_rating = 1500
+target_rating_min_delta = -100
+target_rating_max_delta = 250
+fallback_blitz_rating = 1950
 use_fallback_rating_when_provisional = true
 max_challenge_attempts_per_cycle = 8
 max_bot_challenges_per_day = 100

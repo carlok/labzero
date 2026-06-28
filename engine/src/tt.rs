@@ -170,9 +170,9 @@ impl TranspositionTable {
 
 fn to_tt_score(score: i32, ply: usize) -> i32 {
     if score > MATE_SCORE - 1000 {
-        score.saturating_add(ply as i32).min(MATE_SCORE - 1)
+        score.saturating_add(ply as i32)
     } else if score < -MATE_SCORE + 1000 {
-        score.saturating_sub(ply as i32).max(-MATE_SCORE + 1)
+        score.saturating_sub(ply as i32)
     } else {
         score
     }
@@ -180,9 +180,9 @@ fn to_tt_score(score: i32, ply: usize) -> i32 {
 
 fn from_tt_score(score: i32, ply: usize) -> i32 {
     if score > MATE_SCORE - 1000 {
-        score.saturating_sub(ply as i32).max(MATE_SCORE - 128)
+        score.saturating_sub(ply as i32)
     } else if score < -MATE_SCORE + 1000 {
-        score.saturating_add(ply as i32).min(-MATE_SCORE + 128)
+        score.saturating_add(ply as i32)
     } else {
         score
     }

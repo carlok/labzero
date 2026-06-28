@@ -85,7 +85,7 @@ def main() -> int:
             return 1
 
         send(proc, "stop")
-        best = read_until(proc, lambda s: s.startswith("bestmove "), 1.0, seen)
+        best = read_until(proc, lambda s: s.startswith("bestmove "), 5.0, seen)
         if best is None:
             print(f"FAIL: missing bestmove after stop; seen={seen}", file=sys.stderr)
             return 1

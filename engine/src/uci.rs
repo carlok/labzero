@@ -126,6 +126,7 @@ pub fn run_uci_loop() {
             stop_flag().store(false, Ordering::Relaxed);
         } else if trimmed == "stop" {
             stop_flag().store(true, Ordering::Relaxed);
+            stop_and_join_active_search(&mut active_search);
         } else if trimmed == "quit" {
             stop_and_join_active_search(&mut active_search);
             break;
@@ -290,8 +291,6 @@ fn run_go_and_reply(board: &Board, tc: &TimeControl, out: &mut impl Write) {
             return;
         }
     }
-
-    stop_flag().store(false, Ordering::Relaxed);
 
     let stm_white = board.stm == crate::color::Color::White;
     let opts = engine_opts().lock().expect("engine opts").clone();
