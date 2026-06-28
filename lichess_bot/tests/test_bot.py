@@ -387,6 +387,38 @@ def test_quota_and_control_file(tmp_path):
     assert not bot.stop_after_current_game(str(control_path))
 
 
+def test_play_game_sends_hello_after_first_ply(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path)
+    state = bot.RuntimeState()
+    state.begin_game("game1", "starting")
+    chats: list[tuple] = []
+    monkeypatch.setattr(bot, "maybe_chat", lambda *args, **kwargs: chats.append(args))
+    monkeypatch.setattr(bot, "choose_move", lambda *args, **kwargs: bot.MoveDecision(chess.Move.from_uci("e7e5"), score_cp=0))
+    monkeypatch.setattr(bot, "bot_make_move", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        bot,
+        "bot_game_stream",
+        lambda token, game_id: iter(
+            [
+                {
+                    "type": "gameFull",
+                    "white": {"id": "maia5", "name": "maia5", "title": "BOT", "rating": 1510},
+                    "black": {"id": "labzerobot0", "name": "LabZeroBot0", "title": "BOT", "rating": 1500},
+                    "state": {"moves": "", "wtime": 180000, "btime": 180000},
+                },
+                {"type": "gameState", "moves": "e2e4", "wtime": 180000, "btime": 180000},
+                {"type": "gameState", "moves": "e2e4 e7e5", "status": "draw"},
+            ]
+        ),
+    )
+
+    bot.play_game("token", object(), "game1", "labzerobot0", cfg, state)
+
+    assert len(chats) == 2
+    assert chats[0][3] == bot.format_chat(cfg.hello, me="labzerobot0", opponent="maia5")
+    assert chats[1][3] == bot.format_chat(cfg.goodbye, me="labzerobot0", opponent="maia5")
+
+
 def test_play_game_counts_quota_only_when_pending_bot_game_starts(monkeypatch, tmp_path):
     cfg = make_config(tmp_path)
     quota = bot.ChallengeQuota(str(tmp_path / "quota.json"), daily_limit=100, margin=10)

@@ -892,10 +892,6 @@ def play_game(
                     quota.record_attempt()
                     quota.log_status()
                 game_state = event.get("state", {})
-                if not hello_sent:
-                    opponent = user_name(opponent_player)
-                    maybe_chat(token, game_id, "player", format_chat(cfg.hello, me=account_id, opponent=opponent))
-                    hello_sent = True
             elif etype == "gameState":
                 game_state = event
             elif etype == "opponentGone":
@@ -908,6 +904,12 @@ def play_game(
             board = board_from_moves(moves)
             ply = board.ply()
             state.update_game(game_id, f"ply={ply} turn={'white' if board.turn else 'black'}")
+
+            # Lichess UI drops player chat posted before the first ply (API still returns 200).
+            if not hello_sent and moves.strip() and game_full is not None and color is not None:
+                opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
+                maybe_chat(token, game_id, "player", format_chat(cfg.hello, me=account_id, opponent=opponent))
+                hello_sent = True
 
             if is_game_terminal(board, game_state):
                 finish_played_game(token, game_id, account_id, cfg, board, game_full, game_state, color)
