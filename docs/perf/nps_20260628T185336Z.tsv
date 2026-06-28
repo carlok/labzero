@@ -1,0 +1,13 @@
+stamp	commit	engine	threads	hash_mb	depth	fen_id	bestmove	nodes	nps	time_ms
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	1	64	9	1	b1c3	706552	1145141	617
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	1	64	9	2	g8f6	2549456	1217505	2094
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	1	64	9	3	e4d5	1230985	1043207	1180
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	1	64	9	4	c5c6	79338	1763066	45
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	4	64	9	1	e2e4	485102	755610	642
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	4	64	9	2	g8f6	972263	790457	1230
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	4	64	9	3	e4d5	627590	748914	838
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	4	64	9	4	c5c6	32223	1111137	29
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	8	64	9	1	e2e4	246879	629793	392
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	8	64	9	2	g8f6	816713	635080	1286
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	8	64	9	3	e4d5	505254	680935	742
+20260628T185336Z	8355d20	/Users/carlo/Documents/varie/hacks/games/labzero/target/release/labzero	8	64	9	4	c5c6	30307	1082392	28
