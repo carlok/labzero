@@ -153,6 +153,8 @@ class BotConfig:
     accept_draw_min_ply: int
     accept_draw_low_time_sec: int
     accept_draw_low_time_score: int
+    uci_threads: int
+    uci_hash_mb: int
 
     @classmethod
     def from_dict(cls, cfg: dict[str, Any], rated_override: bool | None) -> "BotConfig":
@@ -163,8 +165,14 @@ class BotConfig:
         challenge_color = str(cfg.get("challenge_color", "random")).lower()
         if challenge_color not in {"random", "white", "black"}:
             raise ValueError("challenge_color must be one of: random, white, black")
+        uci_threads = int(cfg.get("threads", 4))
+        uci_hash_mb = int(cfg.get("hash_mb", 64))
+        if not 1 <= uci_threads <= 8:
+            raise ValueError("threads must be between 1 and 8")
+        if not 1 <= uci_hash_mb <= 1024:
+            raise ValueError("hash_mb must be between 1 and 1024")
         return cls(
-            engine=resolve_path(str(cfg.get("engine", "lichess_bot/bin/labzero-macos-aarch64-0.6.1"))),
+            engine=resolve_path(str(cfg.get("engine", "lichess_bot/bin/labzero-macos-aarch64-0.6.2"))),
             rated=rated,
             clock_limit=int(cfg.get("clock_limit", 180)),
             clock_increment=int(cfg.get("clock_increment", 2)),
@@ -212,6 +220,8 @@ class BotConfig:
             accept_draw_min_ply=int(cfg.get("accept_draw_min_ply", 40)),
             accept_draw_low_time_sec=int(cfg.get("accept_draw_low_time_sec", 10)),
             accept_draw_low_time_score=int(cfg.get("accept_draw_low_time_score", 100)),
+            uci_threads=uci_threads,
+            uci_hash_mb=uci_hash_mb,
         )
 
 
@@ -246,13 +256,15 @@ class MoveDecision:
 
 
 class RuntimeState:
-    def __init__(self) -> None:
+    def __init__(self, games_limit: int | None = None) -> None:
         self._lock = threading.Lock()
         self._active: dict[str, str] = {}
         self._reserved: dict[str, float] = {}
         self._pending_outgoing_bots: set[str] = set()
         self._force_quit = False
         self.stop = threading.Event()
+        self.games_limit = games_limit
+        self.completed_games = 0
 
     def _expire_reserved_locked(self) -> None:
         now = time.time()
@@ -303,8 +315,20 @@ class RuntimeState:
                 self._active[game_id] = text
 
     def end_game(self, game_id: str) -> None:
+        limit_reached = False
+        completed = 0
+        limit = self.games_limit
         with self._lock:
+            was_active = game_id in self._active
             self._active.pop(game_id, None)
+            if was_active:
+                self.completed_games += 1
+                completed = self.completed_games
+                if limit is not None and self.completed_games >= limit:
+                    self.stop.set()
+                    limit_reached = True
+        if limit_reached and limit is not None:
+            log("IDLE", f"game limit reached ({completed}/{limit}); no new games", Color.GREEN)
 
     def snapshot(self) -> dict[str, str]:
         with self._lock:
@@ -348,9 +372,15 @@ def heartbeat(state: RuntimeState, interval: int) -> None:
             log("PLAYING", f"game={game_id} {text}", Color.RED)
 
 
+def configure_uci_engine(engine: chess.engine.SimpleEngine, cfg: BotConfig) -> None:
+    engine.configure({"Threads": cfg.uci_threads, "Hash": cfg.uci_hash_mb})
+    log("CONFIG", f"uci Threads={cfg.uci_threads} Hash={cfg.uci_hash_mb}", Color.GRAY)
+
+
 def dry_run_test(engine_path: str, cfg: BotConfig) -> None:
     log("CONFIG", f"dry-run engine={engine_path}", Color.GRAY)
     with chess.engine.SimpleEngine.popen_uci(engine_path, timeout=5.0) as eng:
+        configure_uci_engine(eng, cfg)
         board = chess.Board()
         for ply in range(20):
             if board.is_game_over():
@@ -1280,19 +1310,27 @@ def challenge_loop(token: str, account_id: str, cfg: BotConfig, state: RuntimeSt
         time.sleep(cfg.challenge_interval_sec)
 
 
-def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] | None = None) -> None:
+def wait_for_active_games(state: RuntimeState) -> None:
+    while state.active_count() > 0:
+        time.sleep(0.25)
+
+
+def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] | None = None, games_limit: int | None = None) -> None:
     account = api_account(token)
     account_id = str(account.get("id") or account.get("username") or account.get("name") or "").lower()
-    state = RuntimeState()
+    state = RuntimeState(games_limit=games_limit)
     signal.signal(signal.SIGINT, state.handle_sigint)
     threading.Thread(target=heartbeat, args=(state, cfg.heartbeat_sec), daemon=True).start()
 
+    games_text = f" games={games_limit}" if games_limit is not None else ""
     log(
         "CONFIG",
-        f"mode={mode} rated={str(cfg.rated).lower()} tc={cfg.clock_limit // 60}+{cfg.clock_increment} engine={cfg.engine}",
+        f"mode={mode} rated={str(cfg.rated).lower()} tc={cfg.clock_limit // 60}+{cfg.clock_increment} "
+        f"threads={cfg.uci_threads} engine={cfg.engine}{games_text}",
         Color.GRAY,
     )
     with chess.engine.SimpleEngine.popen_uci(cfg.engine, timeout=5.0) as engine:
+        configure_uci_engine(engine, cfg)
         if mode == "challenge-loop":
             quota = ChallengeQuota(cfg.challenge_quota_file, cfg.max_bot_challenges_per_day, cfg.bot_challenge_quota_margin)
             threading.Thread(
@@ -1306,6 +1344,9 @@ def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] |
             run_event_loop(token, engine, account_id, cfg, state)
         else:
             run_event_loop(token, engine, account_id, cfg, state)
+    if games_limit is not None:
+        wait_for_active_games(state)
+        log("IDLE", f"finished {state.completed_games}/{games_limit} game(s); exiting", Color.GREEN)
 
 
 def rated_override_from_args(args: argparse.Namespace) -> bool | None:
@@ -1327,7 +1368,13 @@ def main() -> int:
     rated = parser.add_mutually_exclusive_group()
     rated.add_argument("--rated", action="store_true")
     rated.add_argument("--unrated", action="store_true")
+    parser.add_argument("--games", type=int, metavar="N", help="stop after N completed games (live modes only)")
     args = parser.parse_args()
+
+    if args.games is not None and args.games < 1:
+        parser.error("--games must be at least 1")
+    if args.games is not None and args.dry_run:
+        parser.error("--games cannot be used with --dry-run")
 
     selected_modes = [args.dry_run, args.listen, args.challenge_loop, bool(args.challenge)]
     if sum(bool(m) for m in selected_modes) != 1:
@@ -1359,7 +1406,7 @@ def main() -> int:
             mode = "challenge"
         else:
             mode = "listen"
-        run_live(token, cfg, mode, args.challenge)
+        run_live(token, cfg, mode, args.challenge, games_limit=args.games)
         return 0
     except Exception as exc:
         log("API", f"runner stopped: {describe_error(exc)}", Color.GRAY)

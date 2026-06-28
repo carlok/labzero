@@ -1,5 +1,7 @@
 # Copy to config.toml for local overrides. Put the token in lichess_bot/.env.
-engine = "lichess_bot/bin/labzero-macos-aarch64-0.6.1"
+engine = "lichess_bot/bin/labzero-macos-aarch64-0.6.2"
+threads = 4
+hash_mb = 64
 
 # Live challenges are 3+2 blitz only for now.
 clock_limit = 180

@@ -5,7 +5,7 @@ It runs in the foreground by default so you can see when the bot is playing.
 
 ## Local Files
 
-- `bin/labzero-macos-aarch64-0.6.1` - copied engine binary, gitignored.
+- `bin/labzero-macos-aarch64-0.6.2` - copied engine binary, gitignored.
 - `.env` - local Lichess token, gitignored.
 - `config.toml` - optional local config override, gitignored.
 - `local/` - logs and runtime files, gitignored.
@@ -60,8 +60,15 @@ If the binary was downloaded from GitHub on macOS, it may need local permission
 approval before it can run:
 
 ```bash
-xattr -d com.apple.quarantine lichess_bot/bin/labzero-macos-aarch64-0.6.1
-chmod +x lichess_bot/bin/labzero-macos-aarch64-0.6.1
+xattr -d com.apple.quarantine lichess_bot/bin/labzero-macos-aarch64-0.6.2
+chmod +x lichess_bot/bin/labzero-macos-aarch64-0.6.2
+```
+
+UCI options (set in `config.toml`, applied at engine start):
+
+```toml
+threads = 4   # Lazy SMP; matches host benchmark default
+hash_mb = 64
 ```
 
 ## Test Locally
@@ -110,6 +117,15 @@ round 3: 10 games ...
 ```
 
 ## Open The Bot For Real Games
+
+Use `--games N` to stop automatically after **N completed games** (no manual control file needed):
+
+```bash
+lichess_bot/run-local.sh --challenge-loop --unrated --games 4
+lichess_bot/run-local.sh --challenge-loop --rated --games 4
+```
+
+Works with `--listen`, `--challenge`, and `--challenge-loop`. Not compatible with `--dry-run`.
 
 Use this when you want the bot online and ready to accept compatible 3+2
 challenges from humans or bots. Foreground logs show `PLAYING`, `MOVE`, and

@@ -28,6 +28,8 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.max_bot_challenges_per_day == 100
     assert cfg.bot_challenge_quota_margin == 10
     assert cfg.move_overhead_ms == 500
+    assert cfg.uci_threads == 4
+    assert cfg.uci_hash_mb == 64
     assert cfg.avoid_bots_file.endswith("lichess_bot/local/avoid-bots.json")
     assert cfg.accept_draw_enabled is True
     assert cfg.accept_draw_losing_score == -100
@@ -36,6 +38,22 @@ def test_config_defaults_and_validation(tmp_path):
         make_config(tmp_path, accept_from="everyone")
     with pytest.raises(ValueError, match="challenge_color"):
         make_config(tmp_path, challenge_color="blue")
+    with pytest.raises(ValueError, match="threads"):
+        make_config(tmp_path, threads=0)
+
+
+def test_runtime_state_game_limit():
+    state = bot.RuntimeState(games_limit=2)
+
+    state.begin_game("g1", "starting")
+    state.end_game("g1")
+    assert not state.stop.is_set()
+    assert state.completed_games == 1
+
+    state.begin_game("g2", "starting")
+    state.end_game("g2")
+    assert state.stop.is_set()
+    assert state.completed_games == 2
 
 
 def test_runtime_state_enforces_single_game():
