@@ -597,6 +597,7 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
   - `gate_sf2600_rep_patch_16g` — interrupted 0-11-2 @ 13/16; move-1 blunders (h3/g5); polluted by policy branch + broken rep patch.
   - `benchmark_rep_patch_16g.log` — 0-15-0 (first run had `LABZERO_NNUE` leak; restart also failed).
   - `benchmark_root_rank_32g.run.log` / `benchmark_root_rank_fix_32g` — wired root rank; 0-16 then 0-3-1; reset to v0.6.2.
+  - `gate_candidate_sf2500_wtime_16g` — interrupted @ 1-5-3/9; real-clock miss vs ≥8/16 bar.
 
 ## Root-Rank Wiring RCA: tie-break regression (2026-06-28)
 
@@ -618,4 +619,10 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Search (v3 root rank, wired):** first-on-tie `pick_root_move`; immediate-draw penalty even when not ahead; repeat/progress bonuses only when `root_static >= 150`; progress = quiet **passed-pawn** pushes only; `lichess_draw_fen_avoids_queen_shuffle` test.
 - **Gold standard:** SF@2600 32g **wtime real-clock** (production); legacy `gate_sf2600_idtime_32g` relabeled **freshclock synthetic** in superhuman-band.
 - **Obsolete branch:** `codex/root-rank-v2` (progress bonus disabled) superseded by v3 on main.
-- **Pending:** smoke/candidate/gold wtime gates before public v0.6.2 claim or Lichess rated run.
+- **No v0.6.2 retag:** real-clock confirm gates below ≥8/16 bar; harness + root-rank v3 remain on main @ `6b390cd`.
+
+### Gate results (wtime real-clock)
+
+- **Smoke PASS:** `benchmark_20260628T080455Z` — SF2400 4g → **1-0-3** (2.5/4 W-equiv); 0 illegal/errors; 0 threefold; openings OK.
+- **Candidate INVALID:** `gate_candidate_sf2500_wtime_16g` — stopped @ **1-5-3/9** (3.5/9 W-equiv); cannot reach ≥8/16 bar; do not run SF2600 gold.
+- **SF2400 16g INVALID:** `gate_sf2400_wtime_16g` — stopped @ **0-4-1/5** (0.5/5 W-equiv); real-clock collapse at same elo smoke was 1-0-3/4.
