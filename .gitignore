@@ -7,6 +7,8 @@ __pycache__/
 *.pyc
 .venv/
 .venv-host-test/
+.coverage
+htmlcov/
 
 # Editor / IDE
 .idea/
@@ -17,9 +19,27 @@ __pycache__/
 
 # Ephemeral host-ladder tee logs (canonical rows: docs/strength/benchmark_*.txt)
 docs/strength/gamma_*.log
+docs/strength/*.run.log
+docs/strength/*.INVALID.log
+docs/strength/*.state.json
+docs/strength/smoke_*.pgn
+docs/strength/smoke_*.txt
+docs/strength/smoke_*.state.json
+docs/strength/benchmark_rep_patch*.log
+docs/strength/gate_sf2600_rep_patch_16g.*
+docs/strength/resnnue_autopipeline.*
+
+# Residual NNUE WIP (not on main engine path yet)
+pyproject.toml
+scripts/host-nnue-residual-train.py
+scripts/host-sprint-residual-nnue.sh
+scripts/host-wait-residual-finish.sh
 
 # Secrets / local config
 lichess_bot/config.toml
+lichess_bot/.env
+lichess_bot/bin/
+lichess_bot/local/
 config.json
 
 # External opponent engine binaries (not original to this repo)
@@ -29,3 +49,6 @@ engines/
 data/
 
 .matplotlib-cache/
+
+priv/
+.DS_Store

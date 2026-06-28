@@ -596,7 +596,14 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **INVALID gates (do not record in superhuman-band):**
   - `gate_sf2600_rep_patch_16g` — interrupted 0-11-2 @ 13/16; move-1 blunders (h3/g5); polluted by policy branch + broken rep patch.
   - `benchmark_rep_patch_16g.log` — 0-15-0 (first run had `LABZERO_NNUE` leak; restart also failed).
-  - `smoke_v061_pure_4g` — 0-4-0 diagnostic; removed from ladder (missing SF_ELO on one run).
+  - `benchmark_root_rank_32g.run.log` / `benchmark_root_rank_fix_32g` — wired root rank; 0-16 then 0-3-1; reset to v0.6.2.
+
+## Root-Rank Wiring RCA: tie-break regression (2026-06-28)
+
+- **Symptom:** wiring `pick_root_move` into `search_root` made the engine play move-1 flank junk (`a2a4`, `h2h4`) and lose 0-16 vs SF2600 (`benchmark_root_rank_32g.run.log`, **INVALID**), despite all unit tests + the single-thread `startpos_depth_twelve` test passing.
+- **Root cause:** old `search_root` selected best with `if score > best_score` (keeps the **first** / best-ordered move on ties). `pick_root_move` used `max_by_key`/`max_by`, which return the **last** element on ties. Aspiration narrowing makes trailing root moves fail low and return fail-soft bounds that tie the PV score, so last-on-tie handed the pick to a late, badly-ordered move. At startpos `root_static≈0 < ROOT_AHEAD_THRESHOLD`, so ranking is bypassed and only this tie-break mattered.
+- **Fix:** `pick_root_move` now keeps the first candidate on ties in both the raw-best and ranked paths (strict `>` replacement), matching the original semantics. Post-fix UCI: startpos → `e2e4`, `e7e5` reply; 60 tests pass; clippy clean.
+- **Follow-up run INVALID:** `benchmark_root_rank_fix_32g` — stopped @ 0-3-1/4; openings OK but middlegame king-side collapses when ahead (`g3?? hxg5`). Likely `ROOT_PROGRESS_BONUS` when `root_static >= 150`. **Reset to v0.6.2 tag** (root rank unwired); wired ranking deferred to `codex/root-rank-v2`.
 
 ## Gauntlet gate_sf2600_v062_draw_16g (2026-06-27)
 
