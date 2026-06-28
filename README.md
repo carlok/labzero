@@ -4,7 +4,7 @@
 
 # labzero
 
-Original Rust UCI engine — fully legal, no copied engine core. **No public strength headline** on v0.6.2: legacy ≈2600/≈2400 claims used **freshclock synthetic** gauntlet clocks, not real decreasing `wtime`; real-clock gates vs SF@2400–2500 failed (see [strength ladder](docs/strength/ladder.md)). Not Lichess/CCRL/FIDE Elo.
+Original Rust UCI chess engine — fully legal move generation, no copied engine core. See [strength ladder](docs/strength/ladder.md) for benchmark notes.
 
 **[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
 
