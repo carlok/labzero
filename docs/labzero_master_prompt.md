@@ -35,14 +35,12 @@ Before changing code:
    tuning.
 
 Current baseline (verify in repo before assuming):
-- Package v0.6.1 on main (superhuman-band sprint plus ID time-depth fix).
-- Async UCI stop on main (worker-thread go, raw async tester).
-- Headline strength ≈2600 direct on limited-Stockfish 3+2 blitz benchmarks (T=4).
-- Kept: magic bitboards + mailbox movegen; ID iterative-deepening time accounting fix; eval defaults (no shipped SPSA params); SEE sign fix; history gravity + quiet malus; eval v2 passed-pawn + mobility.
-- SF@2600 32g direct row: 13–9–10 (56.2%, 18/32 W-equiv, perf ≈2644, `gate_sf2600_idtime_32g`); 0 illegal/errors.
-- SF@2500 32g baseline: 18–7–7 (67.2%, perf ≈2624, `baseline_sf2500`); SPSA s2 rollback 11–10–11 (`gate_sf2500_32g`); 0 illegal/errors.
-- Rolled back: PVS v1; eval v3 king pressure; SPSA smoke + s2 tuned params.
-- Next: SF2700 baseline probe, then one narrow traditional search branch or disabled policy-guided alpha-beta infrastructure.
+- Package **v0.6.2** on main — **no public strength headline**.
+- Real-clock gold standard: `host-benchmark.sh` with `TC_MODE=wtime` (decreasing clocks).
+- Legacy gauntlet rows (`gate_sf2600_idtime_32g`, etc.) are **freshclock synthetic** only — full clock reset each move via `host-gauntlet.sh`; do not compare to wtime or cite as current strength.
+- Real-clock gates (2026-06-28, INVALID): SF@2500 1–5–3/9; SF@2400 0–4–1/5. Smoke SF@2400 4g 1–0–3 pass.
+- Kept on main: draw-cutoff fix (v0.6.2); root rank v3 wired; harness analyzer; ID time-depth fix; eval defaults; SEE; history gravity; eval v2.
+- Next: diagnose freshclock vs wtime and/or root-rank impact before any new strength claim.
 
 Current engine shape to assume only after verifying it in the repo:
 - legal move generation, FEN, make/unmake, repetition/fifty-move draw helpers;

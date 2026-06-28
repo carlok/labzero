@@ -27,4 +27,7 @@ Manual rows OK — keep handicap + threads in Notes.
 | 2026-06-26 | SF UCI_Elo=2600 | 3+2 | 16 | 9-4-3 | 65.6% | 2712 | `gate_sf2600_policy_soft_16g.txt` | — |
 | 2026-06-26 | SF UCI_Elo=2700 | 3+2 | 16 | 2-7-7 | 34.4% | 2588 | `gate_sf2700_policy_soft_16g.txt` | — |
 | 2026-06-27 | SF UCI_Elo=2600 | 3+2 | 16 | 4-8-4 | 37.5% | 2511 | `gate_sf2600_resnnue_s50_16g.txt` | nnue=residual.nnue |
-| 2026-06-27 | SF UCI_Elo=2600 | 3+2 | 16 | 8-6-2 | 56.2% | 2644 | `gate_sf2600_v062_draw_16g.txt` | — |
+| 2026-06-27 | SF UCI_Elo=2600 | 3+2 | 16 | 8-6-2 | 56.2% | 2644 | `gate_sf2600_v062_draw_16g.txt` | gauntlet; **freshclock synthetic** |
+| 2026-06-28 | SF UCI_Elo=2400 | 3+2 wtime | 4 | 1-0-3 | 62.5% | — | `benchmark_20260628T080455Z.txt` | real-clock smoke |
+| 2026-06-28 | SF UCI_Elo=2500 | 3+2 wtime | 9 | 1-5-3 | 38.9% | — | `benchmark_20260628T082156Z.txt` | **INVALID** candidate |
+| 2026-06-28 | SF UCI_Elo=2400 | 3+2 wtime | 5 | 0-4-1 | 10.0% | — | `benchmark_20260628T085820Z.txt` | **INVALID** confirm |

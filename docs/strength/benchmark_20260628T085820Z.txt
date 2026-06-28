@@ -1,0 +1,17 @@
+labzero host benchmark  2026-06-28T08:58:20.313163+00:00
+status:      in progress
+labzero:     target/release/labzero
+stockfish:   stockfish
+games:       16
+time control: 3+2 (wtime real-clock)
+labzero Threads: 4
+sf weaken:   Skill=0 LimitStrength=True UCI_Elo=2400
+debug moves: False
+max plies:   none
+
+games:
+game  1: draw 1/2-1/2  (0)  [0-0-1]
+game  2: loss 1-0  (0)  [0-1-1]
+game  3: loss 0-1  (0)  [0-2-1]
+game  4: loss 1-0  (0)  [0-3-1]
+game  5: loss 0-1  (0)  [0-4-1]

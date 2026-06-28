@@ -22,6 +22,8 @@ If a run is interrupted (Ctrl-C), the footer records `status: interrupted` with 
 
 Do not compare `wtime` results directly with pre-2026-06-28 rows that used synthetic clock behavior without the `freshclock` label.
 
+**Tracked wtime gate artifacts (v0.6.2):** `benchmark_20260628T080455Z` (smoke), `benchmark_20260628T082156Z` (INVALID candidate), `benchmark_20260628T085820Z` (INVALID confirm). Harness dev smokes are gitignored.
+
 ## Environment variables
 
 | Variable | Default | Meaning |

@@ -4,7 +4,19 @@ Method: `./scripts/host-benchmark.sh` — 32 games, alternating colors, Stockfis
 
 Performance Elo (approx, when score ≈ 50%): `SF_ELO + 400 * log10(p / (1-p))` where `p = (W + 0.5*D) / N`.
 
-**Headline:** **≈2600** direct — **32-game** 3+2 wtime **T=4** vs SF@2600 (**56.2%**, **13–9–10**, **18/32** W-equiv, perf **≈2644**, `gate_sf2600_idtime_32g`, ID time fix on `codex/id-time-depth`). Prior SF@2500 headline: **67.2%** / **18–7–7** (`baseline_sf2500`). Not Lichess/CCRL/FIDE Elo.
+**Headline (v0.6.2):** **none** — no defensible public claim until a full **wtime real-clock** gate passes.
+
+**Legacy (freshclock synthetic only — do not cite as current strength):** `host-gauntlet.sh` reset full 3+2 each move (`gate_sf2600_idtime_32g` **13–9–10**, perf **≈2644**; `baseline_sf2500` **18–7–7**). Label: **freshclock synthetic**, not production `TC_MODE=wtime`.
+
+**Real-clock track (production gold standard, v0.6.2):**
+
+| SF Elo | Games | W-L-D | W-equiv | Protocol | Artifact | Status |
+|--------|-------|-------|---------|----------|----------|--------|
+| 2400 | 4 | 1–0–3 | 2.5/4 | wtime | `benchmark_20260628T080455Z` | smoke pass |
+| 2500 | 9/16 | 1–5–3 | 3.5/9 | wtime | `benchmark_20260628T082156Z` | **INVALID** |
+| 2400 | 5/16 | 0–4–1 | 0.5/5 | wtime | `benchmark_20260628T085820Z` | **INVALID** |
+
+Not Lichess/CCRL/FIDE Elo.
 
 **Anchor protocol:** `TC_MODE=movetime TC_SEC=1 THREADS=1` (comparable across alpha/beta/gamma).
 

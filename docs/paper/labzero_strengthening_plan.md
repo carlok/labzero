@@ -26,7 +26,7 @@ The current search already includes iterative deepening, alpha-beta, quiescence 
 
 The current evaluation already includes material, tapered piece-square tables, bishop pair, pawn-structure terms, rook file bonuses, king-safety terms, **passed-pawn bonuses**, and **piece mobility**. The current UCI path supports `Hash`, `Threads`, `OwnBook`, `go depth`, `go movetime`, and clock-style `wtime/btime/winc/binc` input.
 
-**Package v0.6.0** (magic bitboards + mailbox on `main`). Headline strength **≈2600** on limited-Stockfish 3+2 blitz (T=4). Direct measurement: SF@2500 **18–7–7** (67.2%, perf ≈2624, `baseline_sf2500`); prior SF@2400 **11–9–12** (17/32); **0 illegal/errors**. SPSA s2 params rolled back (SF@2500 32g **11–10–11**).
+**Package v0.6.0** (magic bitboards + mailbox on `main`). ~~Headline strength **≈2600**~~ **Withdrawn in v0.6.2 retag** — legacy rows used freshclock synthetic gauntlet, not real wtime. See `docs/strength/ladder.md`.
 
 **Next step:** NNUE bet — self-play + `host-nnue-train.py`, gate vs SF@2600 (`host-sprint-nnue.sh` / `host-sprint-gate.sh`).
 

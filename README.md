@@ -4,7 +4,7 @@
 
 # labzero
 
-≈2600 direct vs SF@2600 (32g gauntlet 13–9–10, `gate_sf2600_idtime_32g`) — fully legal, original Rust UCI engine. See [strength ladder](docs/strength/ladder.md) and the [perf timeline](docs/strength/elo_timeline.md) (CSV + [interactive chart](docs/strength/chart/index.html)).
+Original Rust UCI engine — fully legal, no copied engine core. **No public strength headline** on v0.6.2: legacy ≈2600/≈2400 claims used **freshclock synthetic** gauntlet clocks, not real decreasing `wtime`; real-clock gates vs SF@2400–2500 failed (see [strength ladder](docs/strength/ladder.md)). Not Lichess/CCRL/FIDE Elo.
 
 **[Download prebuilt binaries](https://github.com/carlok/labzero/releases)** — macOS Apple Silicon & Linux x86_64 (UCI; no Rust required).
 

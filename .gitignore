@@ -30,6 +30,16 @@ docs/strength/gate_sf2600_rep_patch_16g.*
 docs/strength/resnnue_autopipeline.*
 docs/strength/*.moves.tsv
 
+# Harness dev smokes (2026-06-28 stabilization); canonical wtime gate rows are tracked
+docs/strength/benchmark_20260628T06*.pgn
+docs/strength/benchmark_20260628T06*.txt
+docs/strength/benchmark_20260628T072449Z.pgn
+docs/strength/benchmark_20260628T072449Z.txt
+docs/strength/benchmark_20260628T075*.pgn
+docs/strength/benchmark_20260628T075*.txt
+docs/strength/benchmark_20260628T080020Z.pgn
+docs/strength/benchmark_20260628T080020Z.txt
+
 # Residual NNUE WIP (not on main engine path yet)
 pyproject.toml
 scripts/host-nnue-residual-train.py

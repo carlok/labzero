@@ -620,6 +620,7 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Gold standard:** SF@2600 32g **wtime real-clock** (production); legacy `gate_sf2600_idtime_32g` relabeled **freshclock synthetic** in superhuman-band.
 - **Obsolete branch:** `codex/root-rank-v2` (progress bonus disabled) superseded by v3 on main.
 - **No v0.6.2 retag:** real-clock confirm gates below ≥8/16 bar; harness + root-rank v3 remain on main @ `6b390cd`.
+- **v0.6.2 retag (2026-06-28):** public **≈2600/≈2400 headline withdrawn**; legacy gauntlet = freshclock synthetic; real-clock INVALID rows tracked in superhuman-band + ladder.
 
 ### Gate results (wtime real-clock)
 

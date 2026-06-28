@@ -2,14 +2,15 @@
 
 ## Unreleased
 
-- **Harness:** real-clock `TC_MODE=wtime` vs legacy `freshclock synthetic`; `DEBUG_MOVES`, `MAX_PLIES`, SIGINT interrupted footer; `host-benchmark-analyze.py`
-- **Search:** root rank v3 wired — first-on-tie pick, immediate-draw penalty when not ahead, passed-pawn-only progress bonus, lichess draw FEN regression
-- **Measurement:** production gold standard is **wtime real-clock**; pre-2026-06-28 SF2600 headline rows are **freshclock synthetic** only — no public v0.6.2 strength claim until wtime gate passes
+(nothing)
 
-## 0.6.2 — 2026-06-27
+## 0.6.2 — 2026-06-28
 
-- **Search:** score 3-fold repetition and 50-move draws as `0` in `negamax`/`qsearch` (before TT cutoff); root rank helpers tested (not wired in `search_root` yet — caused UCI regression when enabled)
+- **Search:** score 3-fold repetition and 50-move draws as `0` in `negamax`/`qsearch` (before TT cutoff); root rank v3 wired (first-on-tie, draw/repeat/progress at root)
 - **UCI:** clear `stop` flag at each `go`
+- **Harness:** `TC_MODE=wtime` real-clock vs `freshclock synthetic`; `DEBUG_MOVES`, `MAX_PLIES`, SIGINT footer; `host-benchmark-analyze.py`
+- **Measurement honesty:** withdraw public **≈2600 / ≈2400** headline. Legacy gauntlet rows used **freshclock synthetic** (full 3+2 reset each move), not production wtime.
+- **Real-clock gates (INVALID):** SF@2500 1–5–3/9; SF@2400 0–4–1/5. Smoke SF@2400 4g 1–0–3 pass.
 - **Gate:** classical sprint gate unsets/warns on `LABZERO_NNUE` / `LABZERO_POLICY`
 - **lichess_bot:** local run scripts, ladder stats, tests (see `lichess_bot/README.md`)
 
