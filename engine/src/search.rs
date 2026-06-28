@@ -8,6 +8,7 @@ use crate::mov::{Move, MoveKind};
 use crate::movegen::generate_legal_moves;
 use crate::piece::PieceKind;
 use crate::see::see_capture_value;
+use crate::square::Square;
 use crate::time::TimeBudget;
 use crate::tt::{TranspositionTable, TtFlag};
 
@@ -243,31 +244,65 @@ struct RootCandidate {
     is_progress: bool,
 }
 
-#[allow(dead_code)]
 fn is_progress_move(board: &Board, mv: Move) -> bool {
     matches!(
         mv.kind,
-        MoveKind::Capture | MoveKind::EnPassant | MoveKind::Promotion | MoveKind::DoublePush
-    ) || board
-        .piece_at(mv.from)
-        .is_some_and(|p| p.kind == PieceKind::Pawn)
+        MoveKind::Capture | MoveKind::EnPassant | MoveKind::Promotion
+    ) || is_quiet_passed_pawn_push(board, mv)
 }
 
-#[allow(dead_code)]
+fn is_quiet_passed_pawn_push(board: &Board, mv: Move) -> bool {
+    if !matches!(mv.kind, MoveKind::Quiet | MoveKind::DoublePush) {
+        return false;
+    }
+    let Some(piece) = board.piece_at(mv.from) else {
+        return false;
+    };
+    if piece.kind != PieceKind::Pawn {
+        return false;
+    }
+
+    let enemy_pawns =
+        board.pieces[crate::square::piece_index(piece.color.opposite(), PieceKind::Pawn)];
+    let file = mv.to.file() as i8;
+    let rank = mv.to.rank();
+    for df in -1..=1 {
+        let f = file + df;
+        if !(0..8).contains(&f) {
+            continue;
+        }
+        match piece.color {
+            crate::color::Color::White => {
+                for r in rank.saturating_add(1)..8 {
+                    let sq = Square::new(f as u8, r);
+                    if enemy_pawns & (1u64 << sq.index()) != 0 {
+                        return false;
+                    }
+                }
+            }
+            crate::color::Color::Black => {
+                for r in 0..rank {
+                    let sq = Square::new(f as u8, r);
+                    if enemy_pawns & (1u64 << sq.index()) != 0 {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    true
+}
+
 fn is_repeat_candidate(c: &RootCandidate) -> bool {
     c.is_immediate_draw || c.rep_count >= 1
 }
 
-#[allow(dead_code)]
 fn root_rank_score(
     c: &RootCandidate,
     root_static: i32,
     best_non_repeat_score: i32,
     has_non_repeat: bool,
 ) -> i32 {
-    if root_static < ROOT_AHEAD_THRESHOLD {
-        return c.score;
-    }
     let mut rank = c.score;
     if has_non_repeat && is_repeat_candidate(c) {
         let mateish = c.score.abs() >= MATE_SCORE - 1000;
@@ -275,28 +310,26 @@ fn root_rank_score(
         if !mateish && !tactical {
             if c.is_immediate_draw {
                 rank -= ROOT_DRAW_PENALTY;
-            } else if c.rep_count >= 1 {
+            } else if root_static >= ROOT_AHEAD_THRESHOLD && c.rep_count >= 1 {
                 rank -= ROOT_REPEAT_PENALTY;
             }
         }
     }
-    if !is_repeat_candidate(c) && c.is_progress {
+    if root_static >= ROOT_AHEAD_THRESHOLD && !is_repeat_candidate(c) && c.is_progress {
         rank += ROOT_PROGRESS_BONUS;
     }
     rank
 }
 
-#[allow(dead_code)]
 fn pick_root_move(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Option<Move>, i32) {
     if candidates.is_empty() {
         return (None, 0);
     }
-    let raw_best = candidates
-        .iter()
-        .max_by_key(|(_, c)| c.score)
-        .map(|(mv, c)| (*mv, c.score));
-    if root_static < ROOT_AHEAD_THRESHOLD {
-        return raw_best.map(|(mv, s)| (Some(mv), s)).unwrap_or((None, 0));
+    let mut raw_best = candidates[0];
+    for &(mv, c) in candidates.iter().skip(1) {
+        if c.score > raw_best.1.score {
+            raw_best = (mv, c);
+        }
     }
     let best_non_repeat_score = candidates
         .iter()
@@ -305,17 +338,21 @@ fn pick_root_move(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Op
         .max()
         .unwrap_or(i32::MIN + 1);
     let has_non_repeat = candidates.iter().any(|(_, c)| !is_repeat_candidate(c));
-    let picked = candidates
-        .iter()
-        .max_by(|(_, a), (_, b)| {
-            let ra = root_rank_score(a, root_static, best_non_repeat_score, has_non_repeat);
-            let rb = root_rank_score(b, root_static, best_non_repeat_score, has_non_repeat);
-            ra.cmp(&rb).then(a.score.cmp(&b.score))
-        })
-        .map(|(mv, c)| (*mv, c.score));
-    picked
-        .map(|(mv, s)| (Some(mv), s))
-        .unwrap_or_else(|| raw_best.map(|(mv, s)| (Some(mv), s)).unwrap_or((None, 0)))
+    let mut picked = candidates[0];
+    let mut picked_rank = root_rank_score(
+        &picked.1,
+        root_static,
+        best_non_repeat_score,
+        has_non_repeat,
+    );
+    for &(mv, c) in candidates.iter().skip(1) {
+        let rank = root_rank_score(&c, root_static, best_non_repeat_score, has_non_repeat);
+        if rank > picked_rank || (rank == picked_rank && c.score > picked.1.score) {
+            picked = (mv, c);
+            picked_rank = rank;
+        }
+    }
+    (Some(picked.0), picked.1.score)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -339,14 +376,17 @@ fn search_root(
         board.stm,
     );
 
-    let mut best = None;
-    let mut best_score = i32::MIN + 1;
+    let root_static = evaluate(board);
+    let mut candidates: Vec<(Move, RootCandidate)> = Vec::with_capacity(moves.len());
 
     for mv in moves {
         if budget.should_stop() {
             break;
         }
+        let is_progress = is_progress_move(board, mv);
         let undo = board.make_move(mv);
+        let rep_count = board.repetition_count_current();
+        let is_immediate_draw = board.is_draw();
         let score = -negamax(
             board,
             depth - 1,
@@ -363,14 +403,19 @@ fn search_root(
             },
         );
         board.unmake_move(undo);
-        if score > best_score {
-            best_score = score;
-            best = Some(mv);
-        }
+        candidates.push((
+            mv,
+            RootCandidate {
+                score,
+                rep_count,
+                is_immediate_draw,
+                is_progress,
+            },
+        ));
         alpha = max(alpha, score);
     }
 
-    (best, best_score)
+    pick_root_move(&candidates, root_static)
 }
 
 fn tt_cutoff(
@@ -1058,6 +1103,35 @@ mod tests {
     }
 
     #[test]
+    fn root_rank_penalizes_immediate_draw_when_not_ahead() {
+        let draw = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                draw,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 2,
+                    is_immediate_draw: true,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 95,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_move(&candidates, 50);
+        assert_eq!(picked, Some(other));
+        assert_eq!(score, 95);
+    }
+
+    #[test]
     fn root_rank_keeps_tactical_repeat() {
         let repeat = Move::quiet(Square::new(4, 4), Square::new(4, 5));
         let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
@@ -1084,6 +1158,92 @@ mod tests {
         let (picked, score) = pick_root_move(&candidates, 200);
         assert_eq!(picked, Some(repeat));
         assert_eq!(score, 300);
+    }
+
+    #[test]
+    fn root_rank_keeps_tactical_immediate_draw() {
+        let draw = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                draw,
+                RootCandidate {
+                    score: 400,
+                    rep_count: 2,
+                    is_immediate_draw: true,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_move(&candidates, 0);
+        assert_eq!(picked, Some(draw));
+        assert_eq!(score, 400);
+    }
+
+    fn legal_uci(board: &Board, uci: &str) -> Move {
+        generate_legal_moves(board)
+            .into_iter()
+            .find(|m| m.to_uci() == uci)
+            .unwrap_or_else(|| panic!("legal move {uci}"))
+    }
+
+    #[test]
+    fn startpos_pawn_move_is_not_progress() {
+        let board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let mv = legal_uci(&board, "a2a3");
+        assert!(!is_progress_move(&board, mv));
+    }
+
+    #[test]
+    fn quiet_passed_pawn_push_is_progress() {
+        let board = Board::from_fen("4k3/8/8/4P3/8/8/8/4K3 w - - 0 1").unwrap();
+        let mv = legal_uci(&board, "e5e6");
+        assert!(is_progress_move(&board, mv));
+    }
+
+    #[test]
+    fn lichess_draw_fen_avoids_queen_shuffle() {
+        use crate::eval::search_eval as evaluate;
+
+        const FEN: &str = "r2q2k1/P4pp1/Rb3n1p/3b4/3p1Q2/3B4/2P2PPP/R5K1 w - - 8 37";
+        const SHUFFLE_UCI: &str = "f4d6";
+
+        let mut board = Board::from_fen(FEN).unwrap();
+        let shuffle = generate_legal_moves(&board)
+            .into_iter()
+            .find(|m| m.to_uci() == SHUFFLE_UCI)
+            .expect("queen shuffle legal");
+        let undo = board.make_move(shuffle);
+        let child_hash = board.hash;
+        board.unmake_move(undo);
+        board.rep_keys.push(child_hash);
+
+        let undo2 = board.make_move(shuffle);
+        assert!(board.repetition_count_current() >= 1);
+        board.unmake_move(undo2);
+
+        assert!(evaluate(&board) > 0);
+
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(8),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        let res = search(&board, 8, &mut budget, &mut state);
+        let best = res.best_move.expect("move");
+        assert_ne!(best.to_uci(), SHUFFLE_UCI, "depth {}", res.depth);
     }
 
     #[test]

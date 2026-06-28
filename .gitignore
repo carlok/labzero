@@ -28,6 +28,7 @@ docs/strength/smoke_*.state.json
 docs/strength/benchmark_rep_patch*.log
 docs/strength/gate_sf2600_rep_patch_16g.*
 docs/strength/resnnue_autopipeline.*
+docs/strength/*.moves.tsv
 
 # Residual NNUE WIP (not on main engine path yet)
 pyproject.toml

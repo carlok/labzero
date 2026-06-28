@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Harness:** real-clock `TC_MODE=wtime` vs legacy `freshclock synthetic`; `DEBUG_MOVES`, `MAX_PLIES`, SIGINT interrupted footer; `host-benchmark-analyze.py`
+- **Search:** root rank v3 wired — first-on-tie pick, immediate-draw penalty when not ahead, passed-pawn-only progress bonus, lichess draw FEN regression
+- **Measurement:** production gold standard is **wtime real-clock**; pre-2026-06-28 SF2600 headline rows are **freshclock synthetic** only — no public v0.6.2 strength claim until wtime gate passes
+
 ## 0.6.2 — 2026-06-27
 
 - **Search:** score 3-fold repetition and 50-move draws as `0` in `negamax`/`qsearch` (before TT cutoff); root rank helpers tested (not wired in `search_root` yet — caused UCI regression when enabled)

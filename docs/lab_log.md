@@ -611,3 +611,11 @@ Startpos depth-8 nodes: **198070** pre-PVS → **292922** post-PVS (+48%). 0 ill
 - **Opponent:** SF UCI_Elo=2600, TC 3+2, 16 games
 - **Artifact:** `docs/strength/gate_sf2600_v062_draw_16g.txt`
 - **Release:** tagged **v0.6.2** on main after merge.
+
+## v0.6.2 stabilization sprint (2026-06-28)
+
+- **Harness:** `TC_MODE=wtime` real decreasing clocks; `freshclock` preserves old synthetic protocol; `DEBUG_MOVES` TSV telemetry; `MAX_PLIES` truncation; SIGINT → `status: interrupted` footer; `scripts/host-benchmark-analyze.py`.
+- **Search (v3 root rank, wired):** first-on-tie `pick_root_move`; immediate-draw penalty even when not ahead; repeat/progress bonuses only when `root_static >= 150`; progress = quiet **passed-pawn** pushes only; `lichess_draw_fen_avoids_queen_shuffle` test.
+- **Gold standard:** SF@2600 32g **wtime real-clock** (production); legacy `gate_sf2600_idtime_32g` relabeled **freshclock synthetic** in superhuman-band.
+- **Obsolete branch:** `codex/root-rank-v2` (progress bonus disabled) superseded by v3 on main.
+- **Pending:** smoke/candidate/gold wtime gates before public v0.6.2 claim or Lichess rated run.
