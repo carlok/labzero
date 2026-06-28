@@ -1,6 +1,6 @@
 use std::cmp::max;
-
-use std::sync::Arc;
+use std::env;
+use std::sync::{Arc, LazyLock};
 
 use crate::board::Board;
 use crate::eval::search_eval as evaluate;
@@ -13,6 +13,57 @@ use crate::time::TimeBudget;
 use crate::tt::{TranspositionTable, TtFlag};
 
 pub const MATE_SCORE: i32 = 30_000;
+const SCORE_SENTINEL_BAND: i32 = 1000;
+const MATE_UCI_BAND: i32 = 1000;
+
+/// Clamp search sentinels; mate-band scores pass through for internal use.
+pub fn sanitize_score(score: i32) -> i32 {
+    if score >= i32::MAX - SCORE_SENTINEL_BAND {
+        return MATE_SCORE - 1;
+    }
+    if score <= i32::MIN + SCORE_SENTINEL_BAND {
+        return -MATE_SCORE + 1;
+    }
+    score
+}
+
+/// UCI score fragment: `score cp N` or `score mate ±N`.
+pub fn format_uci_score(score: i32) -> String {
+    let s = sanitize_score(score);
+    if s >= MATE_SCORE - MATE_UCI_BAND {
+        let m = (MATE_SCORE - s).max(1);
+        format!("score mate {m}")
+    } else if s <= -MATE_SCORE + MATE_UCI_BAND {
+        let m = (MATE_SCORE + s).max(1);
+        format!("score mate -{m}")
+    } else {
+        format!("score cp {s}")
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RootPolicy {
+    V3,
+    Raw,
+}
+
+fn parse_root_policy() -> RootPolicy {
+    match env::var("LABZERO_ROOT_POLICY")
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "" | "raw" => RootPolicy::Raw,
+        "v3" => RootPolicy::V3,
+        other => {
+            eprintln!("labzero: unknown LABZERO_ROOT_POLICY={other:?}, using raw");
+            RootPolicy::Raw
+        }
+    }
+}
+
+static ROOT_POLICY: LazyLock<RootPolicy> = LazyLock::new(parse_root_policy);
+
 pub const MAX_DEPTH: u32 = 64;
 pub const MAX_PLY: usize = 128;
 const QSEARCH_MAX: u32 = 6;
@@ -199,7 +250,7 @@ pub fn search_with_info_from_depth(
         if let Some(ref mut cb) = info_cb {
             cb(SearchInfo {
                 depth,
-                score: result.1,
+                score: sanitize_score(result.1),
                 nodes,
                 time_ms: budget.elapsed_ms(),
             });
@@ -230,7 +281,7 @@ pub fn search_with_info_from_depth(
 
     SearchResult {
         best_move: best,
-        score: best_score,
+        score: sanitize_score(best_score),
         nodes,
         depth: reported_depth,
     }
@@ -297,6 +348,22 @@ fn is_repeat_candidate(c: &RootCandidate) -> bool {
     c.is_immediate_draw || c.rep_count >= 1
 }
 
+/// Static contempt at one-before-repetition positions: winning side avoids shuffle,
+/// losing side seeks it. Does not apply once a claimable draw is on the board.
+fn repetition_contempt_score(board: &Board) -> Option<i32> {
+    if board.repetition_count_current() >= 1 && !board.is_repetition() {
+        let eval = evaluate(board);
+        let mate_band = MATE_SCORE - 1000;
+        if (ROOT_AHEAD_THRESHOLD..mate_band).contains(&eval) {
+            return Some(eval - ROOT_REPEAT_PENALTY);
+        }
+        if (-mate_band..=-ROOT_AHEAD_THRESHOLD).contains(&eval) {
+            return Some(eval + ROOT_REPEAT_PENALTY);
+        }
+    }
+    None
+}
+
 fn root_rank_score(
     c: &RootCandidate,
     root_static: i32,
@@ -321,15 +388,52 @@ fn root_rank_score(
     rank
 }
 
-fn pick_root_move(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Option<Move>, i32) {
+fn pick_root_raw(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Option<Move>, i32) {
     if candidates.is_empty() {
         return (None, 0);
     }
-    let mut raw_best = candidates[0];
+    let best_non_repeat_score = candidates
+        .iter()
+        .filter(|(_, c)| !is_repeat_candidate(c))
+        .map(|(_, c)| c.score)
+        .max()
+        .unwrap_or(i32::MIN + 1);
+    let has_non_repeat = candidates.iter().any(|(_, c)| !is_repeat_candidate(c));
+
+    let mut picked = candidates[0];
     for &(mv, c) in candidates.iter().skip(1) {
-        if c.score > raw_best.1.score {
-            raw_best = (mv, c);
+        if c.score > picked.1.score {
+            picked = (mv, c);
         }
+    }
+
+    // When clearly ahead, prefer a non-repetition move within tactical margin.
+    // Subset of v3 root-rank: no draw penalty, no progress bonus (those caused SF2200 traps).
+    if root_static >= ROOT_AHEAD_THRESHOLD && has_non_repeat && is_repeat_candidate(&picked.1) {
+        let mateish = picked.1.score.abs() >= MATE_SCORE - 1000;
+        let tactical = picked.1.score >= best_non_repeat_score + ROOT_TACTICAL_MARGIN;
+        if !mateish && !tactical {
+            let mut best_alt: Option<(Move, RootCandidate)> = None;
+            for &(mv, c) in candidates {
+                if is_repeat_candidate(&c) {
+                    continue;
+                }
+                if best_alt.is_none_or(|(_, bc)| c.score > bc.score) {
+                    best_alt = Some((mv, c));
+                }
+            }
+            if let Some((mv, c)) = best_alt {
+                return (Some(mv), c.score);
+            }
+        }
+    }
+
+    (Some(picked.0), picked.1.score)
+}
+
+fn pick_root_v3(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Option<Move>, i32) {
+    if candidates.is_empty() {
+        return (None, 0);
     }
     let best_non_repeat_score = candidates
         .iter()
@@ -353,6 +457,13 @@ fn pick_root_move(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Op
         }
     }
     (Some(picked.0), picked.1.score)
+}
+
+fn pick_root_move(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Option<Move>, i32) {
+    match *ROOT_POLICY {
+        RootPolicy::Raw => pick_root_raw(candidates, root_static),
+        RootPolicy::V3 => pick_root_v3(candidates, root_static),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -466,6 +577,9 @@ fn negamax(
 
     if board.is_draw() {
         return 0;
+    }
+    if let Some(score) = repetition_contempt_score(board) {
+        return score;
     }
 
     let key = board.hash;
@@ -620,6 +734,9 @@ fn qsearch(
 
     if board.is_draw() {
         return 0;
+    }
+    if let Some(score) = repetition_contempt_score(board) {
+        return score;
     }
 
     if !in_check {
@@ -988,6 +1105,30 @@ mod tests {
         assert_eq!(via_wrapper.depth, via_from_depth.depth);
     }
 
+    #[test]
+    fn repetition_contempt_discourages_winning_shuffle() {
+        let mut board = Board::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1").unwrap();
+        let h = board.hash;
+        board.rep_keys.push(h);
+        assert_eq!(board.repetition_count_current(), 1);
+        assert!(!board.is_repetition());
+        let eval = evaluate(&board);
+        assert!(eval >= ROOT_AHEAD_THRESHOLD);
+        let contempt = repetition_contempt_score(&board).expect("contempt");
+        assert_eq!(contempt, eval - ROOT_REPEAT_PENALTY);
+    }
+
+    #[test]
+    fn repetition_contempt_encourages_losing_shuffle() {
+        let mut board = Board::from_fen("6k1/7q/8/8/8/8/5PPP/4K2R w K - 0 1").unwrap();
+        let h = board.hash;
+        board.rep_keys.push(h);
+        let eval = evaluate(&board);
+        assert!(eval <= -ROOT_AHEAD_THRESHOLD, "eval was {eval}");
+        let contempt = repetition_contempt_score(&board).expect("contempt");
+        assert_eq!(contempt, eval + ROOT_REPEAT_PENALTY);
+    }
+
     fn negamax_draw_score(fen: &str) -> i32 {
         let mut board = Board::from_fen(fen).unwrap();
         let h = board.hash;
@@ -1069,7 +1210,7 @@ mod tests {
                 },
             ),
         ];
-        let (picked, _) = pick_root_move(&candidates, 200);
+        let (picked, _) = pick_root_v3(&candidates, 200);
         assert_eq!(picked, Some(progress));
     }
 
@@ -1097,7 +1238,7 @@ mod tests {
                 },
             ),
         ];
-        let (picked, score) = pick_root_move(&candidates, 50);
+        let (picked, score) = pick_root_v3(&candidates, 50);
         assert_eq!(picked, Some(repeat));
         assert_eq!(score, 100);
     }
@@ -1126,7 +1267,7 @@ mod tests {
                 },
             ),
         ];
-        let (picked, score) = pick_root_move(&candidates, 50);
+        let (picked, score) = pick_root_v3(&candidates, 50);
         assert_eq!(picked, Some(other));
         assert_eq!(score, 95);
     }
@@ -1155,7 +1296,7 @@ mod tests {
                 },
             ),
         ];
-        let (picked, score) = pick_root_move(&candidates, 200);
+        let (picked, score) = pick_root_v3(&candidates, 200);
         assert_eq!(picked, Some(repeat));
         assert_eq!(score, 300);
     }
@@ -1184,7 +1325,7 @@ mod tests {
                 },
             ),
         ];
-        let (picked, score) = pick_root_move(&candidates, 0);
+        let (picked, score) = pick_root_v3(&candidates, 0);
         assert_eq!(picked, Some(draw));
         assert_eq!(score, 400);
     }
@@ -1265,5 +1406,210 @@ mod tests {
             ["e2e4", "d2d4", "g1f3", "c2c4"].contains(&uci.as_str()),
             "unexpected opening move {uci}"
         );
+    }
+
+    #[test]
+    fn root_policy_raw_first_on_tie() {
+        let first = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let second = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let candidates = [
+            (
+                first,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                second,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 0);
+        assert_eq!(picked, Some(first));
+        assert_eq!(score, 100);
+    }
+
+    #[test]
+    fn root_policy_raw_ignores_draw_rank() {
+        let draw = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                draw,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 2,
+                    is_immediate_draw: true,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 95,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 0);
+        assert_eq!(picked, Some(draw));
+        assert_eq!(score, 100);
+        let (picked_ahead, score_ahead) = pick_root_raw(&candidates, 200);
+        assert_eq!(picked_ahead, Some(other));
+        assert_eq!(score_ahead, 95);
+        let (picked_v3, _) = pick_root_v3(&candidates, 50);
+        assert_eq!(picked_v3, Some(other));
+    }
+
+    #[test]
+    fn root_raw_prefers_non_repeat_when_ahead() {
+        let repeat = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let progress = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                progress,
+                RootCandidate {
+                    score: 95,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 200);
+        assert_eq!(picked, Some(progress));
+        assert_eq!(score, 95);
+        let (picked_behind, score_behind) = pick_root_raw(&candidates, 50);
+        assert_eq!(picked_behind, Some(repeat));
+        assert_eq!(score_behind, 100);
+    }
+
+    #[test]
+    fn root_raw_keeps_tactical_repeat_when_ahead() {
+        let repeat = Move::quiet(Square::new(4, 4), Square::new(4, 5));
+        let other = Move::quiet(Square::new(4, 1), Square::new(4, 3));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 400,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 100,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 200);
+        assert_eq!(picked, Some(repeat));
+        assert_eq!(score, 400);
+    }
+
+    #[test]
+    fn sanitize_score_never_emits_sentinels() {
+        for raw in [
+            i32::MAX,
+            i32::MIN,
+            2_147_483_647,
+            -2_147_483_647,
+            i32::MAX - 1,
+            i32::MIN + 1,
+        ] {
+            let s = sanitize_score(raw);
+            assert!(
+                (-MATE_SCORE + 1..=MATE_SCORE - 1).contains(&s),
+                "raw {raw} -> {s}"
+            );
+            let uci = format_uci_score(raw);
+            assert!(!uci.contains("2147483647"));
+            assert!(!uci.contains("-2147483648"));
+        }
+        assert_eq!(format_uci_score(-MATE_SCORE + 15), "score mate -15");
+        assert_eq!(format_uci_score(MATE_SCORE - 3), "score mate 3");
+    }
+
+    fn tactical_search(fen: &str, depth: u32) -> SearchResult {
+        let board = Board::from_fen(fen).unwrap();
+        let mut budget = TimeBudget::new(
+            &TimeControl {
+                depth: Some(depth),
+                ..Default::default()
+            },
+            true,
+        );
+        let mut state = SearchState::new();
+        search(&board, depth, &mut budget, &mut state)
+    }
+
+    #[test]
+    fn tactical_loss_avoids_mate_f2f3() {
+        const FEN: &str = "5r2/3r1p1p/2p3pk/P7/1PB1Ppn1/5q2/2PR1P2/3R2K1 w - - 1 37";
+        const BLUNDER: &str = "f2f3";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BLUNDER, "depth {}", res.depth);
+    }
+
+    #[test]
+    fn tactical_loss_avoids_h2h3_hang() {
+        const FEN: &str = "1r3rk1/5p1p/b1pP2p1/P3n2q/1P1RPp2/2Q5/B1P2P1P/R6K w - - 3 26";
+        const BLUNDER: &str = "h2h3";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BLUNDER, "depth {}", res.depth);
+    }
+
+    #[test]
+    fn tactical_loss_avoids_c7c5_mate() {
+        const FEN: &str = "r1b2rk1/1pp2pp1/6P1/p4p1Q/3n3N/8/q4P1P/4R1K1 b - - 0 23";
+        const BLUNDER: &str = "c7c5";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BLUNDER, "depth {}", res.depth);
+    }
+
+    #[test]
+    fn tactical_loss_wtime_game2_before_queen_fork() {
+        const FEN: &str = "r1b2r2/ppp2ppk/2n1p3/8/2Rq1P2/8/P2N1PPP/3Q1RK1 b - - 1 15";
+        const BLUNDER: &str = "d4d3";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BLUNDER, "depth {}", res.depth);
+    }
+
+    #[test]
+    fn tactical_loss_lost_conversion_shuffle() {
+        const FEN: &str = "1r3rk1/3P1p1p/2p3p1/P7/1P1RPpn1/2Q2b1q/B1P2P2/R5K1 w - - 0 30";
+        const BLUNDER: &str = "c3f3";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BLUNDER, "depth {}", res.depth);
     }
 }

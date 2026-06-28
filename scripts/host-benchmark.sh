@@ -210,6 +210,7 @@ header = "\n".join(
         f"sf weaken:   Skill={sf_skill} LimitStrength={sf_limit} UCI_Elo={sf_elo if sf_limit else 'n/a'}",
         f"debug moves: {debug_moves}",
         f"max plies:   {max_plies if max_plies > 0 else 'none'}",
+        f"root policy: {os.environ.get('LABZERO_ROOT_POLICY', 'raw')}",
         "",
         "games:",
     ]

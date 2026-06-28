@@ -314,14 +314,14 @@ class RuntimeState:
             if game_id in self._active:
                 self._active[game_id] = text
 
-    def end_game(self, game_id: str) -> None:
+    def end_game(self, game_id: str, *, finished: bool = False) -> None:
         limit_reached = False
         completed = 0
         limit = self.games_limit
         with self._lock:
             was_active = game_id in self._active
             self._active.pop(game_id, None)
-            if was_active:
+            if was_active and finished:
                 self.completed_games += 1
                 completed = self.completed_games
                 if limit is not None and self.completed_games >= limit:
@@ -619,6 +619,10 @@ def score_for_color(info: dict[str, Any], color: chess.Color) -> int | None:
     score = info.get("score")
     if score is None:
         return None
+    try:
+        return score.pov(color).score(mate_score=100000)
+    except Exception:
+        return None
 
 
 def draw_offer_pending(game_state: dict[str, Any], color: chess.Color) -> bool:
@@ -659,10 +663,25 @@ def should_accept_draw_offer(
     if own_clock_seconds(game_state, color, cfg) <= cfg.accept_draw_low_time_sec and score_cp <= cfg.accept_draw_low_time_score:
         return True
     return False
-    try:
-        return score.pov(color).score(mate_score=100000)
-    except Exception:
-        return None
+
+
+TERMINAL_GAME_STATUSES = frozenset(
+    {"mate", "resign", "draw", "stalemate", "timeout", "outoftime", "aborted"}
+)
+
+
+def is_game_terminal(board: chess.Board, game_state: dict[str, Any]) -> bool:
+    status = terminal_status(game_state)
+    if status in TERMINAL_GAME_STATUSES:
+        return True
+    return board.is_game_over(claim_draw=True)
+
+
+def is_stale_move_error(exc: Exception) -> bool:
+    if not isinstance(exc, ApiError):
+        return False
+    detail = describe_error(exc).lower()
+    return "already over" in detail or "not your turn" in detail
 
 
 def book_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
@@ -781,6 +800,63 @@ def save_pgn(
     log("PGN", f"saved {path}", Color.GREEN)
 
 
+def save_exported_pgn(cfg: BotConfig, game_id: str, pgn_text: str) -> None:
+    if not cfg.pgn_directory or not pgn_text.strip():
+        return
+    pgn_dir = Path(cfg.pgn_directory)
+    pgn_dir.mkdir(parents=True, exist_ok=True)
+    now = dt.datetime.now(dt.timezone.utc)
+    path = pgn_dir / f"{now.strftime('%Y%m%d-%H%M%S')}_{game_id}_export.pgn"
+    path.write_text(pgn_text.strip() + "\n\n", encoding="utf-8")
+    log("PGN", f"saved export {path}", Color.GREEN)
+
+
+def fetch_game_export_pgn(token: str, game_id: str) -> str | None:
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/x-chess-pgn",
+    }
+    req = urllib.request.Request(
+        f"{LICHESS_API}/api/games/export/{urllib.parse.quote(game_id)}?moves=1&tags=1&clocks=1",
+        headers=headers,
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            text = resp.read().decode().strip()
+    except Exception as exc:
+        log("API", f"export ignored for {game_id}: {describe_error(exc)}", Color.GRAY)
+        return None
+    return text or None
+
+
+def finish_played_game(
+    token: str,
+    game_id: str,
+    account_id: str,
+    cfg: BotConfig,
+    board: chess.Board,
+    game_full: dict[str, Any] | None,
+    game_state: dict[str, Any],
+    color: chess.Color | None,
+    *,
+    note: str = "",
+) -> None:
+    result = pgn_result(board, game_state)
+    result_text, result_symbol = result_for_bot(result, color)
+    matchup = f" {matchup_label(game_full)}" if game_full else ""
+    extra = f" {note}" if note else ""
+    log(
+        "GAME END",
+        f"{result_symbol} {result_text} {game_id} result={result} status={terminal_status(game_state) or board.result()}{matchup}{extra}",
+        Color.MAGENTA,
+    )
+    if game_full and color is not None:
+        opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
+        maybe_chat(token, game_id, "player", format_chat(cfg.goodbye, me=account_id, opponent=opponent))
+    save_pgn(cfg, game_id, board, game_full, game_state)
+
+
 def play_game(
     token: str,
     engine: chess.engine.SimpleEngine,
@@ -797,6 +873,7 @@ def play_game(
     resign_count = 0
     draw_count = 0
     hello_sent = False
+    finished = False
     state.update_game(game_id, "starting")
     try:
         for event in bot_game_stream(token, game_id):
@@ -832,19 +909,9 @@ def play_game(
             ply = board.ply()
             state.update_game(game_id, f"ply={ply} turn={'white' if board.turn else 'black'}")
 
-            if board.is_game_over() or terminal_status(game_state) in {"mate", "resign", "draw", "stalemate", "timeout", "outoftime"}:
-                result = pgn_result(board, game_state)
-                result_text, result_symbol = result_for_bot(result, color)
-                matchup = f" {matchup_label(game_full)}" if game_full else ""
-                log(
-                    "GAME END",
-                    f"{result_symbol} {result_text} {game_id} result={result} status={terminal_status(game_state) or board.result()}{matchup}",
-                    Color.MAGENTA,
-                )
-                if game_full and color is not None:
-                    opponent = game_player_name(game_full, "black" if color == chess.WHITE else "white")
-                    maybe_chat(token, game_id, "player", format_chat(cfg.goodbye, me=account_id, opponent=opponent))
-                save_pgn(cfg, game_id, board, game_full, game_state)
+            if is_game_terminal(board, game_state):
+                finish_played_game(token, game_id, account_id, cfg, board, game_full, game_state, color)
+                finished = True
                 return
             if color is None or board.turn != color or moves == last_handled_moves:
                 continue
@@ -852,6 +919,20 @@ def play_game(
             decision = choose_move(engine, board, color, cfg, game_state)
             if decision.move not in board.legal_moves:
                 log("API", f"illegal {decision.source} move {decision.move} in {game_id}", Color.GRAY)
+                return
+            if is_game_terminal(board, game_state):
+                finish_played_game(
+                    token,
+                    game_id,
+                    account_id,
+                    cfg,
+                    board,
+                    game_full,
+                    game_state,
+                    color,
+                    note="(terminal before move post)",
+                )
+                finished = True
                 return
             if decision.score_cp is not None and cfg.resign_enabled and decision.score_cp <= cfg.resign_score:
                 resign_count += 1
@@ -873,11 +954,27 @@ def play_game(
                 draw_suffix = " offeringDraw=true" if decision.offer_draw else ""
             score_suffix = f" score={decision.score_cp}" if decision.score_cp is not None else ""
             log("MOVE", f"{game_id} posting ply={ply + 1} {decision.move.uci()} source={decision.source}{score_suffix}{draw_suffix}", Color.BLUE)
-            bot_make_move(token, game_id, decision.move.uci(), decision.offer_draw)
+            try:
+                bot_make_move(token, game_id, decision.move.uci(), decision.offer_draw)
+            except ApiError as exc:
+                if is_stale_move_error(exc):
+                    log(
+                        "GAME END",
+                        f"⏹ stale move {game_id} ({describe_error(exc)}); fetching export",
+                        Color.MAGENTA,
+                    )
+                    export = fetch_game_export_pgn(token, game_id)
+                    if export:
+                        save_exported_pgn(cfg, game_id, export)
+                    elif game_full is not None:
+                        save_pgn(cfg, game_id, board, game_full, game_state)
+                    finished = True
+                    return
+                raise
             log("MOVE", f"{game_id} accepted ply={ply + 1} {decision.move.uci()}", Color.BLUE)
             last_handled_moves = f"{moves} {decision.move.uci()}".strip()
     finally:
-        state.end_game(game_id)
+        state.end_game(game_id, finished=finished)
 
 
 def is_compatible_challenge(challenge: dict[str, Any], cfg: BotConfig) -> tuple[bool, str]:
@@ -1344,8 +1441,8 @@ def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] |
             run_event_loop(token, engine, account_id, cfg, state)
         else:
             run_event_loop(token, engine, account_id, cfg, state)
-    if games_limit is not None:
         wait_for_active_games(state)
+    if games_limit is not None:
         log("IDLE", f"finished {state.completed_games}/{games_limit} game(s); exiting", Color.GREEN)
 
 

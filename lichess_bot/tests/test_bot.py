@@ -48,10 +48,15 @@ def test_runtime_state_game_limit():
     state.begin_game("g1", "starting")
     state.end_game("g1")
     assert not state.stop.is_set()
+    assert state.completed_games == 0
+
+    state.begin_game("g1", "starting")
+    state.end_game("g1", finished=True)
+    assert not state.stop.is_set()
     assert state.completed_games == 1
 
     state.begin_game("g2", "starting")
-    state.end_game("g2")
+    state.end_game("g2", finished=True)
     assert state.stop.is_set()
     assert state.completed_games == 2
 
@@ -438,6 +443,52 @@ def test_play_game_accepts_reasonable_draw_offer_with_next_move(monkeypatch, tmp
     bot.play_game("token", object(), "game1", "labzerobot0", cfg, state)
 
     assert posted == [("e2e4", True)]
+
+
+def test_play_game_stale_move_post_counts_as_finished(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, pgn_directory=str(tmp_path / "pgn"))
+    state = bot.RuntimeState(games_limit=1)
+    state.begin_game("MSJKIZQY", "starting")
+    exports: list[str] = []
+
+    def reject_move(*args, **kwargs):
+        raise bot.ApiError(
+            'HTTP 400 Bad Request POST /api/bot/game/MSJKIZQY/move/h2h3: {"error":"Not your turn, or game already over"}'
+        )
+
+    monkeypatch.setattr(bot, "maybe_chat", lambda *args, **kwargs: None)
+    monkeypatch.setattr(bot, "choose_move", lambda *args, **kwargs: bot.MoveDecision(chess.Move.from_uci("h2h3"), score_cp=50))
+    monkeypatch.setattr(bot, "bot_make_move", reject_move)
+    monkeypatch.setattr(bot, "fetch_game_export_pgn", lambda token, game_id: exports.append(game_id) or '[Event "x"]\n* * *')
+    monkeypatch.setattr(
+        bot,
+        "bot_game_stream",
+        lambda token, game_id: iter(
+            [
+                {
+                    "type": "gameFull",
+                    "white": {"id": "labzerobot0", "name": "LabZeroBot0", "title": "BOT", "rating": 1500},
+                    "black": {"id": "maia5", "name": "maia5", "title": "BOT", "rating": 1510},
+                    "state": {"moves": "", "wtime": 180000, "btime": 180000},
+                },
+                {"type": "gameState", "moves": "", "wtime": 180000, "btime": 180000},
+            ]
+        ),
+    )
+
+    bot.play_game("token", object(), "MSJKIZQY", "labzerobot0", cfg, state)
+
+    assert exports == ["MSJKIZQY"]
+    assert state.completed_games == 1
+    assert state.stop.is_set()
+    assert list((tmp_path / "pgn").glob("*_export.pgn"))
+
+
+def test_is_stale_move_error():
+    assert bot.is_stale_move_error(
+        bot.ApiError('HTTP 400: {"error":"Not your turn, or game already over"}')
+    )
+    assert not bot.is_stale_move_error(bot.ApiError("HTTP 500"))
 
 
 def test_challenge_cooldown_seconds_parses_rate_limit():

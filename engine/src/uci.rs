@@ -344,8 +344,12 @@ impl InfoWriter {
             .checked_div(info.time_ms.max(1))
             .unwrap_or(0);
         self.out.push(format!(
-            "info depth {} score cp {} nodes {} nps {} time {}",
-            info.depth, info.score, info.nodes, nps, info.time_ms
+            "info depth {} {} nodes {} nps {} time {}",
+            info.depth,
+            crate::search::format_uci_score(info.score),
+            info.nodes,
+            nps,
+            info.time_ms
         ));
     }
 }

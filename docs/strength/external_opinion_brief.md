@@ -103,6 +103,19 @@ Both runs: 0 illegal, 0 errors, 0 timeouts. Harness-reported `labzero %` = 33.3 
 
 Move traces: `benchmark_20260628T113901Z.moves.tsv`, `benchmark_20260628T114956Z.moves.tsv`.
 
+## Root-Policy A/B at SF2200 wtime (2026-06-28)
+
+Same harness as above at SF2200, 4 games, `LABZERO_ROOT_POLICY` env switch. Score sanitizer emits `score mate N` for mate-band values (no `-29985` cp leaks).
+
+| Artifact | Root policy | Result (W-L-D) | W-equiv | Truncated | Status |
+|---|---|---:|---:|---:|---|
+| `benchmark_20260628T122107Z` | raw | 3-0-1 | 3.5/4 (87.5%) | 0 | complete |
+| `benchmark_20260628T123050Z` | v3 | 0-2-1 | 0.5/3 (17%) | 1 | complete |
+
+Both: 0 illegal, 0 errors, 0 timeouts. **Raw clearly healthier** — v3 lost game 1 in 30 plies (queen trap `g7g2`), v3 game 3 truncated in a losing shuffle. **Decision:** disable or simplify root-rank v3 for production (follow-up commit); do **not** repeat at SF2400 under v3 until raw is default. SF2600 gold stays blocked.
+
+Move traces: `benchmark_20260628T122107Z.moves.tsv`, `benchmark_20260628T123050Z.moves.tsv`.
+
 ## What To Stop Doing
 
 - Stop running rated Lichess until a small real-clock diagnostic looks sane.
