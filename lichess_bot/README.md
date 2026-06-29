@@ -246,6 +246,15 @@ Rated run:
 lichess_bot/run-local.sh --challenge-loop --rated
 ```
 
+By default the loop randomizes among eligible bots in the configured rating
+window. To use the radar-style ladder behavior and challenge the closest
+eligible bot strictly above LabZero's current/fallback blitz rating:
+
+```bash
+lichess_bot/run-local.sh --challenge-loop --unrated --closest-superior
+lichess_bot/run-local.sh --challenge-loop --rated --closest-superior --games 4
+```
+
 The rating window is controlled by `config.toml` or `config.example.toml`:
 
 ```toml

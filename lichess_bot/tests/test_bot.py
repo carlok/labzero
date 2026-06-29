@@ -717,6 +717,21 @@ def test_choose_candidates_filters_and_shuffles(monkeypatch, tmp_path):
     assert bot.choose_candidates(users, "self", 1500, avoid_cfg) == []
 
 
+def test_choose_candidates_closest_superior_uses_nearest_stronger(tmp_path):
+    cfg = make_config(tmp_path, min_blitz_games=20, target_rating_min_delta=-200, target_rating_max_delta=300)
+    users = [
+        {"username": "lower", "perfs": {"blitz": {"rating": 1900, "games": 100}}},
+        {"username": "far", "perfs": {"blitz": {"rating": 2200, "games": 100}}},
+        {"username": "near-b", "perfs": {"blitz": {"rating": 2030, "games": 100}}},
+        {"username": "near-a", "perfs": {"blitz": {"rating": 2030, "games": 100}}},
+        {"username": "exact", "perfs": {"blitz": {"rating": 2000, "games": 100}}},
+    ]
+
+    candidates = bot.choose_candidates(users, "self", 2000, cfg, closest_superior=True)
+
+    assert [user["username"] for user in candidates] == ["near-a", "near-b", "far"]
+
+
 def test_load_avoid_bots_accepts_list_and_object(tmp_path):
     avoid_path = tmp_path / "avoid.json"
 

@@ -1679,7 +1679,13 @@ def api_account(token: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
-def choose_candidates(users: list[dict[str, Any]], account_id: str, rating: int, cfg: BotConfig) -> list[dict[str, Any]]:
+def choose_candidates(
+    users: list[dict[str, Any]],
+    account_id: str,
+    rating: int,
+    cfg: BotConfig,
+    closest_superior: bool = False,
+) -> list[dict[str, Any]]:
     lo = rating + cfg.target_rating_min_delta
     hi = rating + cfg.target_rating_max_delta
     avoid_bots = load_avoid_bots(cfg.avoid_bots_file)
@@ -1700,7 +1706,11 @@ def choose_candidates(users: list[dict[str, Any]], account_id: str, rating: int,
             continue
         if lo <= rated <= hi:
             candidates.append((rated, str(username), user))
-    random.shuffle(candidates)
+    if closest_superior:
+        candidates = [item for item in candidates if item[0] > rating]
+        candidates.sort(key=lambda item: (item[0] - rating, item[1].lower()))
+    else:
+        random.shuffle(candidates)
     return [item[2] for item in candidates]
 
 
@@ -1810,7 +1820,14 @@ def challenge_users(token: str, usernames: list[str], cfg: BotConfig) -> None:
         send_challenge(token, username, cfg)
 
 
-def challenge_loop(token: str, account_id: str, cfg: BotConfig, state: RuntimeState, quota: ChallengeQuota) -> None:
+def challenge_loop(
+    token: str,
+    account_id: str,
+    cfg: BotConfig,
+    state: RuntimeState,
+    quota: ChallengeQuota,
+    closest_superior: bool = False,
+) -> None:
     blocked_until: dict[str, float] = {}
     quota.log_status()
     while not state.stop.is_set():
@@ -1826,7 +1843,7 @@ def challenge_loop(token: str, account_id: str, cfg: BotConfig, state: RuntimeSt
             rating = own_blitz_rating(token, cfg)
             try:
                 now = time.time()
-                candidates = choose_candidates(online_bots(token), account_id, rating, cfg)
+                candidates = choose_candidates(online_bots(token), account_id, rating, cfg, closest_superior=closest_superior)
                 attempts = 0
                 challenged = False
                 for candidate in candidates:
@@ -1857,7 +1874,8 @@ def challenge_loop(token: str, account_id: str, cfg: BotConfig, state: RuntimeSt
                         if attempts >= cfg.max_challenge_attempts_per_cycle:
                             break
                 if not challenged:
-                    log("IDLE", f"no online bot in blitz range {rating}+{cfg.target_rating_min_delta}..+{cfg.target_rating_max_delta}", Color.GREEN)
+                    mode_text = "closest superior " if closest_superior else ""
+                    log("IDLE", f"no online {mode_text}bot in blitz range {rating}+{cfg.target_rating_min_delta}..+{cfg.target_rating_max_delta}", Color.GREEN)
             except urllib.error.HTTPError as exc:
                 log("API", f"challenge loop HTTP {exc.code}: {exc.reason}", Color.GRAY)
             except Exception as exc:
@@ -1870,7 +1888,14 @@ def wait_for_active_games(state: RuntimeState) -> None:
         time.sleep(0.25)
 
 
-def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] | None = None, games_limit: int | None = None) -> None:
+def run_live(
+    token: str,
+    cfg: BotConfig,
+    mode: str,
+    challenge_names: list[str] | None = None,
+    games_limit: int | None = None,
+    closest_superior: bool = False,
+) -> None:
     account = api_account(token)
     account_id = str(account.get("id") or account.get("username") or account.get("name") or "").lower()
     state = RuntimeState(games_limit=games_limit)
@@ -1878,10 +1903,11 @@ def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] |
     threading.Thread(target=heartbeat, args=(state, cfg.heartbeat_sec), daemon=True).start()
 
     games_text = f" games={games_limit}" if games_limit is not None else ""
+    selection_text = " selection=closest-superior" if closest_superior else ""
     log(
         "CONFIG",
         f"mode={mode} rated={str(cfg.rated).lower()} tc={cfg.clock_limit // 60}+{cfg.clock_increment} "
-        f"threads={cfg.uci_threads} engine={cfg.engine}{games_text}",
+        f"threads={cfg.uci_threads} engine={cfg.engine}{games_text}{selection_text}",
         Color.GRAY,
     )
     with chess.engine.SimpleEngine.popen_uci(cfg.engine, timeout=5.0) as engine:
@@ -1893,7 +1919,7 @@ def run_live(token: str, cfg: BotConfig, mode: str, challenge_names: list[str] |
                 args=(token, engine, account_id, cfg, state, quota),
                 daemon=True,
             ).start()
-            challenge_loop(token, account_id, cfg, state, quota)
+            challenge_loop(token, account_id, cfg, state, quota, closest_superior=closest_superior)
         elif mode == "challenge":
             challenge_users(token, challenge_names or [], cfg)
             run_event_loop(token, engine, account_id, cfg, state)
@@ -1923,6 +1949,7 @@ def main() -> int:
     parser.add_argument("--listen", action="store_true")
     parser.add_argument("--challenge-loop", action="store_true")
     parser.add_argument("--challenge", nargs="+", metavar="USERNAME", help="challenge one or more Lichess users, then listen for the game")
+    parser.add_argument("--closest-superior", action="store_true", help="with --challenge-loop, challenge the closest stronger eligible bot instead of a random eligible bot")
     rated = parser.add_mutually_exclusive_group()
     rated.add_argument("--rated", action="store_true")
     rated.add_argument("--unrated", action="store_true")
@@ -1933,6 +1960,8 @@ def main() -> int:
         parser.error("--games must be at least 1")
     if args.games is not None and (args.dry_run or args.notify_test):
         parser.error("--games cannot be used with --dry-run or --notify-test")
+    if args.closest_superior and not args.challenge_loop:
+        parser.error("--closest-superior can only be used with --challenge-loop")
 
     selected_modes = [args.dry_run, args.notify_test, args.listen, args.challenge_loop, bool(args.challenge)]
     if sum(bool(m) for m in selected_modes) != 1:
@@ -1972,7 +2001,7 @@ def main() -> int:
             mode = "challenge"
         else:
             mode = "listen"
-        run_live(token, cfg, mode, args.challenge, games_limit=args.games)
+        run_live(token, cfg, mode, args.challenge, games_limit=args.games, closest_superior=args.closest_superior)
         return 0
     except Exception as exc:
         log("API", f"runner stopped: {describe_error(exc)}", Color.GRAY)
