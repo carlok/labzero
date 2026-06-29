@@ -57,6 +57,8 @@ chat_rooms = ["player"]
 # LABZERO_NOTIFY_TELEGRAM_CHAT_ID=123456789
 notify_provider = "none"           # none or telegram
 notify_busy_human_challenge = true
+notify_radar_after_game = true
+notify_radar_after_game_delay_sec = 2
 
 # Online bot selection for --challenge-loop.
 # Window is own blitz rating + deltas (e.g. 1944 with -100..+250 → 1844–2194).

@@ -16,6 +16,7 @@ import os
 import random
 import re
 import signal
+import statistics
 import sys
 import threading
 import time
@@ -160,6 +161,10 @@ class BotConfig:
     uci_hash_mb: int
     notify_provider: str
     notify_busy_human_challenge: bool
+    notify_radar_after_game: bool
+    notify_radar_after_game_delay_sec: int
+    radar_min_blitz_games: int
+    radar_allow_provisional: bool
 
     @classmethod
     def from_dict(cls, cfg: dict[str, Any], rated_override: bool | None) -> "BotConfig":
@@ -234,6 +239,10 @@ class BotConfig:
             uci_hash_mb=uci_hash_mb,
             notify_provider=notify_provider,
             notify_busy_human_challenge=bool(cfg.get("notify_busy_human_challenge", True)),
+            notify_radar_after_game=bool(cfg.get("notify_radar_after_game", True)),
+            notify_radar_after_game_delay_sec=max(0, int(cfg.get("notify_radar_after_game_delay_sec", 2))),
+            radar_min_blitz_games=int(cfg.get("radar_min_blitz_games", cfg.get("min_blitz_games", 20))),
+            radar_allow_provisional=bool(cfg.get("radar_allow_provisional", cfg.get("allow_provisional", False))),
         )
 
 
@@ -600,6 +609,74 @@ def notify_test(cfg: BotConfig, text: str, file_path: str | None) -> None:
     else:
         send_telegram_notification(text)
     log("API", "notification test sent", Color.GRAY)
+
+
+def bot_radar_rows(users: list[dict[str, Any]], cfg: BotConfig) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for user in users:
+        perf = blitz_perf(user)
+        try:
+            rating = int(perf.get("rating", 0) or 0)
+            games = int(perf.get("games", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        provisional = bool(perf.get("prov", False))
+        if rating <= 0 or games < cfg.radar_min_blitz_games:
+            continue
+        if provisional and not cfg.radar_allow_provisional:
+            continue
+        rows.append(
+            {
+                "username": user.get("username") or user.get("name") or user.get("id"),
+                "rating": rating,
+                "games": games,
+                "provisional": provisional,
+            }
+        )
+    return rows
+
+
+def bot_rating_percentile(ratings: list[int], own_rating: int) -> float | None:
+    if not ratings:
+        return None
+    below_or_equal = sum(1 for rating in ratings if rating <= own_rating)
+    return round(100.0 * below_or_equal / len(ratings), 1)
+
+
+def notify_message_radar_after_game(own_rating: int, rows: list[dict[str, Any]]) -> str:
+    ratings = sorted(row["rating"] for row in rows)
+    percentile = bot_rating_percentile(ratings, own_rating)
+    stronger = sorted(
+        (row for row in rows if row["rating"] > own_rating),
+        key=lambda row: (row["rating"] - own_rating, str(row["username"]).lower()),
+    )
+    nearest = ", ".join(f"{row['username']} {row['rating']}" for row in stronger[:3]) or "none"
+    pct_text = "n/a" if percentile is None else f"{percentile:.1f}th"
+    median = "n/a" if not ratings else f"{statistics.median(ratings):.1f}"
+    avg = "n/a" if not ratings else f"{statistics.fmean(ratings):.1f}"
+    return "\n".join(
+        [
+            "🤖 RADAR after game",
+            f"own blitz: {own_rating}",
+            f"online bots: {len(ratings)} filtered",
+            f"percentile: {pct_text} · above={len(stronger)} · <=you={len(ratings) - len(stronger)}",
+            f"median/avg: {median} / {avg}",
+            f"nearest stronger: {nearest}",
+        ]
+    )
+
+
+def notify_radar_after_game(token: str, cfg: BotConfig) -> None:
+    if cfg.notify_provider != "telegram" or not cfg.notify_radar_after_game:
+        return
+    try:
+        if cfg.notify_radar_after_game_delay_sec > 0:
+            time.sleep(cfg.notify_radar_after_game_delay_sec)
+        own_rating = own_blitz_rating(token, cfg)
+        rows = bot_radar_rows(online_bots(token), cfg)
+        notify(cfg, notify_message_radar_after_game(own_rating, rows))
+    except Exception as exc:
+        log("API", f"post-game radar ignored: {describe_error(exc)}", Color.GRAY)
 
 
 def dry_run_test(engine_path: str, cfg: BotConfig) -> None:
@@ -1169,6 +1246,7 @@ def finish_played_game(
         maybe_chat_rooms(token, game_id, cfg.chat_rooms, format_chat(cfg.goodbye, me=account_id, opponent=opponent))
     pgn_path = save_pgn(cfg, game_id, board, game_full, game_state)
     notify(cfg, notify_message_end(game_id, cfg, color, result, game_full, game_state, pgn_path))
+    notify_radar_after_game(token, cfg)
 
 
 def play_game(

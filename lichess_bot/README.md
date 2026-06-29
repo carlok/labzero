@@ -392,6 +392,15 @@ If a human challenges the bot while it is already busy, the runner declines with
 the Lichess `busy` reason and sends the operator a Telegram notification. Bot
 challenges are not notified by default to avoid spam.
 
+When Telegram is enabled, the runner also sends a small online-bot radar summary
+shortly after each game ends. It uses the same blitz filters as `run-radar.sh`
+and reports LabZero's current percentile among filtered online bots:
+
+```toml
+notify_radar_after_game = true
+notify_radar_after_game_delay_sec = 2
+```
+
 ## Game Chat Visibility
 
 By default, greetings and good-game messages are sent to the Lichess `player`

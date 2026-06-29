@@ -35,6 +35,10 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.accept_draw_losing_score == -100
     assert cfg.notify_provider == "none"
     assert cfg.notify_busy_human_challenge is True
+    assert cfg.notify_radar_after_game is True
+    assert cfg.notify_radar_after_game_delay_sec == 2
+    assert cfg.radar_min_blitz_games == 20
+    assert cfg.radar_allow_provisional is False
     assert cfg.chat_rooms == ["player"]
 
     with pytest.raises(ValueError, match="accept_from"):
@@ -165,6 +169,61 @@ def test_notify_test_requires_telegram_provider(tmp_path):
 
     with pytest.raises(RuntimeError, match="notify_provider"):
         bot.notify_test(cfg, "hello", None)
+
+
+def test_notify_message_radar_after_game():
+    rows = [
+        {"username": "WeakBot", "rating": 1800},
+        {"username": "NearBot", "rating": 2010},
+        {"username": "FarBot", "rating": 2300},
+    ]
+
+    text = bot.notify_message_radar_after_game(2000, rows)
+
+    assert "RADAR after game" in text
+    assert "own blitz: 2000" in text
+    assert "online bots: 3 filtered" in text
+    assert "percentile: 33.3th" in text
+    assert "above=2" in text
+    assert "nearest stronger: NearBot 2010, FarBot 2300" in text
+
+
+def test_notify_radar_after_game_uses_telegram_when_enabled(monkeypatch, tmp_path):
+    cfg = make_config(
+        tmp_path,
+        notify_provider="telegram",
+        notify_radar_after_game_delay_sec=0,
+        radar_min_blitz_games=20,
+    )
+    notifications: list[str] = []
+    monkeypatch.setattr(bot, "own_blitz_rating", lambda token, cfg: 2000)
+    monkeypatch.setattr(
+        bot,
+        "online_bots",
+        lambda token: [
+            {"username": "WeakBot", "perfs": {"blitz": {"rating": 1800, "games": 40, "prov": False}}},
+            {"username": "NearBot", "perfs": {"blitz": {"rating": 2010, "games": 40, "prov": False}}},
+            {"username": "TooNew", "perfs": {"blitz": {"rating": 2200, "games": 1, "prov": False}}},
+        ],
+    )
+    monkeypatch.setattr(bot, "notify", lambda cfg, text: notifications.append(text))
+
+    bot.notify_radar_after_game("token", cfg)
+
+    assert len(notifications) == 1
+    assert "online bots: 2 filtered" in notifications[0]
+    assert "nearest stronger: NearBot 2010" in notifications[0]
+
+
+def test_notify_radar_after_game_skips_when_notifications_disabled(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="none")
+    monkeypatch.setattr(
+        bot,
+        "online_bots",
+        lambda token: (_ for _ in ()).throw(AssertionError("should not poll")),
+    )
+
+    bot.notify_radar_after_game("token", cfg)
 
 
 def test_main_notify_test_text_does_not_need_lichess_token(monkeypatch, tmp_path):
