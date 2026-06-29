@@ -7,6 +7,12 @@
 - **Tooling:** added `scripts/build-host-and-bot-engine.sh` to refresh `target/release/labzero` and gitignored bot binary copies.
 - **lichess_bot:** optional best-effort Telegram start/end notifications, `--notify-test` text/file mode, busy-human challenge notifications; coverage gate raised to 50%.
 
+## 0.6.3 — 2026-06-29
+
+- **lichess_bot:** added a sidecar online-bot blitz radar that samples `/api/bot/online?nb=512`, records JSONL snapshots, and reports count, min/max, average, median, quartiles, rating buckets, LabZero percentile, and nearest stronger bots.
+- **lichess_bot:** radar can send best-effort Telegram summaries using the existing notification configuration.
+- **Release:** ops/tooling tag only; no engine search/eval change, no binary refresh requirement, and no new strength claim.
+
 ## 0.6.2 — 2026-06-28
 
 - **Search:** score 3-fold repetition and 50-move draws as `0` in `negamax`/`qsearch` (before TT cutoff); root rank v3 wired (first-on-tie, draw/repeat/progress at root)

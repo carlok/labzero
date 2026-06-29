@@ -55,7 +55,7 @@ chat_rooms = ["player"]
 # Optional game-start/game-end notifications. Secrets stay in lichess_bot/.env:
 # LABZERO_NOTIFY_TELEGRAM_TOKEN=123456:abc
 # LABZERO_NOTIFY_TELEGRAM_CHAT_ID=123456789
-notify_provider = "none" # none or telegram
+notify_provider = "none"           # none or telegram
 notify_busy_human_challenge = true
 
 # Online bot selection for --challenge-loop.
@@ -74,3 +74,10 @@ challenge_control_file = "lichess_bot/local/challenge-control.json"
 avoid_bots_file = "lichess_bot/local/avoid-bots.json"
 challenge_interval_sec = 90
 heartbeat_sec = 25
+
+# Sidecar online-bot rating radar. It writes JSONL snapshots under local/.
+radar_interval_sec = 30
+radar_min_blitz_games = 20
+radar_allow_provisional = false
+radar_notify_interval_min = 60
+radar_output_dir = "lichess_bot/local/bot-radar"

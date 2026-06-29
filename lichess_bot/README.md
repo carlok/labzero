@@ -125,6 +125,48 @@ round 2: 10 games ...
 round 3: 10 games ...
 ```
 
+## Online Bot Rating Radar
+
+Use the radar as a separate sidecar when you want to understand where LabZero
+sits among currently online Lichess bots. It polls `GET /api/bot/online?nb=512`;
+`nb=512` means "return up to 512 online bots". The script filters those users by
+blitz rating, minimum games, and provisional status, then computes min, max,
+average, median, quartiles, rating buckets, LabZero's percentile, and the nearest
+stronger online bots.
+
+One snapshot:
+
+```bash
+lichess_bot/run-radar.sh --once
+```
+
+Continuous sidecar, safe default polling every 60 seconds:
+
+```bash
+lichess_bot/run-radar.sh
+```
+
+Telegram summaries are optional and reuse the same notification config as live
+games:
+
+```bash
+lichess_bot/run-radar.sh --notify --notify-interval-min 60
+```
+
+Snapshots are JSONL files under `lichess_bot/local/bot-radar/`, one file per UTC
+day. This is intentionally separate from `run-local.sh`, so radar polling can
+never interfere with move submission during a game.
+
+Radar knobs in `config.toml`:
+
+```toml
+radar_interval_sec = 60
+radar_min_blitz_games = 20
+radar_allow_provisional = false
+radar_notify_interval_min = 60
+radar_output_dir = "lichess_bot/local/bot-radar"
+```
+
 ## Open The Bot For Real Games
 
 Use `--games N` to stop automatically after **N completed games** (no manual control file needed):
