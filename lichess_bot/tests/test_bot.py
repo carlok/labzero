@@ -921,6 +921,39 @@ def test_challenge_users_only_sends_one_in_single_game_mode(monkeypatch, tmp_pat
     assert sent == ["a"]
 
 
+def test_closest_superior_tries_next_after_one_idle_cycle(monkeypatch, tmp_path):
+    cfg = make_config(
+        tmp_path,
+        challenge_interval_sec=1,
+        target_rating_min_delta=-100,
+        target_rating_max_delta=200,
+    )
+    quota = bot.ChallengeQuota(str(tmp_path / "quota.json"), daily_limit=100, margin=10)
+    state = bot.RuntimeState()
+    users = [
+        {"username": "near", "perfs": {"blitz": {"rating": 2010, "games": 100}}},
+        {"username": "next", "perfs": {"blitz": {"rating": 2020, "games": 100}}},
+    ]
+    sent = []
+    fake_now = [0.0]
+
+    monkeypatch.setattr(bot, "own_blitz_rating", lambda token, cfg: 2000)
+    monkeypatch.setattr(bot, "online_bots", lambda token: users)
+    monkeypatch.setattr(bot, "send_challenge", lambda token, username, cfg: sent.append(username))
+    monkeypatch.setattr(bot.time, "time", lambda: fake_now[0])
+
+    def fake_sleep(seconds):
+        fake_now[0] += seconds
+        if len(sent) >= 2:
+            state.stop.set()
+
+    monkeypatch.setattr(bot.time, "sleep", fake_sleep)
+
+    bot.challenge_loop("token", "self", cfg, state, quota, closest_superior=True)
+
+    assert sent == ["near", "next"]
+
+
 def test_api_wrapper_endpoints_and_online_bot_shapes(monkeypatch):
     calls = []
     responses = []

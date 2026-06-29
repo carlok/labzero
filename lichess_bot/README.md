@@ -277,6 +277,9 @@ The runner uses `perfs.blitz.rating`, `perfs.blitz.games`, and
 `perfs.blitz.prov` from the online-bot API. If Lichess rejects a candidate
 because it already played too many bot-vs-bot games today, the runner skips
 that bot until the server cooldown expires and tries another candidate.
+With `--closest-superior`, an unanswered challenge holds the single-game slot
+for one `challenge_interval_sec` idle cycle, then the runner tries the next
+closest stronger candidate instead of waiting on the same bot.
 
 Lichess also enforces bot-vs-bot daily limits on your account. The API does not
 provide a "remaining games" endpoint, so the runner keeps a local UTC-day

@@ -1855,13 +1855,22 @@ def challenge_loop(
                         continue
                     attempts += 1
                     reservation_key = f"out:{username.lower()}"
-                    if not state.try_reserve_slot(reservation_key, cfg.max_parallel_games):
+                    reserve_ttl = cfg.challenge_interval_sec if closest_superior else 180
+                    if not state.try_reserve_slot(reservation_key, cfg.max_parallel_games, ttl_sec=reserve_ttl):
                         break
                     try:
                         send_challenge(token, username, cfg)
                         state.mark_outgoing_bot_challenge(username)
                         challenged = True
                         log("CHALLENGE", f"quota will count if {username} starts a bot game", Color.YELLOW)
+                        if closest_superior:
+                            skip_for = max(180, cfg.challenge_interval_sec * 3)
+                            blocked_until[username.lower()] = now + skip_for
+                            log(
+                                "CHALLENGE",
+                                f"waiting one idle cycle for {username}; next miss tries the next closest superior",
+                                Color.YELLOW,
+                            )
                         break
                     except Exception as exc:
                         state.release_reserved_slot(reservation_key)
