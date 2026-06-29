@@ -163,8 +163,11 @@ class BotConfig:
     notify_busy_human_challenge: bool
     notify_radar_after_game: bool
     notify_radar_after_game_delay_sec: int
+    notify_block_summary: bool
     radar_min_blitz_games: int
     radar_allow_provisional: bool
+    cancel_stale_outgoing_challenges: bool
+    opponent_cooldown_sec: int
 
     @classmethod
     def from_dict(cls, cfg: dict[str, Any], rated_override: bool | None) -> "BotConfig":
@@ -241,8 +244,11 @@ class BotConfig:
             notify_busy_human_challenge=bool(cfg.get("notify_busy_human_challenge", True)),
             notify_radar_after_game=bool(cfg.get("notify_radar_after_game", True)),
             notify_radar_after_game_delay_sec=max(0, int(cfg.get("notify_radar_after_game_delay_sec", 2))),
+            notify_block_summary=bool(cfg.get("notify_block_summary", True)),
             radar_min_blitz_games=int(cfg.get("radar_min_blitz_games", cfg.get("min_blitz_games", 20))),
             radar_allow_provisional=bool(cfg.get("radar_allow_provisional", cfg.get("allow_provisional", False))),
+            cancel_stale_outgoing_challenges=bool(cfg.get("cancel_stale_outgoing_challenges", True)),
+            opponent_cooldown_sec=max(0, int(cfg.get("opponent_cooldown_sec", 20 * 60))),
         )
 
 
@@ -293,12 +299,24 @@ class MoveDecision:
     source: str = "engine"
 
 
+@dataclass
+class FinishedGameSummary:
+    game_id: str
+    result_text: str
+    result: str
+    opponent: str
+    opponent_rating: int | None
+    status: str
+
+
 class RuntimeState:
     def __init__(self, games_limit: int | None = None) -> None:
         self._lock = threading.Lock()
         self._active: dict[str, str] = {}
         self._reserved: dict[str, float] = {}
         self._pending_outgoing_bots: set[str] = set()
+        self._opponent_last_played: dict[str, float] = {}
+        self._finished_games: list[FinishedGameSummary] = []
         self._force_quit = False
         self.stop = threading.Event()
         self.games_limit = games_limit
@@ -328,6 +346,20 @@ class RuntimeState:
     def release_reserved_slot(self, key: str) -> None:
         with self._lock:
             self._reserved.pop(key, None)
+
+    def has_pending_outgoing_bot(self, username: str) -> bool:
+        key = username.strip().lower()
+        if not key:
+            return False
+        with self._lock:
+            return key in self._pending_outgoing_bots
+
+    def clear_pending_outgoing_bot(self, username: str) -> None:
+        key = username.strip().lower()
+        if not key:
+            return
+        with self._lock:
+            self._pending_outgoing_bots.discard(key)
 
     def try_begin_game(self, game_id: str, text: str, max_games: int) -> bool:
         with self._lock:
@@ -390,6 +422,29 @@ class RuntimeState:
                 return False
             self._pending_outgoing_bots.difference_update(keys)
             return True
+
+    def record_finished_game(self, summary: FinishedGameSummary, opponent_keys: set[str]) -> None:
+        now = time.time()
+        with self._lock:
+            self._finished_games.append(summary)
+            for key in opponent_keys:
+                self._opponent_last_played[key] = now
+
+    def opponent_cooldown_remaining(self, username: str, cooldown_sec: int) -> int:
+        if cooldown_sec <= 0:
+            return 0
+        key = username.strip().lower()
+        if not key:
+            return 0
+        with self._lock:
+            last = self._opponent_last_played.get(key)
+        if last is None:
+            return 0
+        return max(0, int((last + cooldown_sec) - time.time()))
+
+    def finished_game_summaries(self) -> list[FinishedGameSummary]:
+        with self._lock:
+            return list(self._finished_games)
 
     def handle_sigint(self, _signum: int, _frame: object) -> None:
         if self.active_count() == 0:
@@ -677,6 +732,66 @@ def notify_radar_after_game(token: str, cfg: BotConfig) -> None:
         notify(cfg, notify_message_radar_after_game(own_rating, rows))
     except Exception as exc:
         log("API", f"post-game radar ignored: {describe_error(exc)}", Color.GRAY)
+
+
+def game_summary(
+    game_id: str,
+    result: str,
+    color: chess.Color | None,
+    game_full: dict[str, Any] | None,
+    game_state: dict[str, Any],
+) -> FinishedGameSummary:
+    result_text, _ = result_for_bot(result, color)
+    opponent_player: dict[str, Any] = {}
+    if game_full and color is not None:
+        opponent_player = player_obj(game_full, "black" if color == chess.WHITE else "white")
+    return FinishedGameSummary(
+        game_id=game_id,
+        result_text=result_text,
+        result=result,
+        opponent=user_name(opponent_player),
+        opponent_rating=player_rating(opponent_player),
+        status=terminal_status(game_state) or "unknown",
+    )
+
+
+def score_for_summary(summary: FinishedGameSummary) -> float:
+    if summary.result_text == "WIN":
+        return 1.0
+    if summary.result_text == "DRAW":
+        return 0.5
+    return 0.0
+
+
+def notify_message_block_summary(summaries: list[FinishedGameSummary], games_limit: int | None) -> str:
+    wins = sum(1 for item in summaries if item.result_text == "WIN")
+    draws = sum(1 for item in summaries if item.result_text == "DRAW")
+    losses = sum(1 for item in summaries if item.result_text == "LOSS")
+    score = sum(score_for_summary(item) for item in summaries)
+    ratings = [item.opponent_rating for item in summaries if item.opponent_rating is not None]
+    avg_opp = "n/a" if not ratings else f"{statistics.fmean(ratings):.0f}"
+    limit_text = "open block" if games_limit is None else f"{games_limit}-game block"
+    last_ids = ", ".join(item.game_id for item in summaries[-4:])
+    return "\n".join(
+        [
+            f"📊 BLOCK summary · {limit_text}",
+            f"{wins}W-{draws}D-{losses}L · score={score:g}/{len(summaries)} ({100 * score / max(1, len(summaries)):.1f}%)",
+            f"avg opponent: {avg_opp}",
+            f"last games: {last_ids}",
+        ]
+    )
+
+
+def notify_block_summary(token: str, cfg: BotConfig, state: RuntimeState, games_limit: int | None) -> None:
+    if cfg.notify_provider != "telegram" or not cfg.notify_block_summary:
+        return
+    summaries = state.finished_game_summaries()
+    if not summaries:
+        return
+    try:
+        notify(cfg, notify_message_block_summary(summaries, games_limit))
+    except Exception as exc:
+        log("API", f"block summary ignored: {describe_error(exc)}", Color.GRAY)
 
 
 def dry_run_test(engine_path: str, cfg: BotConfig) -> None:
@@ -1206,6 +1321,7 @@ def finish_game_after_api_over(
     game_id: str,
     account_id: str,
     cfg: BotConfig,
+    state: RuntimeState,
     board: chess.Board,
     game_full: dict[str, Any] | None,
     game_state: dict[str, Any],
@@ -1217,7 +1333,7 @@ def finish_game_after_api_over(
     if export:
         save_exported_pgn(cfg, game_id, export)
         board, game_state = enrich_state_from_export(export, board, game_state)
-    finish_played_game(token, game_id, account_id, cfg, board, game_full, game_state, color, note=note)
+    finish_played_game(token, game_id, account_id, cfg, state, board, game_full, game_state, color, note=note)
 
 
 def finish_played_game(
@@ -1225,6 +1341,7 @@ def finish_played_game(
     game_id: str,
     account_id: str,
     cfg: BotConfig,
+    state: RuntimeState,
     board: chess.Board,
     game_full: dict[str, Any] | None,
     game_state: dict[str, Any],
@@ -1247,6 +1364,11 @@ def finish_played_game(
     pgn_path = save_pgn(cfg, game_id, board, game_full, game_state)
     notify(cfg, notify_message_end(game_id, cfg, color, result, game_full, game_state, pgn_path))
     notify_radar_after_game(token, cfg)
+    summary = game_summary(game_id, result, color, game_full, game_state)
+    opponent_keys: set[str] = set()
+    if game_full and color is not None:
+        opponent_keys = user_keys(player_obj(game_full, "black" if color == chess.WHITE else "white"))
+    state.record_finished_game(summary, opponent_keys)
 
 
 def play_game(
@@ -1305,7 +1427,7 @@ def play_game(
                 hello_sent = True
 
             if is_game_terminal(board, game_state):
-                finish_played_game(token, game_id, account_id, cfg, board, game_full, game_state, color)
+                finish_played_game(token, game_id, account_id, cfg, state, board, game_full, game_state, color)
                 finished = True
                 return
             if color is None or board.turn != color or moves == last_handled_moves:
@@ -1321,6 +1443,7 @@ def play_game(
                         game_id,
                         account_id,
                         cfg,
+                        state,
                         board,
                         game_full,
                         game_state,
@@ -1340,6 +1463,7 @@ def play_game(
                     game_id,
                     account_id,
                     cfg,
+                    state,
                     board,
                     game_full,
                     game_state,
@@ -1377,6 +1501,7 @@ def play_game(
                         game_id,
                         account_id,
                         cfg,
+                        state,
                         board,
                         game_full,
                         game_state,
@@ -1647,6 +1772,18 @@ def bot_chat(token: str, game_id: str, room: str, text: str) -> None:
     )
 
 
+def cancel_challenge(token: str, challenge_id: str, username: str) -> bool:
+    if not challenge_id:
+        return False
+    try:
+        api_request(token, "POST", f"/api/challenge/{urllib.parse.quote(challenge_id, safe='')}/cancel")
+        log("CHALLENGE", f"cancelled stale challenge to {username}", Color.YELLOW)
+        return True
+    except Exception as exc:
+        log("API", f"stale challenge cancel ignored for {username}: {describe_error(exc)}", Color.GRAY)
+        return False
+
+
 def online_bots(token: str) -> list[dict[str, Any]]:
     data = api_request(token, "GET", "/api/bot/online?nb=512")
     if isinstance(data, list):
@@ -1798,7 +1935,18 @@ def stop_after_current_game(path: str) -> bool:
     return bool(data.get("stop_after_current_game", False))
 
 
-def send_challenge(token: str, username: str, cfg: BotConfig) -> None:
+def challenge_id_from_response(data: Any) -> str | None:
+    if not isinstance(data, dict):
+        return None
+    challenge = data.get("challenge")
+    if isinstance(challenge, dict) and challenge.get("id"):
+        return str(challenge["id"])
+    if data.get("id"):
+        return str(data["id"])
+    return None
+
+
+def send_challenge(token: str, username: str, cfg: BotConfig) -> str | None:
     payload = {
         "rated": "true" if cfg.rated else "false",
         "clock.limit": str(cfg.clock_limit),
@@ -1806,8 +1954,9 @@ def send_challenge(token: str, username: str, cfg: BotConfig) -> None:
         "variant": "standard",
         "color": cfg.challenge_color,
     }
-    api_request(token, "POST", f"/api/challenge/{urllib.parse.quote(username)}", payload)
+    data = api_request(token, "POST", f"/api/challenge/{urllib.parse.quote(username)}", payload)
     log("CHALLENGE", f"sent to {username} rated={str(cfg.rated).lower()} tc={cfg.clock_limit // 60}+{cfg.clock_increment}", Color.YELLOW)
+    return challenge_id_from_response(data)
 
 
 def challenge_users(token: str, usernames: list[str], cfg: BotConfig) -> None:
@@ -1829,9 +1978,24 @@ def challenge_loop(
     closest_superior: bool = False,
 ) -> None:
     blocked_until: dict[str, float] = {}
+    pending_challenges: dict[str, dict[str, Any]] = {}
     quota.log_status()
     while not state.stop.is_set():
         if state.active_count() == 0:
+            now = time.time()
+            for username, pending in list(pending_challenges.items()):
+                if float(pending.get("cancel_after", 0)) > now:
+                    continue
+                if state.has_pending_outgoing_bot(username):
+                    challenge_id = str(pending.get("challenge_id") or "")
+                    cancelled = False
+                    if cfg.cancel_stale_outgoing_challenges and challenge_id:
+                        cancelled = cancel_challenge(token, challenge_id, username)
+                    if cancelled or not challenge_id or not cfg.cancel_stale_outgoing_challenges:
+                        state.clear_pending_outgoing_bot(username)
+                    state.release_reserved_slot(str(pending.get("reservation_key") or f"out:{username}"))
+                    blocked_until[username] = now + max(180, cfg.challenge_interval_sec * 3)
+                pending_challenges.pop(username, None)
             if stop_after_current_game(cfg.challenge_control_file):
                 log("IDLE", f"challenge loop paused by {cfg.challenge_control_file}", Color.GREEN)
                 time.sleep(cfg.challenge_interval_sec)
@@ -1842,7 +2006,6 @@ def challenge_loop(
                 continue
             rating = own_blitz_rating(token, cfg)
             try:
-                now = time.time()
                 candidates = choose_candidates(online_bots(token), account_id, rating, cfg, closest_superior=closest_superior)
                 attempts = 0
                 challenged = False
@@ -1850,22 +2013,31 @@ def challenge_loop(
                     username = str(candidate.get("username") or candidate.get("name") or candidate.get("id") or "")
                     if not username:
                         continue
-                    wait_until = blocked_until.get(username.lower(), 0)
+                    username_key = username.lower()
+                    cooldown_remaining = state.opponent_cooldown_remaining(username, cfg.opponent_cooldown_sec)
+                    if cooldown_remaining > 0:
+                        continue
+                    wait_until = blocked_until.get(username_key, 0)
                     if wait_until > now:
                         continue
                     attempts += 1
-                    reservation_key = f"out:{username.lower()}"
+                    reservation_key = f"out:{username_key}"
                     reserve_ttl = cfg.challenge_interval_sec if closest_superior else 180
                     if not state.try_reserve_slot(reservation_key, cfg.max_parallel_games, ttl_sec=reserve_ttl):
                         break
                     try:
-                        send_challenge(token, username, cfg)
+                        challenge_id = send_challenge(token, username, cfg)
                         state.mark_outgoing_bot_challenge(username)
                         challenged = True
                         log("CHALLENGE", f"quota will count if {username} starts a bot game", Color.YELLOW)
                         if closest_superior:
                             skip_for = max(180, cfg.challenge_interval_sec * 3)
-                            blocked_until[username.lower()] = now + skip_for
+                            blocked_until[username_key] = now + skip_for
+                            pending_challenges[username_key] = {
+                                "challenge_id": challenge_id,
+                                "reservation_key": reservation_key,
+                                "cancel_after": now + cfg.challenge_interval_sec,
+                            }
                             log(
                                 "CHALLENGE",
                                 f"waiting one idle cycle for {username}; next miss tries the next closest superior",
@@ -1876,7 +2048,7 @@ def challenge_loop(
                         state.release_reserved_slot(reservation_key)
                         cooldown = challenge_cooldown_seconds(exc)
                         if cooldown is not None:
-                            blocked_until[username.lower()] = now + cooldown
+                            blocked_until[username_key] = now + cooldown
                             log("CHALLENGE", f"skipping {username} for {cooldown // 60}m: {describe_error(exc)}", Color.YELLOW)
                         else:
                             log("API", f"challenge to {username} failed: {describe_error(exc)}", Color.GRAY)
@@ -1935,6 +2107,8 @@ def run_live(
         else:
             run_event_loop(token, engine, account_id, cfg, state)
         wait_for_active_games(state)
+    if games_limit is not None:
+        notify_block_summary(token, cfg, state, games_limit)
     if games_limit is not None:
         log("IDLE", f"finished {state.completed_games}/{games_limit} game(s); exiting", Color.GREEN)
 

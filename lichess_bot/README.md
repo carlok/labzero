@@ -271,6 +271,8 @@ challenge_quota_file = "lichess_bot/local/challenge-quota.json"
 challenge_control_file = "lichess_bot/local/challenge-control.json"
 avoid_bots_file = "lichess_bot/local/avoid-bots.json"
 challenge_interval_sec = 90
+cancel_stale_outgoing_challenges = true
+opponent_cooldown_sec = 1200
 ```
 
 The runner uses `perfs.blitz.rating`, `perfs.blitz.games`, and
@@ -280,6 +282,9 @@ that bot until the server cooldown expires and tries another candidate.
 With `--closest-superior`, an unanswered challenge holds the single-game slot
 for one `challenge_interval_sec` idle cycle, then the runner tries the next
 closest stronger candidate instead of waiting on the same bot.
+If Lichess returns a challenge id, the stale outgoing challenge is cancelled
+before moving on. Completed opponents are skipped for `opponent_cooldown_sec`
+seconds so short rated blocks sample more than one nearby bot when possible.
 
 Lichess also enforces bot-vs-bot daily limits on your account. The API does not
 provide a "remaining games" endpoint, so the runner keeps a local UTC-day
@@ -411,7 +416,11 @@ and reports LabZero's current percentile among filtered online bots:
 ```toml
 notify_radar_after_game = true
 notify_radar_after_game_delay_sec = 2
+notify_block_summary = true
 ```
+
+`notify_block_summary` sends a compact W-D-L summary when a `--games N` block
+finishes. The per-game radar notification remains unchanged.
 
 ## Game Chat Visibility
 

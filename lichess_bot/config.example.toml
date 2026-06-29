@@ -59,6 +59,7 @@ notify_provider = "none"           # none or telegram
 notify_busy_human_challenge = true
 notify_radar_after_game = true
 notify_radar_after_game_delay_sec = 2
+notify_block_summary = true
 
 # Online bot selection for --challenge-loop.
 # Window is own blitz rating + deltas (e.g. 1944 with -100..+250 → 1844–2194).
@@ -75,6 +76,8 @@ challenge_quota_file = "lichess_bot/local/challenge-quota.json"
 challenge_control_file = "lichess_bot/local/challenge-control.json"
 avoid_bots_file = "lichess_bot/local/avoid-bots.json"
 challenge_interval_sec = 90
+cancel_stale_outgoing_challenges = true
+opponent_cooldown_sec = 1200
 heartbeat_sec = 25
 
 # Sidecar online-bot rating radar. It writes JSONL snapshots under local/.

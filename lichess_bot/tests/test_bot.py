@@ -37,8 +37,11 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.notify_busy_human_challenge is True
     assert cfg.notify_radar_after_game is True
     assert cfg.notify_radar_after_game_delay_sec == 2
+    assert cfg.notify_block_summary is True
     assert cfg.radar_min_blitz_games == 20
     assert cfg.radar_allow_provisional is False
+    assert cfg.cancel_stale_outgoing_challenges is True
+    assert cfg.opponent_cooldown_sec == 1200
     assert cfg.chat_rooms == ["player"]
 
     with pytest.raises(ValueError, match="accept_from"):
@@ -226,6 +229,21 @@ def test_notify_radar_after_game_skips_when_notifications_disabled(monkeypatch, 
     bot.notify_radar_after_game("token", cfg)
 
 
+def test_notify_block_summary_message_formats_score():
+    summaries = [
+        bot.FinishedGameSummary("g1", "WIN", "1-0", "A", 2010, "mate"),
+        bot.FinishedGameSummary("g2", "DRAW", "1/2-1/2", "B", 2020, "draw"),
+        bot.FinishedGameSummary("g3", "LOSS", "0-1", "C", 2030, "mate"),
+    ]
+
+    text = bot.notify_message_block_summary(summaries, 3)
+
+    assert "3-game block" in text
+    assert "1W-1D-1L" in text
+    assert "score=1.5/3 (50.0%)" in text
+    assert "avg opponent: 2020" in text
+
+
 def test_main_notify_test_text_does_not_need_lichess_token(monkeypatch, tmp_path):
     config = tmp_path / "config.toml"
     config.write_text('notify_provider = "telegram"\n')
@@ -340,6 +358,24 @@ def test_runtime_state_tracks_pending_outgoing_bot_games():
     assert state.consume_outgoing_bot_game({"id": "maia5", "name": "maia5"})
     assert not state.consume_outgoing_bot_game({"id": "maia5", "name": "maia5"})
     assert not state.consume_outgoing_bot_game({"id": "other", "name": "Other"})
+
+
+def test_runtime_state_tracks_opponent_cooldown(monkeypatch):
+    state = bot.RuntimeState()
+    fake_now = [1000.0]
+    monkeypatch.setattr(bot.time, "time", lambda: fake_now[0])
+
+    state.record_finished_game(
+        bot.FinishedGameSummary("g1", "WIN", "1-0", "Maia5", 1510, "mate"),
+        {"maia5"},
+    )
+
+    assert state.opponent_cooldown_remaining("Maia5", 1200) == 1200
+    fake_now[0] += 1195
+    assert 0 < state.opponent_cooldown_remaining("maia5", 1200) <= 5
+    fake_now[0] += 10
+    assert state.opponent_cooldown_remaining("maia5", 1200) == 0
+    assert state.finished_game_summaries()[0].game_id == "g1"
 
 
 def test_runtime_state_sigint_paths_without_forcing_exit(monkeypatch):
@@ -911,6 +947,13 @@ def test_challenge_cooldown_seconds_parses_rate_limit():
     assert bot.challenge_cooldown_seconds(Exception("other error")) is None
 
 
+def test_challenge_id_from_response_shapes():
+    assert bot.challenge_id_from_response({"challenge": {"id": "abc123"}}) == "abc123"
+    assert bot.challenge_id_from_response({"id": "def456"}) == "def456"
+    assert bot.challenge_id_from_response({}) is None
+    assert bot.challenge_id_from_response([]) is None
+
+
 def test_challenge_users_only_sends_one_in_single_game_mode(monkeypatch, tmp_path):
     cfg = make_config(tmp_path, max_parallel_games=1)
     sent = []
@@ -935,11 +978,13 @@ def test_closest_superior_tries_next_after_one_idle_cycle(monkeypatch, tmp_path)
         {"username": "next", "perfs": {"blitz": {"rating": 2020, "games": 100}}},
     ]
     sent = []
+    cancelled = []
     fake_now = [0.0]
 
     monkeypatch.setattr(bot, "own_blitz_rating", lambda token, cfg: 2000)
     monkeypatch.setattr(bot, "online_bots", lambda token: users)
-    monkeypatch.setattr(bot, "send_challenge", lambda token, username, cfg: sent.append(username))
+    monkeypatch.setattr(bot, "send_challenge", lambda token, username, cfg: sent.append(username) or f"chal-{username}")
+    monkeypatch.setattr(bot, "cancel_challenge", lambda token, challenge_id, username: cancelled.append((challenge_id, username)) or True)
     monkeypatch.setattr(bot.time, "time", lambda: fake_now[0])
 
     def fake_sleep(seconds):
@@ -952,6 +997,44 @@ def test_closest_superior_tries_next_after_one_idle_cycle(monkeypatch, tmp_path)
     bot.challenge_loop("token", "self", cfg, state, quota, closest_superior=True)
 
     assert sent == ["near", "next"]
+    assert cancelled == [("chal-near", "near")]
+
+
+def test_challenge_loop_skips_recent_opponent(monkeypatch, tmp_path):
+    cfg = make_config(
+        tmp_path,
+        challenge_interval_sec=1,
+        opponent_cooldown_sec=1200,
+        target_rating_min_delta=-100,
+        target_rating_max_delta=200,
+    )
+    quota = bot.ChallengeQuota(str(tmp_path / "quota.json"), daily_limit=100, margin=10)
+    state = bot.RuntimeState()
+    fake_now = [5000.0]
+    monkeypatch.setattr(bot.time, "time", lambda: fake_now[0])
+    state.record_finished_game(
+        bot.FinishedGameSummary("g1", "WIN", "1-0", "near", 2010, "mate"),
+        {"near"},
+    )
+    users = [
+        {"username": "near", "perfs": {"blitz": {"rating": 2010, "games": 100}}},
+        {"username": "next", "perfs": {"blitz": {"rating": 2020, "games": 100}}},
+    ]
+    sent = []
+
+    monkeypatch.setattr(bot, "own_blitz_rating", lambda token, cfg: 2000)
+    monkeypatch.setattr(bot, "online_bots", lambda token: users)
+    monkeypatch.setattr(bot, "send_challenge", lambda token, username, cfg: sent.append(username) or f"chal-{username}")
+
+    def fake_sleep(seconds):
+        fake_now[0] += seconds
+        state.stop.set()
+
+    monkeypatch.setattr(bot.time, "sleep", fake_sleep)
+
+    bot.challenge_loop("token", "self", cfg, state, quota, closest_superior=True)
+
+    assert sent == ["next"]
 
 
 def test_api_wrapper_endpoints_and_online_bot_shapes(monkeypatch):
@@ -970,11 +1053,13 @@ def test_api_wrapper_endpoints_and_online_bot_shapes(monkeypatch):
     bot.bot_resign("token", "game/1")
     bot.bot_abort("token", "game/1")
     bot.bot_chat("token", "game/1", "player", "hello")
+    assert bot.cancel_challenge("token", "chal/1", "SomeBot")
 
     assert calls[0] == ("token", "POST", "/api/bot/game/game/1/move/e2e4?offeringDraw=true", None)
     assert calls[1] == ("token", "POST", "/api/bot/game/game/1/resign", None)
     assert calls[2] == ("token", "POST", "/api/bot/game/game/1/abort", None)
     assert calls[3] == ("token", "POST", "/api/bot/game/game/1/chat", {"room": "player", "text": "hello"})
+    assert calls[4] == ("token", "POST", "/api/challenge/chal%2F1/cancel", None)
 
     responses.extend([[{"username": "a"}], {"users": [{"username": "b"}]}, {"online": [{"username": "c"}]}, {}])
     assert bot.online_bots("token") == [{"username": "a"}]
