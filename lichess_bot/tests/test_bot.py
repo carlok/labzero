@@ -31,6 +31,7 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.uci_threads == 4
     assert cfg.uci_hash_mb == 64
     assert cfg.avoid_bots_file.endswith("lichess_bot/local/avoid-bots.json")
+    assert cfg.opponent_cooldown_file.endswith("lichess_bot/local/opponent-cooldown.json")
     assert cfg.accept_draw_enabled is True
     assert cfg.accept_draw_losing_score == -100
     assert cfg.notify_provider == "none"
@@ -384,6 +385,31 @@ def test_runtime_state_tracks_opponent_cooldown(monkeypatch):
     fake_now[0] += 10
     assert state.opponent_cooldown_remaining("maia5", 1200) == 0
     assert state.finished_game_summaries()[0].game_id == "g1"
+
+
+def test_runtime_state_persists_opponent_cooldown(monkeypatch, tmp_path):
+    cooldown_path = tmp_path / "opponent-cooldown.json"
+    fake_now = [1000.0]
+    monkeypatch.setattr(bot.time, "time", lambda: fake_now[0])
+    state = bot.RuntimeState(opponent_cooldown_file=str(cooldown_path))
+
+    state.record_finished_game(
+        bot.FinishedGameSummary("g1", "WIN", "1-0", "Maia5", 1510, "mate"),
+        {"Maia5", "maia5"},
+    )
+
+    fresh_state = bot.RuntimeState(opponent_cooldown_file=str(cooldown_path))
+    assert fresh_state.opponent_cooldown_remaining("maia5", 1200) == 1200
+
+    fake_now[0] += 1195
+    assert 0 < fresh_state.opponent_cooldown_remaining("MAIA5", 1200) <= 5
+
+
+def test_load_opponent_cooldown_ignores_bad_files(tmp_path):
+    cooldown_path = tmp_path / "opponent-cooldown.json"
+    cooldown_path.write_text("{bad json")
+
+    assert bot.load_opponent_cooldown(str(cooldown_path)) == {}
 
 
 def test_runtime_state_sigint_paths_without_forcing_exit(monkeypatch):

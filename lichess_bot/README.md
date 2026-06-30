@@ -272,6 +272,7 @@ bot_challenge_quota_margin = 10
 challenge_quota_file = "lichess_bot/local/challenge-quota.json"
 challenge_control_file = "lichess_bot/local/challenge-control.json"
 avoid_bots_file = "lichess_bot/local/avoid-bots.json"
+opponent_cooldown_file = "lichess_bot/local/opponent-cooldown.json"
 challenge_interval_sec = 90
 cancel_stale_outgoing_challenges = true
 opponent_cooldown_sec = 1200
@@ -292,6 +293,8 @@ closest stronger candidate instead of waiting on the same bot.
 If Lichess returns a challenge id, the stale outgoing challenge is cancelled
 before moving on. Completed opponents are skipped for `opponent_cooldown_sec`
 seconds so short rated blocks sample more than one nearby bot when possible.
+The recent-opponent cooldown is persisted in `opponent_cooldown_file`, so it
+also survives separate `run-local.sh --games ...` invocations.
 
 Lichess also enforces bot-vs-bot daily limits on your account. The API does not
 provide a "remaining games" endpoint, so the runner keeps a local UTC-day

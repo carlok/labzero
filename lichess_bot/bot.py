@@ -129,6 +129,7 @@ class BotConfig:
     challenge_quota_file: str
     challenge_control_file: str
     avoid_bots_file: str
+    opponent_cooldown_file: str
     challenge_interval_sec: int
     heartbeat_sec: int
     move_overhead_ms: int
@@ -215,6 +216,7 @@ class BotConfig:
             challenge_quota_file=resolve_path(str(cfg.get("challenge_quota_file", "lichess_bot/local/challenge-quota.json"))),
             challenge_control_file=resolve_path(str(cfg.get("challenge_control_file", "lichess_bot/local/challenge-control.json"))),
             avoid_bots_file=resolve_path(str(cfg.get("avoid_bots_file", "lichess_bot/local/avoid-bots.json"))),
+            opponent_cooldown_file=resolve_path(str(cfg.get("opponent_cooldown_file", "lichess_bot/local/opponent-cooldown.json"))),
             challenge_interval_sec=int(cfg.get("challenge_interval_sec", 90)),
             heartbeat_sec=int(cfg.get("heartbeat_sec", 25)),
             move_overhead_ms=int(cfg.get("move_overhead_ms", 500)),
@@ -330,13 +332,54 @@ class FinishedGameSummary:
     status: str
 
 
+def load_opponent_cooldown(path: str | None) -> dict[str, float]:
+    if not path:
+        return {}
+    cooldown_path = Path(path)
+    if not cooldown_path.exists():
+        return {}
+    try:
+        data = json.loads(cooldown_path.read_text())
+    except Exception as exc:
+        log("CONTROL", f"ignoring unreadable {cooldown_path}: {describe_error(exc)}", Color.GRAY)
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    raw_opponents = data.get("opponents", data)
+    if not isinstance(raw_opponents, dict):
+        return {}
+    opponents: dict[str, float] = {}
+    for raw_key, raw_value in raw_opponents.items():
+        key = str(raw_key).strip().lower()
+        if not key:
+            continue
+        try:
+            opponents[key] = float(raw_value)
+        except (TypeError, ValueError):
+            continue
+    return opponents
+
+
+def save_opponent_cooldown(path: str | None, opponents: dict[str, float]) -> None:
+    if not path:
+        return
+    cooldown_path = Path(path)
+    cooldown_path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "opponents": dict(sorted(opponents.items())),
+    }
+    cooldown_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+
 class RuntimeState:
-    def __init__(self, games_limit: int | None = None) -> None:
+    def __init__(self, games_limit: int | None = None, opponent_cooldown_file: str | None = None) -> None:
         self._lock = threading.Lock()
         self._active: dict[str, str] = {}
         self._reserved: dict[str, float] = {}
         self._pending_outgoing_bots: set[str] = set()
-        self._opponent_last_played: dict[str, float] = {}
+        self._opponent_cooldown_file = opponent_cooldown_file
+        self._opponent_last_played: dict[str, float] = load_opponent_cooldown(opponent_cooldown_file)
         self._finished_games: list[FinishedGameSummary] = []
         self._force_quit = False
         self.stop = threading.Event()
@@ -450,6 +493,7 @@ class RuntimeState:
             self._finished_games.append(summary)
             for key in opponent_keys:
                 self._opponent_last_played[key] = now
+            save_opponent_cooldown(self._opponent_cooldown_file, self._opponent_last_played)
 
     def opponent_cooldown_remaining(self, username: str, cooldown_sec: int) -> int:
         if cooldown_sec <= 0:
@@ -2208,7 +2252,7 @@ def run_live(
 ) -> None:
     account = api_account(token)
     account_id = str(account.get("id") or account.get("username") or account.get("name") or "").lower()
-    state = RuntimeState(games_limit=games_limit)
+    state = RuntimeState(games_limit=games_limit, opponent_cooldown_file=cfg.opponent_cooldown_file)
     signal.signal(signal.SIGINT, state.handle_sigint)
     threading.Thread(target=heartbeat, args=(state, cfg.heartbeat_sec), daemon=True).start()
 

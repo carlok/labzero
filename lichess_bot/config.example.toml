@@ -80,6 +80,7 @@ bot_challenge_quota_margin = 10
 challenge_quota_file = "lichess_bot/local/challenge-quota.json"
 challenge_control_file = "lichess_bot/local/challenge-control.json"
 avoid_bots_file = "lichess_bot/local/avoid-bots.json"
+opponent_cooldown_file = "lichess_bot/local/opponent-cooldown.json"
 challenge_interval_sec = 90
 cancel_stale_outgoing_challenges = true
 opponent_cooldown_sec = 1200
