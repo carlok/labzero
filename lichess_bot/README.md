@@ -446,6 +446,25 @@ notify_block_summary = true
 `notify_block_summary` sends a compact W-D-L summary when a `--games N` block
 finishes. The per-game radar notification remains unchanged.
 
+For offline learning loops, `--oracle-after-block` runs the bounded Stockfish
+oracle labeler after a completed `--games N` block and reports the worst move
+losses if Telegram is enabled:
+
+```bash
+STOCKFISH=/opt/homebrew/bin/stockfish \
+  lichess_bot/run-local.sh --challenge-loop --rated --closest-superior --games 4 --oracle-after-block
+```
+
+The default config keeps this disabled:
+
+```toml
+oracle_after_block = false
+oracle_max_positions = 40
+oracle_nodes = 20000
+oracle_out_dir = "data/oracle"
+oracle_report_dir = "docs/oracle"
+```
+
 ## Game Chat Visibility
 
 By default, greetings and good-game messages are sent to the Lichess `player`

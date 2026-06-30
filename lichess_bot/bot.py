@@ -17,6 +17,7 @@ import random
 import re
 import signal
 import statistics
+import subprocess
 import sys
 import threading
 import time
@@ -167,6 +168,13 @@ class BotConfig:
     notify_radar_after_game: bool
     notify_radar_after_game_delay_sec: int
     notify_block_summary: bool
+    oracle_after_block: bool
+    oracle_script: str
+    oracle_stockfish: str | None
+    oracle_max_positions: int
+    oracle_nodes: int
+    oracle_out_dir: str
+    oracle_report_dir: str
     radar_min_blitz_games: int
     radar_allow_provisional: bool
     cancel_stale_outgoing_challenges: bool
@@ -254,6 +262,13 @@ class BotConfig:
             notify_radar_after_game=bool(cfg.get("notify_radar_after_game", True)),
             notify_radar_after_game_delay_sec=max(0, int(cfg.get("notify_radar_after_game_delay_sec", 2))),
             notify_block_summary=bool(cfg.get("notify_block_summary", True)),
+            oracle_after_block=bool(cfg.get("oracle_after_block", False)),
+            oracle_script=resolve_path(str(cfg.get("oracle_script", "scripts/host-oracle-label.py"))),
+            oracle_stockfish=optional_resolved_path(cfg.get("oracle_stockfish")),
+            oracle_max_positions=max(1, int(cfg.get("oracle_max_positions", 40))),
+            oracle_nodes=max(1, int(cfg.get("oracle_nodes", 20000))),
+            oracle_out_dir=resolve_path(str(cfg.get("oracle_out_dir", "data/oracle"))),
+            oracle_report_dir=resolve_path(str(cfg.get("oracle_report_dir", "docs/oracle"))),
             radar_min_blitz_games=int(cfg.get("radar_min_blitz_games", cfg.get("min_blitz_games", 20))),
             radar_allow_provisional=bool(cfg.get("radar_allow_provisional", cfg.get("allow_provisional", False))),
             cancel_stale_outgoing_challenges=bool(cfg.get("cancel_stale_outgoing_challenges", True)),
@@ -857,6 +872,106 @@ def notify_block_summary(token: str, cfg: BotConfig, state: RuntimeState, games_
         notify(cfg, notify_message_block_summary(summaries, games_limit))
     except Exception as exc:
         log("API", f"block summary ignored: {describe_error(exc)}", Color.GRAY)
+
+
+def pgn_paths_for_summaries(cfg: BotConfig, summaries: list[FinishedGameSummary]) -> list[str]:
+    if not cfg.pgn_directory:
+        return []
+    pgn_dir = Path(cfg.pgn_directory)
+    if not pgn_dir.exists():
+        return []
+    paths: list[Path] = []
+    for summary in summaries:
+        paths.extend(pgn_dir.glob(f"*_{summary.game_id}.pgn"))
+        paths.extend(pgn_dir.glob(f"*_{summary.game_id}_export.pgn"))
+    return [str(path) for path in sorted(set(paths))]
+
+
+def oracle_output_paths(cfg: BotConfig) -> tuple[str, str]:
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    out_path = Path(cfg.oracle_out_dir) / f"block_{stamp}.jsonl"
+    report_path = Path(cfg.oracle_report_dir) / f"block_{stamp}.md"
+    return str(out_path), str(report_path)
+
+
+def build_oracle_after_block_command(
+    cfg: BotConfig,
+    summaries: list[FinishedGameSummary],
+    out_path: str,
+    report_path: str,
+) -> list[str]:
+    command = [
+        sys.executable,
+        cfg.oracle_script,
+        "--max-positions",
+        str(cfg.oracle_max_positions),
+        "--nodes",
+        str(cfg.oracle_nodes),
+        "--out",
+        out_path,
+        "--report",
+        report_path,
+    ]
+    if cfg.oracle_stockfish:
+        command.extend(["--stockfish", cfg.oracle_stockfish])
+    for path in pgn_paths_for_summaries(cfg, summaries):
+        command.extend(["--pgn", path])
+    return command
+
+
+def oracle_worst_labels(out_path: str, limit: int = 3) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    rows: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    path = Path(out_path)
+    if not path.exists():
+        return rows
+    with path.open(encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            student_move = record.get("student", {}).get("move")
+            label = next((item for item in record.get("moves", []) if item.get("uci") == student_move), None)
+            if label:
+                rows.append((label, record))
+    rows.sort(key=lambda item: float(item[0].get("delta_utility", -1)), reverse=True)
+    return rows[:limit]
+
+
+def oracle_block_message(out_path: str, report_path: str) -> str:
+    worst = oracle_worst_labels(out_path)
+    lines = ["🧪 ORACLE block analysis", f"report: {notify_basename(report_path)}"]
+    for label, record in worst:
+        lines.append(
+            f"{record.get('source', {}).get('id', '?')} ply {record.get('source', {}).get('ply', '?')}: "
+            f"{record.get('student', {}).get('move', '?')} → {label.get('bucket')} "
+            f"rank={label.get('rank')} Δu={float(label.get('delta_utility', 0.0)):.3f}"
+        )
+    return "\n".join(lines)
+
+
+def run_oracle_after_block(cfg: BotConfig, state: RuntimeState, games_limit: int | None) -> None:
+    summaries = state.finished_game_summaries()
+    if not summaries:
+        return
+    out_path, report_path = oracle_output_paths(cfg)
+    command = build_oracle_after_block_command(cfg, summaries, out_path, report_path)
+    if "--pgn" not in command:
+        log("API", "oracle-after-block skipped: no saved PGNs for completed block", Color.GRAY)
+        return
+    try:
+        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=300)
+    except Exception as exc:
+        log("API", f"oracle-after-block failed: {describe_error(exc)}", Color.GRAY)
+        return
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        log("API", f"oracle-after-block exited {result.returncode}: {detail}", Color.GRAY)
+        return
+    log("API", f"oracle-after-block wrote {report_path}", Color.GRAY)
+    notify(cfg, oracle_block_message(out_path, report_path))
 
 
 def dry_run_test(engine_path: str, cfg: BotConfig) -> None:
@@ -2249,6 +2364,7 @@ def run_live(
     challenge_names: list[str] | None = None,
     games_limit: int | None = None,
     closest_superior: bool = False,
+    oracle_after_block: bool = False,
 ) -> None:
     account = api_account(token)
     account_id = str(account.get("id") or account.get("username") or account.get("name") or "").lower()
@@ -2282,6 +2398,8 @@ def run_live(
         wait_for_active_games(state)
     if games_limit is not None:
         notify_block_summary(token, cfg, state, games_limit)
+    if games_limit is not None and (oracle_after_block or cfg.oracle_after_block):
+        run_oracle_after_block(cfg, state, games_limit)
     if games_limit is not None:
         log("IDLE", f"finished {state.completed_games}/{games_limit} game(s); exiting", Color.GREEN)
 
@@ -2306,6 +2424,7 @@ def main() -> int:
     parser.add_argument("--challenge-loop", action="store_true")
     parser.add_argument("--challenge", nargs="+", metavar="USERNAME", help="challenge one or more Lichess users, then listen for the game")
     parser.add_argument("--closest-superior", action="store_true", help="with --challenge-loop, challenge the closest stronger eligible bot instead of a random eligible bot")
+    parser.add_argument("--oracle-after-block", action="store_true", help="after --games N completes, run the bounded Stockfish oracle labeler on the saved block PGNs")
     rated = parser.add_mutually_exclusive_group()
     rated.add_argument("--rated", action="store_true")
     rated.add_argument("--unrated", action="store_true")
@@ -2318,6 +2437,8 @@ def main() -> int:
         parser.error("--games cannot be used with --dry-run or --notify-test")
     if args.closest_superior and not args.challenge_loop:
         parser.error("--closest-superior can only be used with --challenge-loop")
+    if args.oracle_after_block and args.games is None:
+        parser.error("--oracle-after-block requires --games N")
 
     selected_modes = [args.dry_run, args.notify_test, args.listen, args.challenge_loop, bool(args.challenge)]
     if sum(bool(m) for m in selected_modes) != 1:
@@ -2357,7 +2478,15 @@ def main() -> int:
             mode = "challenge"
         else:
             mode = "listen"
-        run_live(token, cfg, mode, args.challenge, games_limit=args.games, closest_superior=args.closest_superior)
+        run_live(
+            token,
+            cfg,
+            mode,
+            args.challenge,
+            games_limit=args.games,
+            closest_superior=args.closest_superior,
+            oracle_after_block=args.oracle_after_block,
+        )
         return 0
     except Exception as exc:
         log("API", f"runner stopped: {describe_error(exc)}", Color.GRAY)

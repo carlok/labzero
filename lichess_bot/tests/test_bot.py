@@ -39,6 +39,12 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.notify_radar_after_game is True
     assert cfg.notify_radar_after_game_delay_sec == 2
     assert cfg.notify_block_summary is True
+    assert cfg.oracle_after_block is False
+    assert cfg.oracle_max_positions == 40
+    assert cfg.oracle_nodes == 20000
+    assert cfg.oracle_script.endswith("scripts/host-oracle-label.py")
+    assert cfg.oracle_out_dir.endswith("data/oracle")
+    assert cfg.oracle_report_dir.endswith("docs/oracle")
     assert cfg.radar_min_blitz_games == 20
     assert cfg.radar_allow_provisional is False
     assert cfg.cancel_stale_outgoing_challenges is True
@@ -251,6 +257,83 @@ def test_notify_block_summary_message_formats_score():
     assert "1W-1D-1L" in text
     assert "score=1.5/3 (50.0%)" in text
     assert "avg opponent: 2020" in text
+
+
+def test_oracle_after_block_builds_command_from_finished_pgns(tmp_path):
+    cfg = make_config(
+        tmp_path,
+        oracle_stockfish="/opt/stockfish",
+        oracle_max_positions=12,
+        oracle_nodes=3456,
+        pgn_directory=str(tmp_path / "pgn"),
+    )
+    pgn_dir = Path(cfg.pgn_directory)
+    pgn_dir.mkdir(parents=True)
+    pgn_path = pgn_dir / "20260630_LabZeroBot0_vs_Other_game1234.pgn"
+    pgn_path.write_text('[Site "https://lichess.org/game1234"]\n\n1. e4 e5 *\n')
+    summary = bot.FinishedGameSummary("game1234", "WIN", "1-0", "Other", 2000, "mate")
+
+    command = bot.build_oracle_after_block_command(cfg, [summary], "data/oracle/out.jsonl", "docs/oracle/out.md")
+
+    assert command[0].endswith("python") or "python" in command[0]
+    assert "--stockfish" in command
+    assert "/opt/stockfish" in command
+    assert "--max-positions" in command
+    assert "12" in command
+    assert "--nodes" in command
+    assert "3456" in command
+    assert str(pgn_path) in command
+
+
+def test_run_oracle_after_block_runs_only_with_finished_summaries(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram", pgn_directory=str(tmp_path / "pgn"))
+    pgn_dir = Path(cfg.pgn_directory)
+    pgn_dir.mkdir(parents=True)
+    (pgn_dir / "20260630_LabZeroBot0_vs_Other_game1234.pgn").write_text(
+        '[Site "https://lichess.org/game1234"]\n\n1. e4 e5 *\n'
+    )
+    out_path = tmp_path / "oracle.jsonl"
+    report_path = tmp_path / "oracle.md"
+    calls = []
+    notifications = []
+    monkeypatch.setattr(bot, "oracle_output_paths", lambda cfg: (str(out_path), str(report_path)))
+
+    def fake_run(command, check=False, capture_output=True, text=True, timeout=300):
+        calls.append(command)
+        out_path.write_text(
+            json.dumps(
+                {
+                    "source": {"id": "game1234", "ply": 12},
+                    "student": {"move": "e2e4"},
+                    "moves": [{"uci": "e2e4", "rank": 3, "bucket": "mistake", "delta_utility": 0.2}],
+                }
+            )
+            + "\n"
+        )
+
+        class Result:
+            returncode = 0
+            stdout = "ok"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(bot.subprocess, "run", fake_run)
+    monkeypatch.setattr(bot, "notify", lambda cfg, text: notifications.append(text))
+
+    empty_state = bot.RuntimeState()
+    bot.run_oracle_after_block(cfg, empty_state, 1)
+    assert calls == []
+
+    state = bot.RuntimeState()
+    state.record_finished_game(bot.FinishedGameSummary("game1234", "WIN", "1-0", "Other", 2000, "mate"), {"other"})
+    bot.run_oracle_after_block(cfg, state, 1)
+
+    assert len(calls) == 1
+    assert "--pgn" in calls[0]
+    assert len(notifications) == 1
+    assert "ORACLE block analysis" in notifications[0]
+    assert "game1234 ply 12" in notifications[0]
 
 
 def test_main_notify_test_text_does_not_need_lichess_token(monkeypatch, tmp_path):
