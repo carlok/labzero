@@ -77,6 +77,8 @@ const ROOT_DRAW_PENALTY: i32 = 320;
 const ROOT_REPEAT_PENALTY: i32 = 80;
 const ROOT_TACTICAL_MARGIN: i32 = 200;
 const ROOT_PROGRESS_BONUS: i32 = 8;
+const ROOT_CONVERSION_THRESHOLD: i32 = 500;
+const ROOT_CONVERSION_ALT_FLOOR: i32 = 0;
 
 fn history_bonus(depth: u32) -> i32 {
     ((depth * depth) as i32 * 16).min(2_048)
@@ -408,10 +410,15 @@ fn pick_root_raw(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Opt
     }
 
     // When clearly ahead, prefer a non-repetition move within tactical margin.
-    // Subset of v3 root-rank: no draw penalty, no progress bonus (those caused SF2200 traps).
+    // In conversion positions, do not let a repeated shuffle keep a large search
+    // score unless every non-repeating alternative is already bad. This stays
+    // narrower than v3: no progress bonus and no broad move reranking.
     if root_static >= ROOT_AHEAD_THRESHOLD && has_non_repeat && is_repeat_candidate(&picked.1) {
         let mateish = picked.1.score.abs() >= MATE_SCORE - 1000;
-        let tactical = picked.1.score >= best_non_repeat_score + ROOT_TACTICAL_MARGIN;
+        let converting = root_static >= ROOT_CONVERSION_THRESHOLD
+            && best_non_repeat_score >= ROOT_CONVERSION_ALT_FLOOR;
+        let tactical =
+            !converting && picked.1.score >= best_non_repeat_score + ROOT_TACTICAL_MARGIN;
         if !mateish && !tactical {
             let mut best_alt: Option<(Move, RootCandidate)> = None;
             for &(mv, c) in candidates {
@@ -1328,6 +1335,64 @@ mod tests {
         let (picked, score) = pick_root_v3(&candidates, 0);
         assert_eq!(picked, Some(draw));
         assert_eq!(score, 400);
+    }
+
+    #[test]
+    fn root_raw_avoids_high_scoring_repeat_when_converting() {
+        let repeat = Move::quiet(Square::new(6, 7), Square::new(7, 7));
+        let other = Move::quiet(Square::new(0, 6), Square::new(0, 5));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 825,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: 120,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 800);
+        assert_eq!(picked, Some(other));
+        assert_eq!(score, 120);
+    }
+
+    #[test]
+    fn root_raw_keeps_repeat_when_conversion_alternatives_are_bad() {
+        let repeat = Move::quiet(Square::new(6, 7), Square::new(7, 7));
+        let other = Move::quiet(Square::new(0, 6), Square::new(0, 5));
+        let candidates = [
+            (
+                repeat,
+                RootCandidate {
+                    score: 825,
+                    rep_count: 1,
+                    is_immediate_draw: false,
+                    is_progress: false,
+                },
+            ),
+            (
+                other,
+                RootCandidate {
+                    score: -80,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 800);
+        assert_eq!(picked, Some(repeat));
+        assert_eq!(score, 825);
     }
 
     fn legal_uci(board: &Board, uci: &str) -> Move {
