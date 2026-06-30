@@ -40,7 +40,7 @@ record must keep teacher provenance.
 Create the first implementation branch as:
 
 ```text
-codex/oracle-labeler-v1
+codex/oracle-feedback-loop-v1
 ```
 
 The exact first target:
@@ -51,7 +51,8 @@ The exact first target:
 - Optional student mode: `--student labzero --engine target/release/labzero`, or `--student-move UCI`.
 - Outputs: JSONL plus a Markdown report under `docs/oracle/`.
 - No Rust engine behavior changes.
-- No Lichess bot binary/config changes.
+- No Lichess bot binary changes, and no live-play behavior change unless the
+  optional block hook is explicitly enabled.
 
 Recommended smoke:
 
@@ -74,6 +75,32 @@ Acceptance criteria for v1:
 - mate scores are represented without fake giant centipawns;
 - repeated or second-budget runs either preserve ranking or mark volatility;
 - the Markdown report makes the worst LabZero disagreements inspectable.
+
+## Live Feedback Loop Milestone
+
+The next practical step is to turn the labeler into a recurring learning loop
+around real Lichess games:
+
+```text
+play block -> save PGNs -> label LabZero moves -> report worst disagreements -> train/evaluate offline
+```
+
+Start by indexing all existing PGNs under `lichess_bot/local/pgn/`, prioritizing
+the newest losses and draws first. After that, the bot may optionally run a
+bounded oracle job after each completed `--games N` block. Do not analyze every
+single game immediately at game end; block-level analysis is cheaper, less
+noisy, and lines up with the existing Telegram block summary.
+
+Generated labels, checkpoints, and large reports should stay under ignored
+`data/oracle/`. Only compact summaries that are useful for review should be
+tracked under `docs/oracle/`.
+
+The first neural consumer is a tooling-only medium model, not an engine feature:
+use sparse 768 board features, hidden size 256, a policy head over from-to
+moves, and a scalar utility/value head. This model can help prioritize
+regressions or later root-ordering experiments, but it must remain disabled by
+default and outside the original engine-core strength claim unless the
+originality policy is explicitly revisited.
 
 ## Label Semantics
 
@@ -211,7 +238,7 @@ Do not do these in v1:
 - large 100k+ label generation;
 - web UI/product work;
 - Rust search/eval integration;
-- Lichess bot changes.
+- automatic neural/model use in live play.
 
 The guiding rule is:
 
