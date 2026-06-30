@@ -1,0 +1,122 @@
+digraph LabZeroFeedbackWorkflow {
+  graph [
+    rankdir=LR,
+    compound=true,
+    bgcolor="white",
+    fontname="Helvetica",
+    fontsize=18,
+    label="LabZero training and playing feedback workflow"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=11,
+    color="#5f6f7a",
+    fillcolor="#f7f9fb",
+    margin="0.10,0.07"
+  ];
+
+  edge [
+    fontname="Helvetica",
+    fontsize=10,
+    color="#5f6f7a",
+    arrowsize=0.8
+  ];
+
+  subgraph cluster_live {
+    label="Live play loop";
+    color="#9db5c8";
+    fillcolor="#eef6fb";
+    style="rounded,filled";
+
+    bot_runner [label="lichess_bot/run-local.sh\n--challenge-loop --games N"];
+    labzero_bin [label="Copied LabZero binary\nlichess_bot/bin/labzero*", fillcolor="#fff7e8"];
+    lichess_games [label="Lichess games\nrated/unrated 3+2"];
+    pgns [label="Saved local PGNs\nlichess_bot/local/pgn/", fillcolor="#edf7ed"];
+    block_summary [label="Telegram block/radar summary\noptional ops signal"];
+  }
+
+  subgraph cluster_oracle {
+    label="Oracle feedback loop";
+    color="#b8a9cf";
+    fillcolor="#f6f1fb";
+    style="rounded,filled";
+
+    oracle_labeler [label="scripts/host-oracle-label.py\nStockfish child-position labels", fillcolor="#f6f1fb"];
+    stockfish [label="Stockfish binary\nexternal teacher only", fillcolor="#fff0f0"];
+    oracle_jsonl [label="Move-quality JSONL\ndata/oracle/*.jsonl\nignored", fillcolor="#edf7ed"];
+    oracle_report [label="Compact reports\ndocs/oracle/*.md", fillcolor="#edf7ed"];
+    worst_moves [label="Worst stable disagreements\nrank / bucket / utility loss"];
+  }
+
+  subgraph cluster_external {
+    label="Optional external data side project";
+    color="#c7b38a";
+    fillcolor="#fff8e8";
+    style="rounded,filled";
+
+    lichess_db [label="Downloaded Lichess PGNs\n2016-03..2016-06 etc."];
+    human_filter [label="Filter: standard rated\nboth players >= 2000\nsane TC / no junk games"];
+    human_positions [label="Human candidate positions\ndata/oracle/human_2000_*.jsonl\nignored"];
+  }
+
+  subgraph cluster_learning {
+    label="Offline learning and decision layer";
+    color="#a7c2a5";
+    fillcolor="#f0fbef";
+    style="rounded,filled";
+
+    oracle_train [label="scripts/host-oracle-train.py\nmedium 768 -> H256 companion"];
+    companion_ckpt [label="Experimental checkpoint\ndata/oracle/oracle_companion.pt\nignored", fillcolor="#edf7ed"];
+    triage [label="Human/agent triage\nchoose one narrow engine patch"];
+    regression_pack [label="Regression FEN/EPD pack\nfrom live losses"];
+    candidate_patch [label="Narrow branch\nsearch/eval/time/bot fix"];
+  }
+
+  subgraph cluster_gates {
+    label="Validation gates";
+    color="#b7b7b7";
+    fillcolor="#f5f5f5";
+    style="rounded,filled";
+
+    tests [label="Unit tests + build\npytest / cargo / build-host"];
+    smoke [label="Small Stockfish smoke\nreal-clock, clean env"];
+    lichess_block [label="Controlled Lichess block\n--games 4/8"];
+    promote [label="Keep, merge, rebuild bot binary\nonly after evidence"];
+  }
+
+  bot_runner -> labzero_bin [label="starts UCI"];
+  labzero_bin -> lichess_games [label="plays moves"];
+  bot_runner -> lichess_games [label="Bot API"];
+  lichess_games -> pgns [label="save at game end"];
+  lichess_games -> block_summary [label="rating/result telemetry"];
+
+  pgns -> oracle_labeler [label="--pgn-dir or block PGNs"];
+  block_summary -> oracle_labeler [label="--oracle-after-block", style=dashed];
+  stockfish -> oracle_labeler [label="teacher scores"];
+  oracle_labeler -> oracle_jsonl;
+  oracle_labeler -> oracle_report;
+  oracle_jsonl -> worst_moves;
+  oracle_report -> worst_moves;
+
+  lichess_db -> human_filter;
+  human_filter -> human_positions;
+  human_positions -> oracle_labeler [label="sample + label", style=dashed];
+
+  oracle_jsonl -> oracle_train [label="training labels"];
+  human_positions -> oracle_train [label="policy breadth", style=dashed];
+  oracle_train -> companion_ckpt;
+  worst_moves -> triage;
+  companion_ckpt -> triage [label="tooling only\nno automatic engine use", style=dashed];
+  triage -> regression_pack;
+  regression_pack -> candidate_patch;
+
+  candidate_patch -> tests;
+  tests -> smoke;
+  smoke -> lichess_block;
+  lichess_block -> pgns [label="new evidence"];
+  lichess_block -> promote [label="if healthy"];
+  promote -> labzero_bin [label="copy versioned binary", style=dashed];
+}
