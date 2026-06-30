@@ -1393,6 +1393,11 @@ def book_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
         for entry in entries:
             upto += max(1, entry.weight)
             if upto >= pick:
+                log(
+                    "BOOK",
+                    f"ply={board.ply()} move={entry.move.uci()} book={path.name} entries={len(entries)}",
+                    Color.BLUE,
+                )
                 return entry.move
     return None
 
