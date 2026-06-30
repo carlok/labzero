@@ -119,6 +119,8 @@ class BotConfig:
     allow_provisional: bool
     target_rating_min_delta: int
     target_rating_max_delta: int
+    target_expected_score_min: float | None
+    target_expected_score_max: float | None
     fallback_blitz_rating: int
     use_fallback_rating_when_provisional: bool
     max_challenge_attempts_per_cycle: int
@@ -188,6 +190,9 @@ class BotConfig:
         if notify_provider not in {"none", "telegram"}:
             raise ValueError("notify_provider must be one of: none, telegram")
         chat_rooms = normalized_chat_rooms(cfg.get("chat_rooms", ["player"]))
+        expected_score_min = optional_float(cfg.get("target_expected_score_min"))
+        expected_score_max = optional_float(cfg.get("target_expected_score_max"))
+        validate_expected_score_window(expected_score_min, expected_score_max)
         return cls(
             engine=resolve_path(str(cfg.get("engine", "lichess_bot/bin/labzero-macos-aarch64-0.6.2"))),
             rated=rated,
@@ -200,6 +205,8 @@ class BotConfig:
             allow_provisional=bool(cfg.get("allow_provisional", False)),
             target_rating_min_delta=int(cfg.get("target_rating_min_delta", 0)),
             target_rating_max_delta=int(cfg.get("target_rating_max_delta", 150)),
+            target_expected_score_min=expected_score_min,
+            target_expected_score_max=expected_score_max,
             fallback_blitz_rating=int(cfg.get("fallback_blitz_rating", 1500)),
             use_fallback_rating_when_provisional=bool(cfg.get("use_fallback_rating_when_provisional", True)),
             max_challenge_attempts_per_cycle=int(cfg.get("max_challenge_attempts_per_cycle", 8)),
@@ -256,6 +263,20 @@ def optional_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
     return int(value)
+
+
+def optional_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    return float(value)
+
+
+def validate_expected_score_window(score_min: float | None, score_max: float | None) -> None:
+    for label, value in (("target_expected_score_min", score_min), ("target_expected_score_max", score_max)):
+        if value is not None and not 0.0 <= value <= 1.0:
+            raise ValueError(f"{label} must be between 0.0 and 1.0")
+    if score_min is not None and score_max is not None and score_min > score_max:
+        raise ValueError("target_expected_score_min must be <= target_expected_score_max")
 
 
 def optional_resolved_path(value: Any) -> str | None:
@@ -1911,6 +1932,19 @@ def api_account(token: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def elo_expected_score(own_rating: int, opponent_rating: int) -> float:
+    return 1.0 / (1.0 + 10.0 ** ((opponent_rating - own_rating) / 400.0))
+
+
+def expected_score_allowed(own_rating: int, opponent_rating: int, cfg: BotConfig) -> bool:
+    expected = elo_expected_score(own_rating, opponent_rating)
+    if cfg.target_expected_score_min is not None and expected < cfg.target_expected_score_min:
+        return False
+    if cfg.target_expected_score_max is not None and expected > cfg.target_expected_score_max:
+        return False
+    return True
+
+
 def choose_candidates(
     users: list[dict[str, Any]],
     account_id: str,
@@ -1936,7 +1970,7 @@ def choose_candidates(
             continue
         if provisional and not cfg.allow_provisional:
             continue
-        if lo <= rated <= hi:
+        if lo <= rated <= hi and expected_score_allowed(rating, rated, cfg):
             candidates.append((rated, str(username), user))
     if closest_superior:
         candidates = [item for item in candidates if item[0] > rating]

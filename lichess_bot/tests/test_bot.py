@@ -43,6 +43,8 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.cancel_stale_outgoing_challenges is True
     assert cfg.opponent_cooldown_sec == 1200
     assert cfg.chat_rooms == ["player"]
+    assert cfg.target_expected_score_min is None
+    assert cfg.target_expected_score_max is None
 
     with pytest.raises(ValueError, match="accept_from"):
         make_config(tmp_path, accept_from="everyone")
@@ -54,6 +56,12 @@ def test_config_defaults_and_validation(tmp_path):
         make_config(tmp_path, notify_provider="email")
     with pytest.raises(ValueError, match="chat_rooms"):
         make_config(tmp_path, chat_rooms=["player", "team"])
+    with pytest.raises(ValueError, match="target_expected_score_min"):
+        make_config(tmp_path, target_expected_score_min=-0.1)
+    with pytest.raises(ValueError, match="target_expected_score_max"):
+        make_config(tmp_path, target_expected_score_max=1.1)
+    with pytest.raises(ValueError, match="target_expected_score_min must be <="):
+        make_config(tmp_path, target_expected_score_min=0.6, target_expected_score_max=0.5)
 
     both_rooms = make_config(tmp_path, chat_rooms=["player", "spectator", "player"])
     assert both_rooms.chat_rooms == ["player", "spectator"]
@@ -810,6 +818,33 @@ def test_choose_candidates_filters_and_shuffles(monkeypatch, tmp_path):
     assert bot.choose_candidates(users, "self", 1500, avoid_cfg) == []
 
 
+def test_elo_expected_score():
+    assert bot.elo_expected_score(2000, 2000) == pytest.approx(0.5)
+    assert bot.elo_expected_score(2000, 2200) == pytest.approx(0.240253, abs=0.000001)
+    assert bot.elo_expected_score(2000, 1800) == pytest.approx(0.759747, abs=0.000001)
+
+
+def test_choose_candidates_filters_by_expected_score(monkeypatch, tmp_path):
+    cfg = make_config(
+        tmp_path,
+        min_blitz_games=20,
+        target_rating_min_delta=-300,
+        target_rating_max_delta=300,
+        target_expected_score_min=0.35,
+        target_expected_score_max=0.60,
+    )
+    users = [
+        {"username": "too-soft", "perfs": {"blitz": {"rating": 1800, "games": 100}}},
+        {"username": "good", "perfs": {"blitz": {"rating": 2050, "games": 100}}},
+        {"username": "too-hard", "perfs": {"blitz": {"rating": 2200, "games": 100}}},
+    ]
+    monkeypatch.setattr(bot.random, "shuffle", lambda items: None)
+
+    candidates = bot.choose_candidates(users, "self", 2000, cfg)
+
+    assert [user["username"] for user in candidates] == ["good"]
+
+
 def test_choose_candidates_closest_superior_uses_nearest_stronger(tmp_path):
     cfg = make_config(tmp_path, min_blitz_games=20, target_rating_min_delta=-200, target_rating_max_delta=300)
     users = [
@@ -823,6 +858,24 @@ def test_choose_candidates_closest_superior_uses_nearest_stronger(tmp_path):
     candidates = bot.choose_candidates(users, "self", 2000, cfg, closest_superior=True)
 
     assert [user["username"] for user in candidates] == ["near-a", "near-b", "far"]
+
+
+def test_choose_candidates_closest_superior_skips_too_hard_by_expected_score(tmp_path):
+    cfg = make_config(
+        tmp_path,
+        min_blitz_games=20,
+        target_rating_min_delta=0,
+        target_rating_max_delta=400,
+        target_expected_score_min=0.35,
+    )
+    users = [
+        {"username": "near", "perfs": {"blitz": {"rating": 2050, "games": 100}}},
+        {"username": "too-hard", "perfs": {"blitz": {"rating": 2200, "games": 100}}},
+    ]
+
+    candidates = bot.choose_candidates(users, "self", 2000, cfg, closest_superior=True)
+
+    assert [user["username"] for user in candidates] == ["near"]
 
 
 def test_load_avoid_bots_accepts_list_and_object(tmp_path):

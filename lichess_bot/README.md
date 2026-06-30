@@ -262,6 +262,8 @@ min_blitz_games = 20
 allow_provisional = false
 target_rating_min_delta = 0
 target_rating_max_delta = 150
+target_expected_score_min = 0.35
+target_expected_score_max = 0.60
 fallback_blitz_rating = 1500
 use_fallback_rating_when_provisional = true
 max_challenge_attempts_per_cycle = 8
@@ -276,9 +278,14 @@ opponent_cooldown_sec = 1200
 ```
 
 The runner uses `perfs.blitz.rating`, `perfs.blitz.games`, and
-`perfs.blitz.prov` from the online-bot API. If Lichess rejects a candidate
-because it already played too many bot-vs-bot games today, the runner skips
-that bot until the server cooldown expires and tries another candidate.
+`perfs.blitz.prov` from the online-bot API. The optional
+`target_expected_score_min` / `target_expected_score_max` values add an
+Elo-derived expected-score filter for LabZero against each candidate. This is a
+rating proxy, not true W-D-L; keep `avoid_bots_file` for exceptional opponents
+or protocol/pathology cases rather than normal strength selection. If Lichess
+rejects a candidate because it already played too many bot-vs-bot games today,
+the runner skips that bot until the server cooldown expires and tries another
+candidate.
 With `--closest-superior`, an unanswered challenge holds the single-game slot
 for one `challenge_interval_sec` idle cycle, then the runner tries the next
 closest stronger candidate instead of waiting on the same bot.
