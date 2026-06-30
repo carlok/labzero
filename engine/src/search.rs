@@ -8,7 +8,7 @@ use crate::mov::{Move, MoveKind};
 use crate::movegen::generate_legal_moves;
 use crate::piece::PieceKind;
 use crate::see::see_capture_value;
-use crate::square::Square;
+use crate::square::{piece_index, Square};
 use crate::time::TimeBudget;
 use crate::tt::{TranspositionTable, TtFlag};
 
@@ -79,6 +79,9 @@ const ROOT_TACTICAL_MARGIN: i32 = 200;
 const ROOT_PROGRESS_BONUS: i32 = 8;
 const ROOT_CONVERSION_THRESHOLD: i32 = 500;
 const ROOT_CONVERSION_ALT_FLOOR: i32 = 0;
+const ROOT_PERPETUAL_MIN_CHECKS: u8 = 2;
+const ROOT_PERPETUAL_CHECK_PENALTY: i32 = 80;
+const ROOT_PERPETUAL_MAX_PENALTY: i32 = 220;
 
 fn history_bonus(depth: u32) -> i32 {
     ((depth * depth) as i32 * 16).min(2_048)
@@ -295,6 +298,7 @@ struct RootCandidate {
     rep_count: usize,
     is_immediate_draw: bool,
     is_progress: bool,
+    perpetual_risk: u8,
 }
 
 fn is_progress_move(board: &Board, mv: Move) -> bool {
@@ -350,6 +354,63 @@ fn is_repeat_candidate(c: &RootCandidate) -> bool {
     c.is_immediate_draw || c.rep_count >= 1
 }
 
+fn side_has_queen(board: &Board, color: crate::color::Color) -> bool {
+    board.pieces[piece_index(color, PieceKind::Queen)] != 0
+}
+
+fn perpetual_risk_penalty(c: &RootCandidate) -> i32 {
+    if c.perpetual_risk < ROOT_PERPETUAL_MIN_CHECKS {
+        return 0;
+    }
+    let units = i32::from(c.perpetual_risk - ROOT_PERPETUAL_MIN_CHECKS + 1);
+    (units * ROOT_PERPETUAL_CHECK_PENALTY).min(ROOT_PERPETUAL_MAX_PENALTY)
+}
+
+fn root_practical_rank(c: &RootCandidate, root_static: i32) -> i32 {
+    let mut rank = c.score;
+    let mateish = c.score.abs() >= MATE_SCORE - 1000;
+    let apparently_better = root_static >= ROOT_AHEAD_THRESHOLD || c.score >= ROOT_AHEAD_THRESHOLD;
+    if apparently_better && !mateish {
+        rank -= perpetual_risk_penalty(c);
+    }
+    rank
+}
+
+fn root_perpetual_risk(board: &mut Board, root_static: i32, score: i32) -> u8 {
+    let apparently_better = root_static >= ROOT_AHEAD_THRESHOLD || score >= ROOT_AHEAD_THRESHOLD;
+    if !apparently_better || score.abs() >= MATE_SCORE - 1000 {
+        return 0;
+    }
+
+    let checker = board.stm;
+    let checked = checker.opposite();
+    if !side_has_queen(board, checker) {
+        return 0;
+    }
+
+    let mut checks = 0u8;
+    for reply in generate_legal_moves(board) {
+        let checking_piece = board.piece_at(reply.from);
+        let undo = board.make_move(reply);
+        let gives_check = board.in_check(checked);
+        board.unmake_move(undo);
+        if !gives_check {
+            continue;
+        }
+        let weight = match checking_piece.map(|p| p.kind) {
+            Some(PieceKind::Queen) => 2,
+            _ => 1,
+        };
+        checks = checks
+            .saturating_add(weight)
+            .min(ROOT_PERPETUAL_MIN_CHECKS + 3);
+        if checks >= ROOT_PERPETUAL_MIN_CHECKS + 3 {
+            break;
+        }
+    }
+    checks
+}
+
 /// Static contempt at one-before-repetition positions: winning side avoids shuffle,
 /// losing side seeks it. Does not apply once a claimable draw is on the board.
 fn repetition_contempt_score(board: &Board) -> Option<i32> {
@@ -403,9 +464,12 @@ fn pick_root_raw(candidates: &[(Move, RootCandidate)], root_static: i32) -> (Opt
     let has_non_repeat = candidates.iter().any(|(_, c)| !is_repeat_candidate(c));
 
     let mut picked = candidates[0];
+    let mut picked_rank = root_practical_rank(&picked.1, root_static);
     for &(mv, c) in candidates.iter().skip(1) {
-        if c.score > picked.1.score {
+        let rank = root_practical_rank(&c, root_static);
+        if rank > picked_rank || (rank == picked_rank && c.score > picked.1.score) {
             picked = (mv, c);
+            picked_rank = rank;
         }
     }
 
@@ -520,6 +584,7 @@ fn search_root(
                 prev_move: mv,
             },
         );
+        let perpetual_risk = root_perpetual_risk(board, root_static, score);
         board.unmake_move(undo);
         candidates.push((
             mv,
@@ -528,6 +593,7 @@ fn search_root(
                 rep_count,
                 is_immediate_draw,
                 is_progress,
+                perpetual_risk,
             },
         ));
         alpha = max(alpha, score);
@@ -1205,6 +1271,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1214,6 +1281,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1233,6 +1301,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1242,6 +1311,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1262,6 +1332,7 @@ mod tests {
                     rep_count: 2,
                     is_immediate_draw: true,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1271,6 +1342,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1291,6 +1363,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1300,6 +1373,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1320,6 +1394,7 @@ mod tests {
                     rep_count: 2,
                     is_immediate_draw: true,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1329,6 +1404,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1349,6 +1425,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1358,6 +1435,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1378,6 +1456,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1387,6 +1466,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1485,6 +1565,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1494,6 +1575,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1514,6 +1596,7 @@ mod tests {
                     rep_count: 2,
                     is_immediate_draw: true,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1523,6 +1606,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1548,6 +1632,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1557,6 +1642,7 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: true,
+                    perpetual_risk: 0,
                 },
             ),
         ];
@@ -1580,6 +1666,7 @@ mod tests {
                     rep_count: 1,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
             (
@@ -1589,12 +1676,75 @@ mod tests {
                     rep_count: 0,
                     is_immediate_draw: false,
                     is_progress: false,
+                    perpetual_risk: 0,
                 },
             ),
         ];
         let (picked, score) = pick_root_raw(&candidates, 200);
         assert_eq!(picked, Some(repeat));
         assert_eq!(score, 400);
+    }
+
+    #[test]
+    fn root_raw_penalizes_bounded_perpetual_risk() {
+        let risky = Move::quiet(Square::new(7, 3), Square::new(4, 0));
+        let quiet = Move::quiet(Square::new(1, 4), Square::new(2, 5));
+        let candidates = [
+            (
+                risky,
+                RootCandidate {
+                    score: 300,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                    perpetual_risk: ROOT_PERPETUAL_MIN_CHECKS + 2,
+                },
+            ),
+            (
+                quiet,
+                RootCandidate {
+                    score: 180,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                    perpetual_risk: 0,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 300);
+        assert_eq!(picked, Some(quiet));
+        assert_eq!(score, 180);
+    }
+
+    #[test]
+    fn root_raw_keeps_risky_move_when_alternatives_are_bad() {
+        let risky = Move::quiet(Square::new(7, 3), Square::new(4, 0));
+        let bad = Move::quiet(Square::new(1, 4), Square::new(2, 5));
+        let candidates = [
+            (
+                risky,
+                RootCandidate {
+                    score: 300,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                    perpetual_risk: ROOT_PERPETUAL_MIN_CHECKS + 2,
+                },
+            ),
+            (
+                bad,
+                RootCandidate {
+                    score: 50,
+                    rep_count: 0,
+                    is_immediate_draw: false,
+                    is_progress: true,
+                    perpetual_risk: 0,
+                },
+            ),
+        ];
+        let (picked, score) = pick_root_raw(&candidates, 300);
+        assert_eq!(picked, Some(risky));
+        assert_eq!(score, 300);
     }
 
     #[test]
@@ -1631,6 +1781,85 @@ mod tests {
         );
         let mut state = SearchState::new();
         search(&board, depth, &mut budget, &mut state)
+    }
+
+    fn sgc0lgbr_epd_cases() -> Vec<(&'static str, &'static str)> {
+        include_str!("../../verifier/positions/perpetual_checks_sgc0lgbr.epd")
+            .lines()
+            .filter(|line| {
+                let trimmed = line.trim();
+                !trimmed.is_empty() && !trimmed.starts_with('#')
+            })
+            .map(|line| {
+                let fen = line
+                    .split_whitespace()
+                    .take(6)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let bad = line
+                    .split(" am ")
+                    .nth(1)
+                    .expect("am marker")
+                    .split(';')
+                    .next()
+                    .expect("am move")
+                    .trim();
+                (Box::leak(fen.into_boxed_str()) as &'static str, bad)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn sgc0lgbr_epd_bad_moves_are_legal() {
+        for (fen, bad) in sgc0lgbr_epd_cases() {
+            let board = Board::from_fen(fen).unwrap();
+            let bad_move = legal_uci(&board, bad);
+            assert_eq!(bad_move.to_uci(), bad);
+        }
+    }
+
+    #[test]
+    fn sgc0lgbr_qxe1_child_has_queen_check_pressure() {
+        const FEN: &str = "5Q2/4P2k/6p1/1b5p/7q/1p3K2/1P6/4R3 b - - 5 65";
+        let mut board = Board::from_fen(FEN).unwrap();
+        let mv = legal_uci(&board, "h4e1");
+        let undo = board.make_move(mv);
+        let risk = root_perpetual_risk(&mut board, 300, 300);
+        board.unmake_move(undo);
+        assert!(
+            risk >= ROOT_PERPETUAL_MIN_CHECKS,
+            "expected queen-check pressure, got {risk}"
+        );
+    }
+
+    #[test]
+    fn startpos_child_has_no_perpetual_risk() {
+        let mut board = Board::from_fen(STARTPOS_FEN).unwrap();
+        let mv = legal_uci(&board, "e2e4");
+        let undo = board.make_move(mv);
+        let risk = root_perpetual_risk(&mut board, 300, 300);
+        board.unmake_move(undo);
+        assert_eq!(risk, 0);
+    }
+
+    #[test]
+    #[ignore = "sGc0lGbR regression: root still needs practical perpetual-check handling"]
+    fn sgc0lgbr_avoids_ra4_leak() {
+        const FEN: &str = "r3b3/2n3pk/4P3/r3qP1p/2RNp2P/1p3B2/1P3QP1/3R2K1 b - - 0 47";
+        const BAD: &str = "a5a4";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BAD, "depth {} score {}", res.depth, res.score);
+    }
+
+    #[test]
+    #[ignore = "sGc0lGbR regression: ...Qxe1 allows immediate perpetual checks"]
+    fn sgc0lgbr_avoids_qxe1_perpetual() {
+        const FEN: &str = "5Q2/4P2k/6p1/1b5p/7q/1p3K2/1P6/4R3 b - - 5 65";
+        const BAD: &str = "h4e1";
+        let res = tactical_search(FEN, 8);
+        let mv = res.best_move.expect("move");
+        assert_ne!(mv.to_uci(), BAD, "depth {} score {}", res.depth, res.score);
     }
 
     #[test]
