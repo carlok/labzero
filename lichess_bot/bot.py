@@ -845,6 +845,10 @@ def engine_limit(cfg: BotConfig, board: chess.Board, state: dict[str, Any] | Non
         )
         if cfg.max_movetime_ms is not None:
             limit.time = cfg.max_movetime_ms / 1000.0
+        own_clock = limit.white_clock if board.turn == chess.WHITE else limit.black_clock
+        panic_cap = low_clock_movetime_cap(own_clock)
+        if panic_cap is not None:
+            limit.time = min(limit.time, panic_cap) if limit.time is not None else panic_cap
         return limit
     if cfg.search_depth is not None:
         return chess.engine.Limit(depth=cfg.search_depth)
@@ -856,6 +860,16 @@ def engine_limit(cfg: BotConfig, board: chess.Board, state: dict[str, Any] | Non
         white_inc=cfg.clock_increment,
         black_inc=cfg.clock_increment,
     )
+
+
+def low_clock_movetime_cap(own_clock_sec: float | None) -> float | None:
+    if own_clock_sec is None:
+        return None
+    if own_clock_sec <= 8:
+        return 0.5
+    if own_clock_sec <= 15:
+        return 1.0
+    return None
 
 
 def user_id(user: dict[str, Any] | None) -> str:
@@ -1147,6 +1161,37 @@ def is_stale_move_error(exc: Exception) -> bool:
     return "already over" in detail or "not your turn" in detail
 
 
+def is_transient_network_error(exc: Exception) -> bool:
+    if isinstance(exc, ApiError):
+        detail = describe_error(exc).lower()
+        return any(code in detail for code in ("http 429", "http 500", "http 502", "http 503", "http 504"))
+    return isinstance(exc, (TimeoutError, ConnectionError, urllib.error.URLError))
+
+
+def bot_make_move_with_retry(
+    token: str,
+    game_id: str,
+    move: str,
+    offering_draw: bool = False,
+    *,
+    attempts: int = 3,
+) -> None:
+    for attempt in range(1, attempts + 1):
+        try:
+            bot_make_move(token, game_id, move, offering_draw)
+            return
+        except Exception as exc:
+            if is_stale_move_error(exc) or not is_transient_network_error(exc) or attempt >= attempts:
+                raise
+            delay = min(2.0, 0.5 * attempt)
+            log(
+                "API",
+                f"{game_id} move post retry {attempt + 1}/{attempts} after: {describe_error(exc)}",
+                Color.GRAY,
+            )
+            time.sleep(delay)
+
+
 def book_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
     if not cfg.polyglot_books or board.ply() >= cfg.polyglot_max_depth:
         return None
@@ -1371,6 +1416,32 @@ def finish_played_game(
     state.record_finished_game(summary, opponent_keys)
 
 
+def resilient_bot_game_stream(token: str, game_id: str, state: RuntimeState) -> Any:
+    reconnects = 0
+    while not state.stop.is_set():
+        try:
+            saw_event = False
+            for event in bot_game_stream(token, game_id):
+                saw_event = True
+                reconnects = 0
+                yield event
+            if saw_event:
+                log("API", f"{game_id} game stream ended; reconnecting", Color.GRAY)
+            else:
+                log("API", f"{game_id} game stream ended without events; reconnecting", Color.GRAY)
+        except Exception as exc:
+            if not is_transient_network_error(exc):
+                raise
+            reconnects += 1
+            delay = min(10.0, 1.5 * reconnects)
+            log(
+                "API",
+                f"{game_id} game stream reconnect {reconnects} after: {describe_error(exc)}",
+                Color.GRAY,
+            )
+            time.sleep(delay)
+
+
 def play_game(
     token: str,
     engine: chess.engine.SimpleEngine,
@@ -1390,9 +1461,10 @@ def play_game(
     finished = False
     state.update_game(game_id, "starting")
     try:
-        for event in bot_game_stream(token, game_id):
+        for event in resilient_bot_game_stream(token, game_id, state):
             etype = event.get("type")
             if etype == "gameFull":
+                first_full = game_full is None
                 game_full = event
                 color = bot_color_from_full(event, account_id)
                 if color is None:
@@ -1400,12 +1472,13 @@ def play_game(
                     return
                 side = "white" if color == chess.WHITE else "black"
                 state.update_game(game_id, f"color={side}")
-                log("START", f"▶️ {game_id} bot={side} {matchup_label(event)}", Color.RED)
-                notify(cfg, notify_message_start(game_id, cfg, color, event))
-                opponent_player = player_obj(event, "black" if color == chess.WHITE else "white")
-                if quota is not None and is_bot_user(opponent_player) and state.consume_outgoing_bot_game(opponent_player):
-                    quota.record_attempt()
-                    quota.log_status()
+                if first_full:
+                    log("START", f"▶️ {game_id} bot={side} {matchup_label(event)}", Color.RED)
+                    notify(cfg, notify_message_start(game_id, cfg, color, event))
+                    opponent_player = player_obj(event, "black" if color == chess.WHITE else "white")
+                    if quota is not None and is_bot_user(opponent_player) and state.consume_outgoing_bot_game(opponent_player):
+                        quota.record_attempt()
+                        quota.log_status()
                 game_state = event.get("state", {})
             elif etype == "gameState":
                 game_state = event
@@ -1493,8 +1566,8 @@ def play_game(
             score_suffix = f" score={decision.score_cp}" if decision.score_cp is not None else ""
             log("MOVE", f"{game_id} posting ply={ply + 1} {decision.move.uci()} source={decision.source}{score_suffix}{draw_suffix}", Color.BLUE)
             try:
-                bot_make_move(token, game_id, decision.move.uci(), decision.offer_draw)
-            except ApiError as exc:
+                bot_make_move_with_retry(token, game_id, decision.move.uci(), decision.offer_draw)
+            except Exception as exc:
                 if is_stale_move_error(exc):
                     finish_game_after_api_over(
                         token,
@@ -1674,7 +1747,9 @@ def run_game_worker(
     try:
         play_game(token, engine, game_id, account_id, cfg, state, quota)
     except Exception as exc:
-        log("API", f"game {game_id} stopped with error: {describe_error(exc)}", Color.GRAY)
+        detail = describe_error(exc)
+        log("API", f"game {game_id} stopped with error: {detail}", Color.GRAY)
+        notify(cfg, f"⚠️ GAME WORKER STOPPED {game_id}\n{detail}\n{game_url(game_id)}")
 
 
 def api_request(token: str, method: str, path: str, data: dict[str, Any] | None = None) -> Any:
