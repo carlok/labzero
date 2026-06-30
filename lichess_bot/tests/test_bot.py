@@ -390,6 +390,24 @@ def test_runtime_state_sigint_paths_without_forcing_exit(monkeypatch):
     assert state._force_quit is True
 
 
+def test_run_game_worker_notifies_on_unexpected_exit(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path, notify_provider="telegram")
+    state = bot.RuntimeState()
+    notifications: list[str] = []
+    monkeypatch.setattr(
+        bot,
+        "play_game",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    monkeypatch.setattr(bot, "notify", lambda cfg, text: notifications.append(text))
+
+    bot.run_game_worker("token", object(), "game1", "labzerobot0", cfg, state)
+
+    assert len(notifications) == 1
+    assert "GAME WORKER STOPPED game1" in notifications[0]
+    assert "boom" in notifications[0]
+
+
 def test_clock_limit_uses_milliseconds_and_overhead(tmp_path):
     cfg = make_config(tmp_path, move_overhead_ms=500, max_movetime_ms=5000)
     limit = bot.engine_limit(
@@ -404,6 +422,18 @@ def test_clock_limit_uses_milliseconds_and_overhead(tmp_path):
     assert limit.black_inc == pytest.approx(0.5)
     assert limit.time == pytest.approx(5.0)
     assert bot.clock_seconds(1000, 2) == pytest.approx(1.0)
+
+
+def test_engine_limit_caps_movetime_on_low_clock(tmp_path):
+    cfg = make_config(tmp_path, move_overhead_ms=500, max_movetime_ms=5000)
+    limit = bot.engine_limit(
+        cfg,
+        chess.Board(),
+        {"wtime": 6000, "btime": 180000, "winc": 2000, "binc": 2000},
+    )
+
+    assert limit.white_clock == pytest.approx(5.5)
+    assert limit.time == pytest.approx(0.5)
 
 
 def test_engine_limit_prefers_depth_or_movetime(tmp_path):
@@ -837,6 +867,51 @@ def test_play_game_sends_hello_after_first_ply(monkeypatch, tmp_path):
     assert "🤝 DRAW game1" in notifications[1]
 
 
+def test_play_game_reconnects_after_transient_stream_drop(monkeypatch, tmp_path):
+    cfg = make_config(tmp_path)
+    state = bot.RuntimeState()
+    state.begin_game("game1", "starting")
+    posted: list[tuple[str, str]] = []
+    monkeypatch.setattr(bot.time, "sleep", lambda delay: None)
+    monkeypatch.setattr(bot, "maybe_chat", lambda *args, **kwargs: None)
+    monkeypatch.setattr(bot, "notify", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        bot,
+        "choose_move",
+        lambda *args, **kwargs: bot.MoveDecision(chess.Move.from_uci("e7e5"), score_cp=0),
+    )
+    monkeypatch.setattr(
+        bot,
+        "bot_make_move",
+        lambda token, game_id, move, offering_draw=False: posted.append((game_id, move)),
+    )
+
+    def dropped_stream():
+        yield {
+            "type": "gameFull",
+            "white": {"id": "maia5", "name": "maia5", "title": "BOT", "rating": 1510},
+            "black": {"id": "labzerobot0", "name": "LabZeroBot0", "title": "BOT", "rating": 1500},
+            "state": {"moves": "", "wtime": 180000, "btime": 180000},
+        }
+        raise bot.urllib.error.URLError("temporary stream drop")
+
+    streams = [
+        dropped_stream(),
+        iter(
+            [
+                {"type": "gameState", "moves": "e2e4", "wtime": 180000, "btime": 180000},
+                {"type": "gameState", "moves": "e2e4 e7e5", "status": "draw"},
+            ]
+        ),
+    ]
+    monkeypatch.setattr(bot, "bot_game_stream", lambda token, game_id: streams.pop(0))
+
+    bot.play_game("token", object(), "game1", "labzerobot0", cfg, state)
+
+    assert posted == [("game1", "e7e5")]
+    assert state.active_count() == 0
+
+
 def test_play_game_counts_quota_only_when_pending_bot_game_starts(monkeypatch, tmp_path):
     cfg = make_config(tmp_path)
     quota = bot.ChallengeQuota(str(tmp_path / "quota.json"), daily_limit=100, margin=10)
@@ -939,6 +1014,37 @@ def test_is_stale_move_error():
         bot.ApiError('HTTP 400: {"error":"Not your turn, or game already over"}')
     )
     assert not bot.is_stale_move_error(bot.ApiError("HTTP 500"))
+
+
+def test_bot_make_move_with_retry_retries_transient_error(monkeypatch):
+    calls = []
+
+    def flaky_move(*args, **kwargs):
+        calls.append(args)
+        if len(calls) == 1:
+            raise bot.urllib.error.URLError("temporary network drop")
+
+    monkeypatch.setattr(bot.time, "sleep", lambda delay: None)
+    monkeypatch.setattr(bot, "bot_make_move", flaky_move)
+
+    bot.bot_make_move_with_retry("token", "game1", "e2e4", False)
+
+    assert len(calls) == 2
+
+
+def test_bot_make_move_with_retry_does_not_retry_stale_error(monkeypatch):
+    calls = []
+
+    def stale_move(*args, **kwargs):
+        calls.append(args)
+        raise bot.ApiError('HTTP 400: {"error":"Not your turn, or game already over"}')
+
+    monkeypatch.setattr(bot, "bot_make_move", stale_move)
+
+    with pytest.raises(bot.ApiError):
+        bot.bot_make_move_with_retry("token", "game1", "e2e4", False)
+
+    assert len(calls) == 1
 
 
 def test_challenge_cooldown_seconds_parses_rate_limit():
