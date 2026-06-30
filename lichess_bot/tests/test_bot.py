@@ -493,6 +493,33 @@ def test_small_helpers_cover_empty_and_error_paths(tmp_path):
     assert bot.syzygy_move(chess.Board(), make_config(tmp_path)) is None
 
 
+def test_syzygy_selection_prefers_shortest_win():
+    slow_win = chess.Move.from_uci("e1e2")
+    fast_win = chess.Move.from_uci("e1f1")
+
+    picked = bot.select_syzygy_move([(2, 24, slow_win), (2, 6, fast_win)])
+
+    assert picked == fast_win
+
+
+def test_syzygy_selection_prefers_draw_over_long_loss():
+    draw = chess.Move.from_uci("e1e2")
+    long_loss = chess.Move.from_uci("e1f1")
+
+    picked = bot.select_syzygy_move([(0, 2, draw), (-2, 90, long_loss)])
+
+    assert picked == draw
+
+
+def test_syzygy_selection_prefers_longest_resistance_when_losing():
+    short_loss = chess.Move.from_uci("e1e2")
+    long_loss = chess.Move.from_uci("e1f1")
+
+    picked = bot.select_syzygy_move([(-2, 8, short_loss), (-2, 80, long_loss)])
+
+    assert picked == long_loss
+
+
 def test_maybe_chat_ignores_empty_and_api_errors(monkeypatch):
     calls = []
 

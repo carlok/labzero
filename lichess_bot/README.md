@@ -379,6 +379,20 @@ syzygy_paths = []
 syzygy_max_pieces = 7
 ```
 
+When `syzygy_paths` points to local tablebase directories, the bot probes
+Syzygy before asking LabZero whenever `piece_count <= syzygy_max_pieces`.
+Tablebase files are not part of this repository and should stay under a local,
+gitignored path. Example:
+
+```toml
+syzygy_paths = ["/Volumes/tablebases/syzygy/3-4-5", "/Volumes/tablebases/syzygy/6-7"]
+syzygy_max_pieces = 7
+```
+
+Move ordering is exact by tablebase result: winning moves are preferred over
+draws and losses, faster wins are preferred, and losing positions choose the
+longest available resistance.
+
 ## Notifications
 
 Game-start and game-end notifications are optional and disabled by default. To

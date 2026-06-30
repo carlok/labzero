@@ -23,6 +23,7 @@ move_overhead_ms = 500
 # max_movetime_ms = 5000
 
 # Optional tablebase/book helpers. Empty lists keep all moves engine-only.
+# Syzygy files are local operator data; do not commit them to the repo.
 polyglot_books = []
 polyglot_max_depth = 20
 syzygy_paths = []

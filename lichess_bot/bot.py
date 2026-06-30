@@ -1232,8 +1232,8 @@ def syzygy_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
                 board.push(move)
                 try:
                     wdl = -tablebase.probe_wdl(board)
-                    dtz = abs(tablebase.probe_dtz(board))
-                    scored.append((wdl, -dtz, move))
+                    dtz = tablebase.probe_dtz(board)
+                    scored.append((wdl, dtz, move))
                 except Exception:
                     pass
                 finally:
@@ -1241,7 +1241,27 @@ def syzygy_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
     except Exception as exc:
         log("TB", f"tablebase ignored: {describe_error(exc)}", Color.GRAY)
         return None
-    return max(scored, default=(0, 0, None))[2]  # type: ignore[return-value]
+    return select_syzygy_move(scored)
+
+
+def syzygy_dtz_preference(wdl: int, dtz: int) -> int:
+    dtz_abs = abs(dtz)
+    if wdl > 0:
+        return -dtz_abs
+    if wdl < 0:
+        return dtz_abs
+    return -dtz_abs
+
+
+def select_syzygy_move(scored: list[tuple[int, int, chess.Move]]) -> chess.Move | None:
+    if not scored:
+        return None
+    ranked = [
+        (wdl, syzygy_dtz_preference(wdl, dtz), move.uci(), move)
+        for wdl, dtz, move in scored
+    ]
+    ranked.sort(key=lambda item: (-item[0], -item[1], item[2]))
+    return ranked[0][3]
 
 
 def choose_move(
