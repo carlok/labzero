@@ -1,0 +1,14 @@
+# Streaming Lichess PGN -> EPD puzzle generator.
+input_dir = "experiments/puzzle/puzzles/lichess"
+output_dir = "experiments/puzzle/puzzles/generated/latest"
+stockfish = "/opt/homebrew/bin/stockfish"
+
+min_elo = 2030
+sample_games = 20
+max_games_scanned = 20000
+max_puzzles = 20
+max_positions_per_game = 8
+min_ply = 12
+stockfish_nodes = 30000
+min_gap_cp = 180
+seed = 1

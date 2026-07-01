@@ -64,8 +64,78 @@ def log(label: str, msg: str, color: str = Color.GRAY) -> None:
     print(f"{paint(f'[{label}]', color)} {msg}", flush=True)
 
 
+def side_label(color: chess.Color) -> str:
+    return "⚪ White" if color == chess.WHITE else "🔵 Black"
+
+
+def move_number_label(ply_before_move: int, color: chess.Color) -> str:
+    move_no = ply_before_move // 2 + 1
+    dots = "." if color == chess.WHITE else "..."
+    return f"{move_no}{dots}"
+
+
+def move_source_label(source: str) -> str:
+    labels = {
+        "book": "📚 book",
+        "tablebase": "🧩 tablebase no-book",
+        "engine": "🧠 engine no-book",
+    }
+    return labels.get(source, f"❔ {source} no-book")
+
+
+def move_role_label(is_me: bool) -> str:
+    return "🤖 ME" if is_me else "🆚 OPP"
+
+
+def format_move_line(
+    game_id: str | None,
+    ply_before_move: int,
+    color: chess.Color,
+    move_uci: str,
+    *,
+    is_me: bool,
+    source: str | None = None,
+    status: str | None = None,
+    score_cp: int | None = None,
+    draw_suffix: str = "",
+) -> str:
+    move_no = move_number_label(ply_before_move, color)
+    move_no_color = Color.BLUE if is_me else Color.YELLOW
+    parts = [
+        paint(move_no, move_no_color),
+        move_role_label(is_me),
+        side_label(color),
+        move_uci,
+    ]
+    if source:
+        parts.append(move_source_label(source))
+    if score_cp is not None:
+        parts.append(f"score={score_cp:+d}")
+    if status:
+        parts.append(status)
+    if game_id:
+        parts.append(f"game={game_id}")
+    if draw_suffix:
+        parts.append(draw_suffix.strip())
+    return " ".join(parts)
+
+
 class ApiError(RuntimeError):
     pass
+
+
+LOG_LEVELS = {"quiet": 0, "normal": 1, "verbose": 2}
+
+
+def normalize_log_level(value: Any) -> str:
+    level = str(value or "normal").strip().lower()
+    if level not in LOG_LEVELS:
+        raise ValueError("log_level must be one of: quiet, normal, verbose")
+    return level
+
+
+def log_allows(cfg: "BotConfig", level: str) -> bool:
+    return LOG_LEVELS[cfg.log_level] >= LOG_LEVELS[level]
 
 
 def describe_error(exc: Exception) -> str:
@@ -133,6 +203,7 @@ class BotConfig:
     opponent_cooldown_file: str
     challenge_interval_sec: int
     heartbeat_sec: int
+    log_level: str
     move_overhead_ms: int
     max_movetime_ms: int | None
     accept_from: str
@@ -145,6 +216,7 @@ class BotConfig:
     chat_rooms: list[str]
     polyglot_books: list[str]
     polyglot_max_depth: int
+    opening_first_move: str
     syzygy_paths: list[str]
     syzygy_max_pieces: int
     resign_enabled: bool
@@ -199,6 +271,9 @@ class BotConfig:
         if notify_provider not in {"none", "telegram"}:
             raise ValueError("notify_provider must be one of: none, telegram")
         chat_rooms = normalized_chat_rooms(cfg.get("chat_rooms", ["player"]))
+        opening_first_move = str(cfg.get("opening_first_move", "book")).lower()
+        if opening_first_move not in {"book", "e4", "d4"}:
+            raise ValueError("opening_first_move must be one of: book, e4, d4")
         expected_score_min = optional_float(cfg.get("target_expected_score_min"))
         expected_score_max = optional_float(cfg.get("target_expected_score_max"))
         validate_expected_score_window(expected_score_min, expected_score_max)
@@ -227,6 +302,7 @@ class BotConfig:
             opponent_cooldown_file=resolve_path(str(cfg.get("opponent_cooldown_file", "lichess_bot/local/opponent-cooldown.json"))),
             challenge_interval_sec=int(cfg.get("challenge_interval_sec", 90)),
             heartbeat_sec=int(cfg.get("heartbeat_sec", 25)),
+            log_level=normalize_log_level(os.environ.get("LABZERO_BOT_LOG_LEVEL", cfg.get("log_level", "normal"))),
             move_overhead_ms=int(cfg.get("move_overhead_ms", 500)),
             max_movetime_ms=optional_int(cfg.get("max_movetime_ms")),
             accept_from=accept_from,
@@ -239,6 +315,7 @@ class BotConfig:
             chat_rooms=chat_rooms,
             polyglot_books=resolved_path_list(cfg.get("polyglot_books", [])),
             polyglot_max_depth=int(cfg.get("polyglot_max_depth", 20)),
+            opening_first_move=opening_first_move,
             syzygy_paths=resolved_path_list(cfg.get("syzygy_paths", [])),
             syzygy_max_pieces=int(cfg.get("syzygy_max_pieces", 7)),
             resign_enabled=bool(cfg.get("resign_enabled", False)),
@@ -538,9 +615,11 @@ class RuntimeState:
         os._exit(130)
 
 
-def heartbeat(state: RuntimeState, interval: int) -> None:
+def heartbeat(state: RuntimeState, cfg: BotConfig) -> None:
     while not state.stop.is_set():
-        time.sleep(interval)
+        time.sleep(cfg.heartbeat_sec)
+        if not log_allows(cfg, "verbose"):
+            continue
         for game_id, text in state.snapshot().items():
             log("PLAYING", f"game={game_id} {text}", Color.RED)
 
@@ -982,11 +1061,16 @@ def dry_run_test(engine_path: str, cfg: BotConfig) -> None:
         for ply in range(20):
             if board.is_game_over():
                 break
+            side = board.turn
             result = eng.play(board, dry_run_limit(cfg))
             if result.move not in board.legal_moves:
                 raise RuntimeError(f"illegal move {result.move}")
+            log(
+                "MOVE",
+                format_move_line(None, ply, side, result.move.uci(), is_me=True, source="engine"),
+                Color.BLUE,
+            )
             board.push(result.move)
-            log("MOVE", f"ply={ply + 1} {result.move.uci()}", Color.BLUE)
     log("IDLE", "dry-run PASS (20 plies)", Color.GREEN)
 
 
@@ -1372,6 +1456,16 @@ def bot_make_move_with_retry(
             time.sleep(delay)
 
 
+def preferred_first_book_move(board: chess.Board, entries: list[chess.polyglot.Entry], preference: str) -> chess.Move | None:
+    if preference == "book" or board.ply() != 0 or board.turn != chess.WHITE:
+        return None
+    wanted = chess.Move.from_uci("e2e4" if preference == "e4" else "d2d4")
+    for entry in entries:
+        if entry.move == wanted:
+            return entry.move
+    return None
+
+
 def book_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
     if not cfg.polyglot_books or board.ply() >= cfg.polyglot_max_depth:
         return None
@@ -1387,6 +1481,14 @@ def book_move(board: chess.Board, cfg: BotConfig) -> chess.Move | None:
             continue
         if not entries:
             continue
+        preferred = preferred_first_book_move(board, entries, cfg.opening_first_move)
+        if preferred is not None:
+            log(
+                "BOOK",
+                f"ply={board.ply()} move={preferred.uci()} book={path.name} preference={cfg.opening_first_move} entries={len(entries)}",
+                Color.BLUE,
+            )
+            return preferred
         total = sum(max(1, entry.weight) for entry in entries)
         pick = random.randint(1, total)
         upto = 0
@@ -1658,6 +1760,7 @@ def play_game(
 ) -> None:
     color: chess.Color | None = None
     last_handled_moves: str | None = None
+    last_logged_opponent_moves: str | None = None
     game_full: dict[str, Any] | None = None
     game_state: dict[str, Any] = {}
     resign_count = 0
@@ -1697,6 +1800,28 @@ def play_game(
             board = board_from_moves(moves)
             ply = board.ply()
             state.update_game(game_id, f"ply={ply} turn={'white' if board.turn else 'black'}")
+
+            if (
+                color is not None
+                and moves.strip()
+                and moves != last_logged_opponent_moves
+                and board.turn == color
+            ):
+                opponent_color = not color
+                last_move = moves.split()[-1]
+                log(
+                    "MOVE",
+                    format_move_line(
+                        game_id,
+                        ply - 1,
+                        opponent_color,
+                        last_move,
+                        is_me=False,
+                        status="received",
+                    ),
+                    Color.YELLOW,
+                )
+                last_logged_opponent_moves = moves
 
             # Lichess UI drops player chat posted before the first ply (API still returns 200).
             if not hello_sent and moves.strip() and game_full is not None and color is not None:
@@ -1768,8 +1893,21 @@ def play_game(
                 draw_suffix = " acceptingDraw=true"
             else:
                 draw_suffix = " offeringDraw=true" if decision.offer_draw else ""
-            score_suffix = f" score={decision.score_cp}" if decision.score_cp is not None else ""
-            log("MOVE", f"{game_id} posting ply={ply + 1} {decision.move.uci()} source={decision.source}{score_suffix}{draw_suffix}", Color.BLUE)
+            log(
+                "MOVE",
+                format_move_line(
+                    game_id,
+                    ply,
+                    color,
+                    decision.move.uci(),
+                    is_me=True,
+                    source=decision.source,
+                    status="posting",
+                    score_cp=decision.score_cp,
+                    draw_suffix=draw_suffix,
+                ),
+                Color.BLUE,
+            )
             try:
                 bot_make_move_with_retry(token, game_id, decision.move.uci(), decision.offer_draw)
             except Exception as exc:
@@ -1789,7 +1927,20 @@ def play_game(
                     finished = True
                     return
                 raise
-            log("MOVE", f"{game_id} accepted ply={ply + 1} {decision.move.uci()}", Color.BLUE)
+            if log_allows(cfg, "verbose"):
+                log(
+                    "MOVE",
+                    format_move_line(
+                        game_id,
+                        ply,
+                        color,
+                        decision.move.uci(),
+                        is_me=True,
+                        source=decision.source,
+                        status="accepted",
+                    ),
+                    Color.GREEN,
+                )
             last_handled_moves = f"{moves} {decision.move.uci()}".strip()
     finally:
         state.end_game(game_id, finished=finished)
@@ -2375,13 +2526,14 @@ def run_live(
     account_id = str(account.get("id") or account.get("username") or account.get("name") or "").lower()
     state = RuntimeState(games_limit=games_limit, opponent_cooldown_file=cfg.opponent_cooldown_file)
     signal.signal(signal.SIGINT, state.handle_sigint)
-    threading.Thread(target=heartbeat, args=(state, cfg.heartbeat_sec), daemon=True).start()
+    threading.Thread(target=heartbeat, args=(state, cfg), daemon=True).start()
 
     games_text = f" games={games_limit}" if games_limit is not None else ""
     selection_text = " selection=closest-superior" if closest_superior else ""
     log(
         "CONFIG",
         f"mode={mode} rated={str(cfg.rated).lower()} tc={cfg.clock_limit // 60}+{cfg.clock_increment} "
+        f"log={cfg.log_level} "
         f"threads={cfg.uci_threads} engine={cfg.engine}{games_text}{selection_text}",
         Color.GRAY,
     )

@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import chess
@@ -25,6 +26,7 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.max_parallel_games == 1
     assert cfg.accept_from == "any"
     assert cfg.challenge_color == "random"
+    assert cfg.log_level == "normal"
     assert cfg.max_bot_challenges_per_day == 100
     assert cfg.bot_challenge_quota_margin == 10
     assert cfg.move_overhead_ms == 500
@@ -50,6 +52,7 @@ def test_config_defaults_and_validation(tmp_path):
     assert cfg.cancel_stale_outgoing_challenges is True
     assert cfg.opponent_cooldown_sec == 1200
     assert cfg.chat_rooms == ["player"]
+    assert cfg.opening_first_move == "book"
     assert cfg.target_expected_score_min is None
     assert cfg.target_expected_score_max is None
 
@@ -57,6 +60,10 @@ def test_config_defaults_and_validation(tmp_path):
         make_config(tmp_path, accept_from="everyone")
     with pytest.raises(ValueError, match="challenge_color"):
         make_config(tmp_path, challenge_color="blue")
+    with pytest.raises(ValueError, match="log_level"):
+        make_config(tmp_path, log_level="chatty")
+    with pytest.raises(ValueError, match="opening_first_move"):
+        make_config(tmp_path, opening_first_move="c4")
     with pytest.raises(ValueError, match="threads"):
         make_config(tmp_path, threads=0)
     with pytest.raises(ValueError, match="notify_provider"):
@@ -72,6 +79,54 @@ def test_config_defaults_and_validation(tmp_path):
 
     both_rooms = make_config(tmp_path, chat_rooms=["player", "spectator", "player"])
     assert both_rooms.chat_rooms == ["player", "spectator"]
+
+
+def test_move_line_formatting_is_readable():
+    me = bot.format_move_line(
+        "game1",
+        17,
+        chess.BLACK,
+        "e7e5",
+        is_me=True,
+        source="book",
+        status="posting",
+        score_cp=42,
+    )
+    assert "9..." in me
+    assert "🤖 ME" in me
+    assert "🔵 Black" in me
+    assert "e7e5" in me
+    assert "📚 book" in me
+    assert "score=+42" in me
+    assert "posting" in me
+    assert "game=game1" in me
+
+    opponent = bot.format_move_line(
+        "game1",
+        16,
+        chess.WHITE,
+        "e2e4",
+        is_me=False,
+        status="received",
+    )
+    assert "9." in opponent
+    assert "🆚 OPP" in opponent
+    assert "⚪ White" in opponent
+    assert "received" in opponent
+
+
+def test_move_source_labels_show_book_or_no_book():
+    assert bot.move_source_label("book") == "📚 book"
+    assert bot.move_source_label("engine") == "🧠 engine no-book"
+    assert bot.move_source_label("tablebase") == "🧩 tablebase no-book"
+
+
+def test_log_level_env_override(monkeypatch, tmp_path):
+    monkeypatch.setenv("LABZERO_BOT_LOG_LEVEL", "verbose")
+    cfg = make_config(tmp_path, log_level="quiet")
+    assert cfg.log_level == "verbose"
+    assert bot.log_allows(cfg, "normal")
+    assert bot.log_allows(cfg, "verbose")
 
 
 def test_notify_message_formatting(tmp_path):
@@ -635,6 +690,32 @@ def test_syzygy_selection_prefers_longest_resistance_when_losing():
     picked = bot.select_syzygy_move([(-2, 8, short_loss), (-2, 80, long_loss)])
 
     assert picked == long_loss
+
+
+@dataclass
+class FakeBookEntry:
+    move: chess.Move
+    weight: int = 1
+
+
+def test_preferred_first_book_move_uses_configured_book_move_only():
+    board = chess.Board()
+    entries = [
+        FakeBookEntry(chess.Move.from_uci("g1f3")),
+        FakeBookEntry(chess.Move.from_uci("d2d4")),
+    ]
+
+    assert bot.preferred_first_book_move(board, entries, "d4") == chess.Move.from_uci("d2d4")
+    assert bot.preferred_first_book_move(board, entries, "e4") is None
+    assert bot.preferred_first_book_move(board, entries, "book") is None
+
+
+def test_preferred_first_book_move_applies_only_to_white_first_move():
+    board = chess.Board()
+    board.push(chess.Move.from_uci("g1f3"))
+    entries = [FakeBookEntry(chess.Move.from_uci("d7d5"))]
+
+    assert bot.preferred_first_book_move(board, entries, "d4") is None
 
 
 def test_maybe_chat_ignores_empty_and_api_errors(monkeypatch):

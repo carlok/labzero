@@ -1,0 +1,9 @@
+# Live-loss regression pack from Lichess rated games, 2026-06-29.
+# Format: FEN ; avoid <uci> ; game <id> ; note <short motif>
+
+2r1r1k1/Q4p1p/p7/3PnRp1/7q/P2bPB2/6PP/1R2B1K1 b - - 7 27 ; avoid d3f5 ; game Ylm5gPiP ; note bishop-takes-rook allows passer/king-race collapse
+r3k2r/1pq2ppp/1pppbn2/4p1B1/2P1P3/3Q2N1/PPP2PPP/R2R2K1 b kq - 3 13 ; avoid e8e7 ; game r1T0DSII ; note central king exposure with major pieces
+3r2k1/p4ppp/4pn2/qr6/3p1P2/1P1N1P1P/2PQ2P1/1K1RR3 b - - 9 26 ; avoid f6d5 ; game VW7gME5T ; note rook-endgame transition weakens passer control
+3r2k1/p4ppp/4p3/r7/3p1P2/1P1N1P1P/1KPn2P1/R3R3 b - - 11 33 ; avoid d8b8 ; game VW7gME5T ; note rook activity/passers
+4r1k1/2pn1ppp/1b1p2b1/qp4P1/1n1PP2N/1B2B2P/1P1NQP2/5RK1 b - - 4 20 ; avoid g6e4 ; game W5Oabzqf ; note king-side tactical collapse
+8/5pp1/8/3p2k1/8/3b2P1/R2r3r/2Q3K1 b - - 5 57 ; avoid g5f5 ; game F32jcqS3 ; note late king walk into mating net

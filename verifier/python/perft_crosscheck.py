@@ -35,6 +35,21 @@ SMOKE_DEPTHS = {
 SKIP_PERFT_EPD = {"tactical.epd"}
 
 
+def fen_from_position_line(line: str) -> str | None:
+    text = line.strip()
+    if not text or text.startswith("#") or " " not in text:
+        return None
+    position = text.split(";", 1)[0].strip()
+    parts = position.split()
+    if len(parts) >= 6 and parts[4].isdigit() and parts[5].isdigit():
+        return " ".join(parts[:6])
+    if len(parts) >= 4:
+        board = chess.Board()
+        board.set_epd(" ".join(parts[:4]))
+        return board.fen()
+    return None
+
+
 def load_epd_cases(positions_dir: Path, smoke: bool) -> list[tuple[str, str, list[int]]]:
     cases: list[tuple[str, str, list[int]]] = []
     if not positions_dir.exists():
@@ -43,8 +58,8 @@ def load_epd_cases(positions_dir: Path, smoke: bool) -> list[tuple[str, str, lis
         if epd.name in SKIP_PERFT_EPD:
             continue
         for line in epd.read_text().splitlines():
-            fen = line.strip()
-            if not fen or fen.startswith("#") or " " not in fen:
+            fen = fen_from_position_line(line)
+            if fen is None:
                 continue
             depths = SMOKE_DEPTHS["default"] if smoke else [1, 2, 3, 4]
             cases.append((f"{epd.stem}:{fen[:20]}", fen, depths))

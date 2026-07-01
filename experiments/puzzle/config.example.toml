@@ -1,0 +1,15 @@
+# Copy or override from the CLI for local runs.
+puzzles_dir = "experiments/puzzle/puzzles"
+out = "experiments/puzzle/out/latest.jsonl"
+report = "experiments/puzzle/reports/latest.md"
+
+labzero = "target/release/labzero"
+stockfish = "/opt/homebrew/bin/stockfish"
+
+# Use exactly one of labzero_depth / labzero_movetime_ms.
+labzero_depth = 8
+# labzero_movetime_ms = 500
+
+stockfish_nodes = 30000
+max_positions = 200
+worst_limit = 50

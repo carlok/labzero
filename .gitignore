@@ -39,6 +39,27 @@ docs/strength/benchmark_20260628T075*.pgn
 docs/strength/benchmark_20260628T075*.txt
 docs/strength/benchmark_20260628T080020Z.pgn
 docs/strength/benchmark_20260628T080020Z.txt
+docs/strength/benchmark_20260628T113901Z.pgn
+docs/strength/benchmark_20260628T113901Z.txt
+docs/strength/benchmark_20260628T114956Z.pgn
+docs/strength/benchmark_20260628T114956Z.txt
+docs/strength/benchmark_20260628T122107Z.pgn
+docs/strength/benchmark_20260628T122107Z.txt
+docs/strength/benchmark_20260628T123050Z.pgn
+docs/strength/benchmark_20260628T123050Z.txt
+docs/strength/benchmark_20260629T154205Z.pgn
+docs/strength/benchmark_20260629T154205Z.txt
+docs/strength/benchmark_20260630T044254Z.pgn
+docs/strength/benchmark_20260630T044254Z.txt
+docs/strength/benchmark_20260630T121950Z.pgn
+docs/strength/benchmark_20260630T121950Z.txt
+docs/strength/benchmark_20260630T124431Z.pgn
+docs/strength/benchmark_20260630T124431Z.txt
+docs/strength/benchmark_20260630T185923Z.pgn
+docs/strength/benchmark_20260630T185923Z.txt
+docs/perf/nps_20260628T172945Z.tsv
+docs/perf/nps_20260628T173314Z.tsv
+docs/perf/nps_20260629T154138Z.tsv
 
 # Residual NNUE WIP (not on main engine path yet)
 pyproject.toml
@@ -63,3 +84,9 @@ data/
 
 priv/
 .DS_Store
+
+# Puzzle-oracle experiment outputs. Keep inputs/config tracked; generated runs local.
+experiments/puzzle/out/
+experiments/puzzle/reports/
+experiments/puzzle/puzzles/lichess/
+experiments/puzzle/puzzles/generated/
